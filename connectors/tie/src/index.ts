@@ -8,6 +8,7 @@ import { loadConfig } from './config.js';
 import { configureStore, customTools, setSharedStore } from './custom-tools.js';
 import { dispatchTool } from './dispatch.js';
 import { liveFreshness } from './freshness.js';
+import { ConnectorLogger } from './logger.js';
 import { tools as generatedTools, type ToolInputSchema } from './generated/tools.js';
 
 type Args = Record<string, unknown>;
@@ -124,6 +125,7 @@ function registerTools(client: TIEClient, cache: CacheLifecycle, enabledNames: s
 
 function main(): void {
   const config = loadConfig();
+  const logger = new ConnectorLogger(config.logFile);
   const client = new TIEClient(config);
   const storeOptions = {
     ttlMs: config.cacheTtlMs,
@@ -133,13 +135,32 @@ function main(): void {
   };
   configureStore({ ...storeOptions, baseUrl: config.baseUrl });
   const cache = new CacheLifecycle(
-    () => new ADObjectStore(client, storeOptions), setSharedStore, config.refreshIntervalMs,
+    () => new ADObjectStore(client, storeOptions), setSharedStore, config.refreshIntervalMs, logger,
   );
   const { entries, validators, catalog } = registerTools(client, cache, config.enabledTools);
   const tokenDigest = digest(config.connectorToken);
   let identityDone: Promise<unknown> = Promise.resolve();
 
   const server = createServer(async (request, response) => {
+    const started = performance.now();
+    const path = request.url?.split('?', 1)[0] ?? '';
+    const statusRoute = request.method === 'GET' && path === '/v1/status';
+    const list = request.method === 'GET' && path === '/v1/tools';
+    const name = request.method === 'POST' ? /^\/v1\/tools\/([a-z0-9_]+)$/.exec(path)?.[1] : undefined;
+    const tool = name ? entries.get(name) : undefined;
+    const route = statusRoute || list ? path : tool ? `/v1/tools/${tool.name}` : 'unmatched';
+    const remoteAddress = request.socket.remoteAddress;
+    response.once('close', () => {
+      logger.info('http_request', {
+        method: request.method,
+        route,
+        status: response.headersSent ? response.statusCode : null,
+        durationMs: Math.round(performance.now() - started),
+        remoteAddress,
+        aborted: !response.writableFinished,
+      });
+    });
+
     const token = /^Bearer (\S+)$/i.exec(request.headers.authorization ?? '')?.[1];
     if (!token || !timingSafeEqual(digest(token), tokenDigest)) {
       response.setHeader('WWW-Authenticate', 'Bearer');
@@ -148,14 +169,10 @@ function main(): void {
     }
 
     try {
-      const path = request.url?.split('?', 1)[0] ?? '';
-      if (request.method === 'GET' && path === '/v1/status') {
+      if (statusRoute) {
         send(response, 200, cache.status());
         return;
       }
-      const list = request.method === 'GET' && path === '/v1/tools';
-      const name = request.method === 'POST' ? /^\/v1\/tools\/([a-z0-9_]+)$/.exec(path)?.[1] : undefined;
-      const tool = name ? entries.get(name) : undefined;
       if (!list && !tool) throw new RequestError(404, 'Unknown route or disabled tool');
 
       if (name !== 'refresh_ad_cache' && !cache.ready()) {
@@ -219,16 +236,23 @@ function main(): void {
     } catch (error) {
       if (response.headersSent || response.destroyed) return;
       if (error instanceof RequestError) send(response, error.statusCode, { error: error.message });
-      else if (error instanceof TIEUpstreamError) send(response, 502, { error: error.message });
-      else {
-        console.error('TIE connector request failed:', error);
+      else if (error instanceof TIEUpstreamError) {
+        logger.error('upstream_request_failed', { route, upstreamStatus: error.upstreamStatus, reason: error.message });
+        send(response, 502, { error: error.message });
+      } else {
+        logger.error('http_request_failed', { route });
         send(response, 500, { error: 'TIE connector request failed' });
       }
     }
   });
   server.listen(config.port, '0.0.0.0', () => {
+    logger.info('connector_started', {
+      port: config.port,
+      enabledTools: entries.size,
+      refreshIntervalMinutes: config.refreshIntervalMs / 60_000,
+      fileLoggingConfigured: Boolean(config.logFile),
+    });
     cache.start('startup');
-    console.log(`TIE connector listening on port ${config.port}`);
   });
 }
 

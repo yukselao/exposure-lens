@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -29,6 +29,7 @@ async function until(check) {
 async function startConnector(t, upstreamPort, enabledTools = '') {
   const tokenDir = await mkdtemp(join(tmpdir(), 'tie-connector-test-'));
   const tokenFile = join(tokenDir, 'token');
+  const logFile = join(tokenDir, 'connector.log');
   await writeFile(tokenFile, 'connector-test-token\n');
   t.after(() => rm(tokenDir, { recursive: true, force: true }));
   const probe = createServer();
@@ -42,6 +43,7 @@ async function startConnector(t, upstreamPort, enabledTools = '') {
       TIE_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
       TIE_API_KEY: 'upstream-test-key',
       TIE_CONNECTOR_TOKEN_FILE: tokenFile,
+      TIE_LOG_FILE: logFile,
       TIE_WARM_CONCURRENCY: '1',
       TIE_ENABLED_TOOLS: enabledTools,
       TIE_CACHE_REFRESH_INTERVAL_MINUTES: '0',
@@ -50,6 +52,8 @@ async function startConnector(t, upstreamPort, enabledTools = '') {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';
+  let stdout = '';
+  connector.stdout.on('data', chunk => { stdout += chunk; });
   connector.stderr.on('data', chunk => { output += chunk; });
   t.after(async () => {
     if (connector.exitCode !== null) return;
@@ -75,7 +79,7 @@ async function startConnector(t, upstreamPort, enabledTools = '') {
       return false;
     }
   });
-  return { call, status, tool };
+  return { call, status, tool, logFile, stdout: () => stdout };
 }
 
 function adObject(id, classes) {
@@ -127,11 +131,12 @@ test('authenticates, reports a paged warm-up, and refreshes the searchable snaps
   });
   const port = await listen(upstream);
   t.after(() => { releasePage?.(); upstream.closeAllConnections(); upstream.close(); });
-  const { call, status, tool } = await startConnector(t, port);
+  const { call, status, tool, logFile, stdout } = await startConnector(t, port);
 
   await until(() => Boolean(releasePage));
   assert.equal((await call('/v1/status', undefined, {})).status, 401);
   assert.equal((await call('/v1/status', undefined, { Authorization: 'Bearer wrong' })).status, 401);
+  assert.equal((await call('/v1/status?trace=private-query-marker')).status, 200);
   const blocked = await tool('query_ad_objects');
   assert.equal(blocked.status, 503);
   assert.ok(blocked.headers.get('Retry-After'));
@@ -199,6 +204,18 @@ test('authenticates, reports a paged warm-up, and refreshes the searchable snaps
   await until(async () => (await status()).state === 'ready');
   const refreshed = await (await tool('query_ad_objects', { limit: 0 })).json();
   assert.deepEqual(refreshed.objects.map(object => object.id), [5, 6]);
+
+  const hasCompletedRefresh = logs => logs.includes('"event":"ad_sync_completed","trigger":"manual"');
+  await until(async () => hasCompletedRefresh(stdout()) && hasCompletedRefresh(await readFile(logFile, 'utf8')));
+  for (const output of [stdout(), await readFile(logFile, 'utf8')]) {
+    const logs = output.trim().split('\n').map(line => JSON.parse(line));
+    assert.ok(logs.some(log => log.event === 'connector_started'));
+    assert.ok(logs.some(log => log.event === 'ad_sync_progress' && log.pagesFetched === 1));
+    assert.ok(logs.some(log => log.event === 'ad_sync_failed' && log.level === 'error'));
+    assert.ok(logs.some(log => log.event === 'http_request' && log.route === '/v1/status' && log.status === 401));
+    assert.ok(logs.some(log => log.event === 'http_request' && log.route === '/v1/tools/get_ad_object' && log.status === 200));
+    assert.doesNotMatch(output, /upstream-test-key|connector-test-token|account-1|private-query-marker/);
+  }
 });
 
 test('can opt into every generated tool and dispatch an enabled operation', async t => {
@@ -231,6 +248,7 @@ test('scheduled refreshes publish only complete snapshots and retain the previou
   let scans = 0;
   let finish;
   let fail;
+  const logEvents = [];
   const cache = new CacheLifecycle(() => {
     const generation = ++scans;
     const startedAt = Date.now();
@@ -243,7 +261,10 @@ test('scheduled refreshes publish only complete snapshots and retain the previou
       ensureConsolidated: () => ({ count: generation }),
       stats: () => ({ scanStartedAt: startedAt, builtAt: startedAt, ttlMs: 1, fresh: false }),
     };
-  }, store => { activeGeneration = store.generation; }, 100);
+  }, store => { activeGeneration = store.generation; }, 100, {
+    info: (event, fields) => logEvents.push({ event, ...fields }),
+    error: (event, fields) => logEvents.push({ event, ...fields }),
+  });
 
   cache.start('startup');
   await until(() => cache.status().state === 'ready');
@@ -271,4 +292,5 @@ test('scheduled refreshes publish only complete snapshots and retain the previou
   assert.equal(activeGeneration, 2);
   assert.equal(cache.status().objectCount, 2);
   assert.ok(cache.status().nextRefreshAt);
+  assert.ok(logEvents.some(log => log.event === 'ad_sync_failed' && log.trigger === 'scheduled' && log.nextRefreshAt));
 });
