@@ -1,0 +1,35 @@
+services:
+  tie:
+    build: ./connectors/tie
+    environment:
+      TIE_BASE_URL: ${tie_host:?Set tie_host in .env}
+      TIE_API_KEY: ${tie_apikey:?Set tie_apikey in .env}
+      TIE_CONNECTOR_TOKEN_FILE: /run/secrets/tie_connector_token
+      TIE_ENABLED_TOOLS: ${tie_enabled_tools:-}
+      TIE_CACHE_REFRESH_INTERVAL_MINUTES: ${tie_cache_refresh_interval_minutes:-0}
+    secrets:
+      - tie_connector_token
+    networks:
+      - exposure
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${pg_user:-exposure_lens}
+      POSTGRES_PASSWORD: ${pg_password:?Set pg_password in .env}
+      POSTGRES_DB: ${pg_db:-exposure_lens}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - exposure
+
+networks:
+  exposure:
+    driver: bridge
+
+secrets:
+  tie_connector_token:
+    file: ${tie_connector_token_file:-./secrets/tie_connector_token}
+
+volumes:
+  postgres_data:

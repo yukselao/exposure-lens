@@ -1,0 +1,20 @@
+{
+  "name": "exposure-lens-tie",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "spec": "npm run build && node scripts/generate-openapi.mjs",
+    "start": "node build/index.js",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "axios": "1.18.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.0",
+    "typescript": "5.9.3"
+  }
+}

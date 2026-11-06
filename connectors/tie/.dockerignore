@@ -1,0 +1,8 @@
+.env
+.env.*
+build
+node_modules
+tests
+scripts
+openapi.json
+*.tsbuildinfo
