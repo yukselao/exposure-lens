@@ -7,7 +7,7 @@
   var CSRF = $('meta[name="csrf-token"]').attr('content');
   var PAGE = document.body.dataset.page;
   var SEV = { 4: ['C', 'Critical'], 3: ['H', 'High'], 2: ['M', 'Medium'], 1: ['L', 'Low'], 0: ['I', 'Info'] };
-  var SEV_COLOR = { 4: '#d92d20', 3: '#f2711c', 2: '#e0a100', 1: '#5b7fa6', 0: '#98a2b3' };
+  var SEV_COLOR = { 4: '#91243e', 3: '#dd4b50', 2: '#f18c43', 1: '#f8c851', 0: '#b8bcc6' };
 
   // ---- helpers ---------------------------------------------------------------
   function api(action, data, method) {
@@ -136,12 +136,15 @@
     return function () { stopped = true; };
   }
 
-  // ---- shell: flyout menus -----------------------------------------------------
+  // ---- shell: flyout menus, menu labels, side panel -----------------------------
+  function remember(key, value) { try { window.localStorage.setItem(key, value); } catch (e) { /* storage is optional */ } }
+  function recall(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
+
   function closeFlyouts() {
     $('.flyout').attr('hidden', true);
-    $('.rail-item[data-flyout]').attr('aria-expanded', 'false');
+    $('[data-flyout]').attr('aria-expanded', 'false');
   }
-  $('.rail-item[data-flyout]').on('click', function (e) {
+  $('[data-flyout]').on('click', function (e) {
     e.stopPropagation();
     var $panel = $('#flyout-' + this.dataset.flyout), open = $panel.attr('hidden') === undefined;
     closeFlyouts();
@@ -150,92 +153,194 @@
   $(document).on('click', function (e) { if (!$(e.target).closest('.flyout').length) closeFlyouts(); });
   $(document).on('keydown', function (e) { if (e.key === 'Escape') closeFlyouts(); });
 
+  function setNavOpen(open) {
+    $('body').toggleClass('nav-open', open);
+    $('#navToggle').attr('aria-expanded', String(open));
+  }
+  setNavOpen(recall('el.nav') === 'open');
+  $('#navToggle').on('click', function () {
+    var open = !$('body').hasClass('nav-open');
+    setNavOpen(open); remember('el.nav', open ? 'open' : 'closed'); closeFlyouts();
+  });
+
   // ---- dashboard ------------------------------------------------------------------
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  /** "November 4, 2022 2:12pm" */
+  function fmtLong(d) {
+    var h = d.getHours();
+    return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' ' + (h % 12 || 12) + ':' + pad(d.getMinutes()) + (h < 12 ? 'am' : 'pm');
+  }
+  function plural(n, one, many) { return num(n) + ' ' + (Number(n) === 1 ? one : many); }
+
   function initDashboard() {
+    function setSide(open) {
+      $('body').toggleClass('sidebar-closed', !open);
+      $('#sideToggle').attr('aria-expanded', String(open));
+    }
+    setSide(recall('el.side') !== 'closed' && window.innerWidth >= 1100);
+    $('#sideToggle').on('click', function () {
+      var open = $('body').hasClass('sidebar-closed');
+      setSide(open); remember('el.side', open ? 'open' : 'closed');
+    });
+    $('.acc-toggle').each(function () {
+      var btn = this, target = document.querySelector(btn.dataset.bsTarget);
+      if (!target) return;
+      target.addEventListener('show.bs.collapse', function (e) { if (e.target === target) btn.setAttribute('aria-expanded', 'true'); });
+      target.addEventListener('hide.bs.collapse', function (e) { if (e.target === target) btn.setAttribute('aria-expanded', 'false'); });
+    });
+
     api('dashboard').done(function (d) {
-      var ad = d.ad || {};
-      var stats = [
-        ['Users', ad.users, '/explore/ad-objects?type=users'], ['Service accounts', ad.service_accounts, '/explore/ad-objects?type=service_accounts'],
-        ['Groups', ad.groups, '/explore/ad-objects?type=groups'], ['Computers', ad.computers, '/explore/ad-objects?type=computers'],
-        ['Group policies', ad.group_policies, '/explore/ad-objects?type=group_policies'], ['Disabled users', ad.users_disabled, '/explore/ad-objects?type=users&enabled=0']
-      ];
-      $('#dashAd').html(stats.map(function (s) {
-        return '<div class="stat"><a href="' + s[2] + '"><div class="n">' + num(s[1]) + '</div><div class="l">' + s[0] + '</div></a></div>';
-      }).join(''));
-
-      // Tiers: one bar per tier, split by object type.
-      var kinds = [['user', 'Users', '#0a6ad6'], ['service_account', 'Service accounts', '#7a5af8'], ['group', 'Groups', '#12a594'], ['computer', 'Computers', '#f2711c']];
-      var byTier = { 0: {}, 1: {}, 2: {} }, max = 1;
-      (d.tiers || []).forEach(function (r) { if (byTier[r.tier]) byTier[r.tier][r.object_type] = Number(r.n); });
-      var totals = [0, 1, 2].map(function (t) { return kinds.reduce(function (a, k) { return a + (byTier[t][k[0]] || 0); }, 0); });
-      max = Math.max.apply(null, totals.concat([1]));
-      var html = [0, 1, 2].map(function (t) {
-        var bar = kinds.map(function (k) {
-          var n = byTier[t][k[0]] || 0;
-          return n ? '<i style="width:' + (n / max * 100) + '%;background:' + k[2] + '" title="' + k[1] + ': ' + num(n) + '"></i>' : '';
-        }).join('');
-        return '<a class="tier-row text-decoration-none text-reset" href="/explore/ad-objects?type=users&tier=' + t + '"><span class="badge-soft tier-' + t + '">Tier ' + t +
-          '</span><span class="bar">' + bar + '</span><span class="n">' + num(totals[t]) + '</span></a>';
-      }).join('');
-      html += '<div class="legend">' + kinds.map(function (k) { return '<span><i style="background:' + k[2] + '"></i>' + k[1] + '</span>'; }).join('') + '</div>';
-      if (!totals[1] && !totals[2]) html += '<p class="muted mt-3 mb-0">Tier 0 comes from Identity Exposure. Assign Tier 1 and Tier 2 in <a href="/explore/ad-objects">AD Objects</a>.</p>';
-      $('#dashTiers').html(html);
-
-      var sevRows = {};
-      (d.severity || []).forEach(function (r) { sevRows[r.severity] = r; });
-      $('#dashSeverity').html([4, 3, 2, 1].map(function (s) {
-        var r = sevRows[s] || {};
-        return '<div class="sev-line">' + sevBadge(s) + '<span class="label">' + SEV[s][1] + '</span><span class="n">' + compact(r.n) + '</span><span class="age">' +
-          (r.n ? 'average age ' + num(r.avg_age_days) + ' days' : 'none') + '</span></div>';
-      }).join(''));
-
-      $('#dashTopVpr').html((d.top_vpr || []).length ? d.top_vpr.map(function (v) {
-        return '<tr><td><b>' + esc(Number(v.vpr_score).toFixed(1)) + '</b></td><td>' + sevBadge(v.severity) + '</td><td><div class="truncate" style="max-width:560px" title="' + esc(v.plugin_name) +
-          '">' + esc(v.plugin_name) + '</div><span class="muted mono">Plugin ' + esc(v.plugin_id) + '</span></td><td class="text-end">' + num(v.hosts) + '</td><td>' +
-          (v.exploit_available ? '<span class="badge-soft bad">Exploitable</span>' : '') + '</td></tr>';
-      }).join('') : emptyRow(5, 'No finding with VPR 9 or higher. Sync a Security Center pool under Settings.'));
-
+      var ad = d.ad || {}, a = d.assets || {}, t = d.totals || {};
+      var sev = {};
+      (d.severity || []).forEach(function (r) { sev[r.severity] = Number(r.n); });
+      var tierTotal = { 0: 0, 1: 0, 2: 0 };
+      (d.tiers || []).forEach(function (r) { if (tierTotal[r.tier] !== undefined) tierTotal[r.tier] += Number(r.n); });
       var sync = {};
       (d.last_sync || []).forEach(function (r) { sync[r.connector] = r; });
-      $('#dashTieSync').text(sync.tie_postgres ? 'Synced ' + ago(sync.tie_postgres.finished_at || sync.tie_postgres.requested_at) : 'Not synced yet');
-      $('#dashScSync').text(sync.sc ? 'Synced ' + ago(sync.sc.finished_at || sync.sc.requested_at) : 'Not synced yet');
+      var findings = Number(t.findings) || 0;
+      var adObjects = Number(ad.users) + Number(ad.service_accounts) + Number(ad.groups) + Number(ad.computers) + Number(ad.group_policies);
 
-      var a = d.assets || {};
-      $('#dashAssets').html(
-        '<div class="sev-line"><span>Computers joined to the domain</span><span class="n ms-auto text-end">' + num(a.ad_computers) + '</span></div>' +
-        '<div class="sev-line"><span>Computers not joined</span><span class="n ms-auto text-end">' + num(a.not_joined) + '</span></div>' +
-        '<div class="sev-line"><span>IOT devices</span><span class="n ms-auto text-end">' + num(a.iot) + '</span></div>' +
-        '<p class="muted mt-2 mb-0">' + num(a.matched) + ' of ' + num(a.sc_hosts) + ' Security Center hosts match an AD computer by name.</p>');
+      // page header
+      var dates = [sync.sc, sync.tie_postgres].map(function (s) { return s && parseDate(s.finished_at || s.requested_at); }).filter(Boolean);
+      $('#dashUpdated').text(dates.length ? 'Last Update: ' + fmtLong(new Date(Math.max.apply(null, dates))) : 'No sync has run yet.');
+
+      // tiles
+      var values = { users: ad.users, groups: ad.groups, service_accounts: ad.service_accounts, group_policies: ad.group_policies,
+        tier0: tierTotal[0], tier1: tierTotal[1], tier2: tierTotal[2], users_disabled: ad.users_disabled,
+        ad_computers: a.ad_computers, not_joined: a.not_joined, iot: a.iot, sc_hosts: a.sc_hosts };
+      Object.keys(values).forEach(function (k) { $('[data-v="' + k + '"]').text(num(values[k])); });
+
+      // top contributing factors
+      var factors = [];
+      if (findings) {
+        factors.push(num(sev[4]) + ' critical and ' + num(sev[3]) + ' high findings are open on ' + plural(t.hosts, 'host', 'hosts') + '.');
+        factors.push(plural(t.vpr9, 'finding has', 'findings have') + ' a VPR of 9 or higher.');
+      }
+      if (adObjects) factors.push(plural(tierTotal[0], 'AD object is', 'AD objects are') + ' in Tier 0.');
+      if (Number(a.sc_hosts)) factors.push(plural(a.not_joined, 'computer is', 'computers are') + ' not joined to the domain.');
+      $('#dashFactors').html(factors.length ? factors.map(function (f) { return '<p>' + esc(f) + '</p>'; }).join('')
+        : '<p class="muted">Nothing synced yet. Enter the connection details under Settings and run a sync.</p>');
+
+      // sidebar: Did You Know
+      var facts = [];
+      if (adObjects) facts.push(['Tier 0 Reach', plural(tierTotal[0], 'AD object', 'AD objects') + ' can reach Tier 0. That is ' +
+        Math.round(tierTotal[0] / adObjects * 100) + '% of the ' + num(adObjects) + ' synced objects.']);
+      if (findings) facts.push(['Exploitable Findings', num(t.exploitable) + ' of ' + num(findings) + ' findings have a known exploit.']);
+      if (Number(a.sc_hosts)) facts.push(['Domain Coverage', num(a.matched) + ' of ' + num(a.sc_hosts) + ' Security Center hosts match an AD computer by name.']);
+      if (Number(ad.users)) facts.push(['Disabled Accounts', num(ad.users_disabled) + ' of ' + num(ad.users) + ' user accounts are disabled.']);
+      if (!facts.length) facts.push(['Getting Started', 'Enter the Security Center and Identity Exposure connection details under Settings, then run a sync.']);
+      function showFact(i) {
+        $('#knowTitle').text(facts[i][0]); $('#knowText').text(facts[i][1]);
+        $('#knowDots button').each(function (n) { $(this).toggleClass('active', n === i).attr('aria-selected', String(n === i)); });
+      }
+      $('#knowDots').html(facts.length > 1 ? facts.map(function (f, i) {
+        return '<button type="button" role="tab" data-fact="' + i + '" aria-label="' + esc(f[0]) + '"></button>';
+      }).join('') : '').on('click', 'button', function () { showFact(Number(this.dataset.fact)); });
+      showFact(0);
+
+      // sidebar: connectors
+      function connector(code, title, href, job, stats) {
+        var state = 'Not synced yet', ring = '';
+        if (job) {
+          var when = ago(job.finished_at || job.requested_at);
+          if (job.status === 'succeeded') { state = 'Synced ' + when; ring = 'ok'; }
+          else if (job.status === 'failed') { state = 'Last sync failed ' + when; ring = 'bad'; }
+          else { state = job.status === 'running' ? 'Sync running' : 'Sync queued'; ring = 'run'; }
+        }
+        return '<a class="side-card" href="' + href + '"><div class="conn"><div class="ring ' + ring + '">' + code + '</div><div><h3>' + title +
+          '</h3><div class="state">' + esc(state) + '</div></div></div><div class="stats">' + stats.map(function (s) {
+            return '<div><span>' + s[0] + '</span><b>' + num(s[1]) + '</b></div>';
+          }).join('') + '</div></a>';
+      }
+      $('#sideConnectors').html(
+        connector('SC', 'Security Center', '/settings/security-center', sync.sc, [['Hosts', t.hosts], ['Findings', t.findings], ['Pools', t.pools]]) +
+        connector('IE', 'Identity Exposure', '/settings/identity-exposure', sync.tie_postgres, [['Users', ad.users], ['Groups', ad.groups], ['Computers', ad.computers]]));
+
+      // sidebar: one card per query
+      var queries = d.by_query || [];
+      $('#sidePools').html(queries.length ? queries.map(function (q) {
+        var total = Number(q.total) || 0;
+        return '<a class="side-card" href="/settings/security-center"><h3 title="' + esc(q.query) + '">' + esc(q.query) + '</h3><span class="tag" title="' + esc(q.pool) + '">' + esc(q.pool) +
+          '</span><div class="bars"><div class="big">' + compact(total) + '</div><div>' + [[4, 'critical'], [3, 'high'], [2, 'medium']].map(function (s) {
+            var n = Number(q[s[1]]) || 0;
+            return '<div class="bar-row"><span class="label">' + SEV[s[0]][1] + ' Findings</span><span class="bar-track"><i style="width:' + (total ? n / total * 100 : 0) +
+              '%;background:' + SEV_COLOR[s[0]] + '"></i></span><span>' + num(n) + '</span></div>';
+          }).join('') + '</div></div><div class="stats"><div><span>Low</span><b>' + num(q.low) + '</b></div><div><span>Info</span><b>' + num(q.info) +
+          '</b></div><div><span>Hosts</span><b>' + num(q.hosts) + '</b></div></div></a>';
+      }).join('') : '<p class="muted mb-0">No pool yet. <a href="/settings/security-center">Add a pool and a query</a> to pull findings.</p>');
+
+      // top vulnerabilities, as list rows
+      $('#dashTopVpr').html((d.top_vpr || []).length ? d.top_vpr.map(function (v) {
+        return '<div class="list-row"><span class="icon icon-accent i-goal"></span><div class="text"><div title="' + esc(v.plugin_name) + '">' + esc(v.plugin_name) +
+          '</div><div class="small-text">Plugin ' + esc(v.plugin_id) + ' · ' + plural(v.hosts, 'host', 'hosts') + '</div></div><div class="meta">' +
+          (v.exploit_available ? '<span class="badge-soft bad">Exploitable</span>' : '') + sevBadge(v.severity) + '<span class="vpr" title="VPR">' +
+          esc(Number(v.vpr_score).toFixed(1)) + '</span></div></div>';
+      }).join('') : '<div class="list-row flat"><span class="icon i-circle-add"></span><a href="/settings/security-center">No finding with VPR 9 or higher. Sync a Security Center pool.</a></div>');
+
+      // severity legend and donut centre
+      var order = [4, 3, 2, 1, 0], present = order.filter(function (s) { return sev[s]; });
+      $('#sevLegend').append(order.map(function (s) {
+        return '<div><i style="background:' + SEV_COLOR[s] + '"></i>' + SEV[s][1] + ' ' + num(sev[s]) + '</div>';
+      }).join(''));
+      var top = present.length ? present[0] : null;
+      $('#donutGrade').text(findings ? compact(findings) : '0');
+      $('#donutValue').html('<b>' + num(t.hosts) + '</b> hosts');
+      if (top !== null) {
+        $('#donutCore').css({ background: SEV_COLOR[top], color: top >= 3 ? '#fff' : '#33363f',
+          boxShadow: '0 0 0 7px #fff, 0 0 12px 12px ' + SEV_COLOR[top] + '66' });
+      } else {
+        $('#donutCore').css({ background: '#eceef1', boxShadow: '0 0 0 7px #fff' });
+      }
 
       if (typeof Chart === 'undefined') return;
-      Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-      Chart.defaults.color = '#66758a';
-      new Chart(document.getElementById('chartAssets'), {
+      Chart.defaults.font.family = 'Helvetica, Arial, sans-serif';
+      Chart.defaults.font.size = 12;
+      Chart.defaults.color = '#33363f';
+      // Names outside the ring, as in the design.
+      var outsideLabels = {
+        id: 'outsideLabels',
+        afterDatasetsDraw: function (chart) {
+          var ctx = chart.ctx, meta = chart.getDatasetMeta(0);
+          ctx.save(); ctx.fillStyle = '#33363f'; ctx.font = '12px Helvetica, Arial, sans-serif'; ctx.textBaseline = 'middle';
+          meta.data.forEach(function (arc, i) {
+            if (arc.endAngle - arc.startAngle < 0.12) return;
+            var mid = (arc.startAngle + arc.endAngle) / 2, r = arc.outerRadius + 12;
+            var x = arc.x + Math.cos(mid) * r, y = arc.y + Math.sin(mid) * r;
+            ctx.textAlign = Math.cos(mid) > 0.25 ? 'left' : Math.cos(mid) < -0.25 ? 'right' : 'center';
+            ctx.fillText(chart.data.labels[i], x, y);
+          });
+          ctx.restore();
+        }
+      };
+      new Chart(document.getElementById('chartSeverity'), {
         type: 'doughnut',
-        data: { labels: ['Joined to the domain', 'Not joined', 'IOT devices'],
-          datasets: [{ data: [a.ad_computers, a.not_joined, a.iot], backgroundColor: ['#0a6ad6', '#f2711c', '#7a5af8'], borderWidth: 2, borderColor: '#fff' }] },
-        options: { maintainAspectRatio: false, cutout: '64%', plugins: { legend: { display: false } } }
+        data: { labels: present.length ? present.map(function (s) { return SEV[s][1]; }) : ['No findings'],
+          datasets: [{ data: present.length ? present.map(function (s) { return sev[s]; }) : [1],
+            backgroundColor: present.length ? present.map(function (s) { return SEV_COLOR[s]; }) : ['#eceef1'], borderWidth: 2, borderColor: '#fff', hoverOffset: 0 }] },
+        options: { responsive: false, cutout: '70%', layout: { padding: 48 }, plugins: { legend: { display: false }, tooltip: { enabled: present.length > 0 } } },
+        plugins: [outsideLabels]
       });
 
-      var rows = (d.by_query || []).filter(function (r) { return Number(r.critical) + Number(r.high) + Number(r.medium) + Number(r.low) + Number(r.info) > 0; });
+      var rows = queries.filter(function (r) { return Number(r.total) > 0; });
       if (!rows.length) {
-        $('#chartByQuery').parent().addClass('d-none');
-        $('#dashByQueryEmpty').removeClass('d-none').html('<h2>No findings yet</h2><p>Create a pool with a query under <a href="/settings/security-center">Settings</a> and sync it.</p>');
+        $('#chartByQuery').parent().html('<p class="muted">No findings yet. Create a pool with a query under <a href="/settings/security-center">Settings</a> and sync it.</p>');
         return;
       }
       new Chart(document.getElementById('chartByQuery'), {
         type: 'bar',
         data: {
-          labels: rows.map(function (r) { return r.pool + ' / ' + r.query; }),
+          labels: rows.map(function (r) { return r.query; }),
           datasets: [[4, 'critical'], [3, 'high'], [2, 'medium'], [1, 'low'], [0, 'info']].map(function (s) {
-            return { label: SEV[s[0]][1], data: rows.map(function (r) { return Number(r[s[1]]); }), backgroundColor: SEV_COLOR[s[0]], borderRadius: 3, maxBarThickness: 26 };
+            return { label: SEV[s[0]][1], data: rows.map(function (r) { return Number(r[s[1]]); }), backgroundColor: SEV_COLOR[s[0]], borderRadius: 100, borderSkipped: false, maxBarThickness: 14 };
           })
         },
         options: { indexAxis: 'y', maintainAspectRatio: false,
-          scales: { x: { stacked: true, grid: { color: '#eef1f5' }, ticks: { callback: function (v) { return compact(v); } } }, y: { stacked: true, grid: { display: false } } },
-          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10 } } } }
+          scales: { x: { stacked: true, border: { display: false }, grid: { color: '#d9dbe0' }, ticks: { callback: function (v) { return compact(v); } } },
+            y: { stacked: true, border: { color: '#d9dbe0' }, grid: { display: false } } },
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: 'circle' } },
+            tooltip: { callbacks: { title: function (items) { var r = rows[items[0].dataIndex]; return r.pool + ' / ' + r.query; } } } } }
       });
-    }).fail(function (xhr) { $('#dash').prepend('<div class="alert alert-danger" style="grid-column:1/-1">' + esc(errText(xhr)) + '</div>'); });
+    }).fail(function (xhr) { $('.dash-card').prepend('<div class="alert alert-danger">' + esc(errText(xhr)) + '</div>'); });
   }
 
   // ---- detail panel (AD object or device) -------------------------------------------

@@ -644,14 +644,23 @@ final class Api
         );
         // Security Center has no asset tags; pools and their queries play that role.
         $byQuery = Db::all(
-            "SELECT p.name AS pool, q.name AS query,
+            "SELECT q.id AS query_id, p.name AS pool, q.name AS query, q.last_sync_at,
+                    count(v.id) AS total, count(DISTINCT v.host_asset_id) AS hosts,
                     count(*) FILTER (WHERE v.severity = 4) AS critical, count(*) FILTER (WHERE v.severity = 3) AS high,
                     count(*) FILTER (WHERE v.severity = 2) AS medium, count(*) FILTER (WHERE v.severity = 1) AS low,
                     count(*) FILTER (WHERE v.severity = 0) AS info
              FROM sc_queries q JOIN sc_pools p ON p.id = q.pool_id
              LEFT JOIN sc_query_findings f ON f.query_id = q.id
              LEFT JOIN vulnerabilities v ON v.id = f.vulnerability_id
-             GROUP BY p.name, q.name ORDER BY count(v.id) DESC LIMIT 12"
+             GROUP BY q.id, p.name, q.name, q.last_sync_at ORDER BY count(v.id) DESC, q.id LIMIT 12"
+        );
+        $totals = Db::one(
+            "SELECT (SELECT count(*) FROM vulnerabilities) AS findings,
+                    (SELECT count(*) FROM vulnerabilities WHERE vpr_score >= 9) AS vpr9,
+                    (SELECT count(*) FROM vulnerabilities WHERE exploit_available) AS exploitable,
+                    (SELECT count(*) FROM host_assets) AS hosts,
+                    (SELECT count(*) FROM sc_pools) AS pools,
+                    (SELECT count(*) FROM sc_queries) AS queries"
         );
         $assets = Db::one(
             "SELECT (SELECT count(*) FROM ad_computers) AS ad_computers,
@@ -661,11 +670,12 @@ final class Api
                     (SELECT count(*) FROM v_host_assets WHERE asset_class = 'iot') AS iot"
         );
         $sync = Db::all(
-            "SELECT DISTINCT ON (connector) connector, status, finished_at, requested_at
+            "SELECT DISTINCT ON (connector) connector, status, finished_at, requested_at, error
              FROM sync_jobs WHERE kind = 'sync' ORDER BY connector, id DESC"
         );
         return ['ad' => $ad, 'tiers' => $tiers, 'severity' => $severity, 'top_vpr' => $topVpr,
-                'by_query' => $byQuery, 'assets' => $assets, 'local_users' => null, 'last_sync' => $sync];
+                'by_query' => $byQuery, 'totals' => $totals, 'assets' => $assets, 'local_users' => null,
+                'last_sync' => $sync];
     }
 
     // ---- logs ---------------------------------------------------------------------------------

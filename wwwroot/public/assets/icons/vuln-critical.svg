@@ -1,0 +1,7 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="vuln-critical">
+<path id="Vector" d="M20 21.375V11.875" stroke-width="1.25" stroke-miterlimit="10" stroke-linecap="round" stroke="#026EDD"/>
+<path id="Vector_2" d="M6.25 6.25L20 2.5L33.75 6.25V23.8231C33.75 31.25 26.4153 35.544 20.256 38.1458C20.0922 38.215 19.9078 38.2151 19.744 38.1459C13.5845 35.5437 6.25 31.25 6.25 23.8287V6.25Z" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round" stroke="#026EDD"/>
+<path id="Vector_3" d="M20.025 27.5L20 27.525" stroke-width="1.25" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round" stroke="#026EDD"/>
+</g>
+</svg>

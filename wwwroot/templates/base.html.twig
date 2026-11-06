@@ -13,20 +13,19 @@
 <body data-page="{{ page }}">
 
 <header id="topbar">
-  <a class="brand" href="/">{{ icons.ic('lens', 22) }}<span>Exposure <b>Lens</b></span></a>
-  <span class="topbar-title">{{ title }}</span>
+  <button type="button" class="header-btn" id="navToggle" aria-label="Show or hide menu labels" aria-expanded="false"><span class="icon i-menu"></span></button>
+  <a class="brand" href="/">Exposure <span class="product">Lens</span></a>
   <nav class="topbar-actions" aria-label="Tools">
-    <a class="topbar-link {{ page == 'logs' ? 'active' }}" href="/logs" title="Connector logs">{{ icons.ic('logs', 16) }}<span>Logs</span></a>
+    <a class="header-link {{ page == 'logs' ? 'active' }}" href="/logs" title="Connector logs">{{ icons.ic('logs', 18) }}<span>Logs</span></a>
+    <button type="button" class="header-btn" data-flyout="settings" aria-label="Settings" aria-expanded="false" title="Settings"><span class="icon i-settings"></span></button>
   </nav>
 </header>
 
 <nav id="rail" aria-label="Main menu">
-  <a class="rail-item {{ section == 'dashboard' ? 'active' }}" href="/">{{ icons.ic('dashboard', 20) }}<span>Dashboard</span></a>
-  <button type="button" class="rail-item {{ section == 'explore' ? 'active' }}" data-flyout="explore" aria-expanded="false">{{ icons.ic('explore', 20) }}<span>Explore</span></button>
-  <a class="rail-item {{ section == 'risk' ? 'active' }}" href="/risk">{{ icons.ic('risk', 20) }}<span>Risk</span></a>
-  <a class="rail-item {{ section == 'reports' ? 'active' }}" href="/reports">{{ icons.ic('reports', 20) }}<span>Reports</span></a>
-  <div class="rail-spacer"></div>
-  <button type="button" class="rail-item {{ section == 'settings' ? 'active' }}" data-flyout="settings" aria-expanded="false">{{ icons.ic('gear', 20) }}<span>Settings</span></button>
+  <a class="rail-item {{ section == 'dashboard' ? 'active' }}" href="/" title="Dashboard"><span class="icon i-home"></span><span>Dashboard</span></a>
+  <button type="button" class="rail-item {{ section == 'explore' ? 'active' }}" data-flyout="explore" aria-expanded="false" title="Explore"><span class="icon i-score"></span><span>Explore</span></button>
+  <a class="rail-item {{ section == 'risk' ? 'active' }}" href="/risk" title="Risk"><span class="icon i-shield"></span><span>Risk</span></a>
+  <a class="rail-item {{ section == 'reports' ? 'active' }}" href="/reports" title="Reports"><span class="icon i-dashboards"></span><span>Reports</span></a>
 </nav>
 
 <aside class="flyout" id="flyout-explore" aria-label="Explore" hidden>
@@ -35,7 +34,7 @@
   <a class="flyout-link {{ page == 'explore-ad' ? 'active' }}" href="/explore/ad-objects">{{ icons.ic('people', 18) }}AD Objects</a>
   <a class="flyout-link {{ page == 'explore-software' ? 'active' }}" href="/explore/software">{{ icons.ic('disc', 18) }}Software Inventory</a>
 </aside>
-<aside class="flyout flyout-bottom" id="flyout-settings" aria-label="Settings" hidden>
+<aside class="flyout flyout-right" id="flyout-settings" aria-label="Settings" hidden>
   <div class="flyout-title">Settings</div>
   <a class="flyout-link {{ page == 'settings-sc' ? 'active' }}" href="/settings/security-center">{{ icons.ic('shield', 18) }}Security Center</a>
   <a class="flyout-link {{ page == 'settings-tie' ? 'active' }}" href="/settings/identity-exposure">{{ icons.ic('id', 18) }}Identity Exposure</a>
@@ -43,8 +42,9 @@
 
 <main id="main">
   {% if db_error %}
-    <div class="alert alert-danger">The database cannot be reached. Check that the <code>postgres</code> and <code>migrate</code> services ran.</div>
+    <div class="alert alert-danger m-3">The database cannot be reached. Check that the <code>postgres</code> and <code>migrate</code> services ran.</div>
   {% endif %}
+  {% if page != 'dashboard' %}<h1 class="page-title">{{ title }}</h1>{% endif %}
   {% if page == 'dashboard' %}{% include 'pages/dashboard.html.twig' %}
   {% elseif page == 'explore-assets' %}{% include 'pages/explore_assets.html.twig' %}
   {% elseif page == 'explore-ad' %}{% include 'pages/explore_ad.html.twig' %}
@@ -54,7 +54,7 @@
   {% elseif page == 'settings-tie' %}{% include 'pages/settings_tie.html.twig' %}
   {% elseif page == 'logs' %}{% include 'pages/logs.html.twig' %}
   {% else %}
-    <div class="card"><div class="card-body empty-state"><h2>Page not found</h2><p>This address does not exist. <a href="/">Go to the dashboard</a>.</p></div></div>
+    <div class="card"><div class="card-body empty-state"><p>This address does not exist. <a href="/">Go to the dashboard</a>.</p></div></div>
   {% endif %}
 </main>
 
