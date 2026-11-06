@@ -1,0 +1,1750 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Exposure Lens TIE Connector",
+    "version": "1.0.0",
+    "description": "Private JSON API for Tenable Identity Exposure. Use GET /v1/tools for the tool catalog enabled on the running connector."
+  },
+  "servers": [
+    {
+      "url": "http://tie:8080",
+      "description": "Private Docker Compose network"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v1/status": {
+      "get": {
+        "operationId": "getStatus",
+        "summary": "Read cache status and schedule",
+        "responses": {
+          "200": {
+            "description": "Cache state in all phases.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CacheStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/tools": {
+      "get": {
+        "operationId": "listTools",
+        "summary": "List enabled tools and argument schemas",
+        "responses": {
+          "200": {
+            "description": "Tool catalog.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tools": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "safety": {
+                            "enum": [
+                              "read",
+                              "write",
+                              "destructive"
+                            ]
+                          },
+                          "inputSchema": {
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "description",
+                          "safety",
+                          "inputSchema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "tools"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/refresh_ad_cache": {
+      "post": {
+        "operationId": "refresh_ad_cache",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Start or observe an AD snapshot scan",
+        "description": "Returns the active scan if one is already running. Poll GET /v1/status for completion.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/ScanAccepted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_topology": {
+      "post": {
+        "operationId": "get_topology",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_topology",
+        "description": "Discover the Active Directory environment as a Forest -> Domain tree. Returns each infrastructure (forest) with its directories (domains) and their IDs, so you can obtain the infrastructureId / directoryId values required by other tools. This is the topology (containment) axis and is independent of profiles. Call this first when you do not already know the IDs of the forests or domains you need to query.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "forests": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "totals": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_preferred_profile": {
+      "post": {
+        "operationId": "get_preferred_profile",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_preferred_profile",
+        "description": "Return the user's preferred (default) profile — its id and name — from GET /api/preferences. TIE profiles are configuration lenses, not containers; one is marked preferred. Use this profileId by default in profile-scoped tools unless the user explicitly names a different profile. Prevents querying the wrong profile and getting empty results.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "preferredProfileId": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "preferredProfileName": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/query_ad_objects": {
+      "post": {
+        "operationId": "query_ad_objects",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "query_ad_objects",
+        "description": "Search all AD objects with a filter expression, evaluated in memory over a cached snapshot of every object (built once from a full scan, reused until it expires). Avoids re-paging the whole directory on every request. Expression grammar: FIELD OP VALUE combined with AND / OR / NOT and parentheses. Operators: = != > >= < <= for equality/ordering (numeric when both sides are numbers, else case-insensitive string), : for contains/substring (also array membership), & | for numeric bitwise tests. Fields are attribute names (case-insensitive) plus the identity fields type, directoryId, objectId, id. String matching is case-insensitive. Multi-valued attributes match if ANY value matches; a missing attribute never matches. Example: (admincount>0 AND useraccountcontrol:\"NORMAL\") OR badpwdcount>=5. CACHING: the snapshot is cached for a long TTL (1 day by default; the response \"snapshot\" reports its age and ttlMs). It is NOT live — if the directory may have changed, or the data must be current, pass refresh:true to force a fresh scan.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expression": {
+                    "type": "string",
+                    "description": "Optional filter expression, e.g. admincount>0 AND enabled=true. Omit to match every object in the snapshot. Quote values containing spaces: cn:\"Domain Admins\"."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of matching objects to return (default 50, 0 = all). The total match count is always reported regardless of limit.",
+                    "minimum": 0
+                  },
+                  "refresh": {
+                    "type": "boolean",
+                    "description": "Force a fresh full scan instead of using the cached snapshot."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "examples": {
+                "fullSnapshot": {
+                  "value": {
+                    "limit": 0
+                  }
+                },
+                "users": {
+                  "value": {
+                    "expression": "objectClass=user AND NOT objectClass=computer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "expression": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "returned": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    },
+                    "snapshot": {
+                      "type": "object"
+                    },
+                    "objects": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ADObject"
+                      }
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "position": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "$ref": "#/components/responses/ScanAccepted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_ad_object": {
+      "post": {
+        "operationId": "get_ad_object",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_ad_object",
+        "description": "Look up a single AD object by distinguished name, SID, or SAM account name. Set liveData:true to fetch its attributes from Tenable using the IDs from the snapshot, or provide directoryId and id directly in live mode. Returns the object with its attributes, or a not-found result. Set decodeSecurityDescriptor:true to also return the object's ntSecurityDescriptor parsed into readable ACEs (trustee SIDs resolved to names, rights and object-types named) — useful for inspecting who has which permissions without hand-parsing SDDL. A live miss returns found:false with reason not_found_in_tie. A name absent from the cache returns not_found_in_snapshot without contacting Tenable.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "distinguishedName": {
+                    "type": "string",
+                    "pattern": "\\S",
+                    "description": "Exact DN, e.g. \"CN=Domain Admins,CN=Users,DC=alsid,DC=corp\"."
+                  },
+                  "sid": {
+                    "type": "string",
+                    "pattern": "\\S",
+                    "description": "Object SID, e.g. \"S-1-5-21-...-512\"."
+                  },
+                  "samAccountName": {
+                    "type": "string",
+                    "pattern": "\\S",
+                    "description": "SAM account name, e.g. \"Domain Admins\"."
+                  },
+                  "decodeSecurityDescriptor": {
+                    "type": "boolean",
+                    "description": "Also return the ntSecurityDescriptor decoded into readable ACEs (resolved trustees, named rights). Facts only, no risk scoring."
+                  },
+                  "refresh": {
+                    "type": "boolean",
+                    "description": "Start a fresh full scan. Mutually exclusive with liveData:true."
+                  },
+                  "liveData": {
+                    "type": "boolean",
+                    "description": "Fetch current attributes from Tenable."
+                  },
+                  "directoryId": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Numeric TIE directory ID for direct live lookup."
+                  },
+                  "id": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Numeric TIE AD object record ID for direct live lookup."
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "distinguishedName"
+                    ],
+                    "properties": {
+                      "distinguishedName": {},
+                      "directoryId": false,
+                      "id": false
+                    }
+                  },
+                  {
+                    "required": [
+                      "sid"
+                    ],
+                    "properties": {
+                      "sid": {},
+                      "directoryId": false,
+                      "id": false
+                    }
+                  },
+                  {
+                    "required": [
+                      "samAccountName"
+                    ],
+                    "properties": {
+                      "samAccountName": {},
+                      "directoryId": false,
+                      "id": false
+                    }
+                  },
+                  {
+                    "required": [
+                      "liveData",
+                      "directoryId",
+                      "id"
+                    ],
+                    "properties": {
+                      "liveData": {
+                        "const": true
+                      },
+                      "directoryId": {},
+                      "id": {},
+                      "distinguishedName": false,
+                      "sid": false,
+                      "samAccountName": false
+                    }
+                  }
+                ],
+                "not": {
+                  "required": [
+                    "liveData",
+                    "refresh"
+                  ],
+                  "properties": {
+                    "liveData": {
+                      "const": true
+                    },
+                    "refresh": {
+                      "const": true
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "examples": {
+                "cached": {
+                  "value": {
+                    "samAccountName": "analyst"
+                  }
+                },
+                "liveByName": {
+                  "value": {
+                    "samAccountName": "analyst",
+                    "liveData": true
+                  }
+                },
+                "liveByIds": {
+                  "value": {
+                    "directoryId": 3,
+                    "id": 90266,
+                    "liveData": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "reason": {
+                      "enum": [
+                        "not_found_in_snapshot",
+                        "not_found_in_tie"
+                      ]
+                    },
+                    "object": {
+                      "$ref": "#/components/schemas/ADObject"
+                    },
+                    "securityDescriptor": {
+                      "type": "object"
+                    },
+                    "snapshot": {
+                      "type": "object"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "directoryId": {
+                      "type": "integer"
+                    },
+                    "searchedBy": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "$ref": "#/components/responses/ScanAccepted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_blast_radius": {
+      "post": {
+        "operationId": "get_blast_radius",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_blast_radius",
+        "description": "Control-graph analysis: from a principal, list every object it can reach by chaining control relationships (group membership, GenericAll/WriteDacl/WriteOwner, AddMember, ForceChangePassword, DCSync, delegation, SID history, GPO links). Answers \"if this account is compromised, what is the blast radius?\". Each result carries the shortest edge chain that reaches it. Facts only — reachability and the edges, not a severity score. NOTE: directory-control edges only (no logon sessions / local-admin). Requires the control graph; the first such call builds it (can take tens of seconds on a large tenant).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "principal": {
+                    "type": "string",
+                    "description": "Start principal: SID, distinguishedName, or samAccountName."
+                  },
+                  "maxDepth": {
+                    "type": "integer",
+                    "description": "Max control hops to follow (default 6).",
+                    "minimum": 1
+                  },
+                  "maxNodes": {
+                    "type": "integer",
+                    "description": "Cap on nodes returned (default 2000).",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "principal"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "principal": {
+                      "type": "string"
+                    },
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "reachableCount": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "graph": {
+                      "type": "object"
+                    },
+                    "reachable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_control_paths": {
+      "post": {
+        "operationId": "get_control_paths",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_control_paths",
+        "description": "Control-graph analysis: find the shortest control path from one principal to another — \"how can X reach/compromise Y?\". Returns the edge chain (e.g. bob -MemberOf-> Helpdesk -GenericAll-> dcadmin -MemberOf-> Domain Admins) or reports no path within the depth cap. Facts only. Requires the control graph; the first graph call builds it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "Source principal: SID, distinguishedName, or samAccountName."
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "Target principal/object: SID, distinguishedName, or samAccountName."
+                  },
+                  "maxDepth": {
+                    "type": "integer",
+                    "description": "Max control hops (default 6).",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "from": {
+                      "type": "string"
+                    },
+                    "to": {
+                      "type": "string"
+                    },
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "reachable": {
+                      "type": "boolean"
+                    },
+                    "hops": {
+                      "type": "integer"
+                    },
+                    "path": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "truncated": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_asset_exposure": {
+      "post": {
+        "operationId": "get_asset_exposure",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_asset_exposure",
+        "description": "Control-graph analysis (reverse): given a protected asset or the Tier-0 set, list every principal that can ultimately reach it by chaining control edges — \"who is exposed to / can take over this asset?\". Provide explicit targets, or use the built-in Tier-0 preset (Domain Admins, Enterprise Admins, Administrators, Schema Admins). Each attacker carries its shortest inbound path, closest first. Facts only. Requires the control graph.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targets": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Explicit target principals (SID/DN/samAccountName). Omit to use the Tier-0 preset."
+                  },
+                  "tier0": {
+                    "type": "boolean",
+                    "description": "Use the built-in Tier-0 target set (privileged groups). Default true when no explicit targets are given."
+                  },
+                  "maxDepth": {
+                    "type": "integer",
+                    "description": "Max inbound control hops (default 6).",
+                    "minimum": 1
+                  },
+                  "maxNodes": {
+                    "type": "integer",
+                    "description": "Cap on principals returned (default 2000).",
+                    "minimum": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "targets": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "exposedCount": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "graph": {
+                      "type": "object"
+                    },
+                    "exposedPrincipals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_tier0": {
+      "post": {
+        "operationId": "get_tier0",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_tier0",
+        "description": "Control-graph analysis: compute the DERIVED Tier-0 set — not just the well-known privileged groups (Domain Admins, Enterprise Admins, Administrators, Schema Admins), but every principal that can *become* privileged by chaining control edges (e.g. WriteDacl on a group whose members are Domain Admins). Each derived member carries the shortest escalation path to a privileged seed, showing exactly how it reaches Tier-0. Answers \"what is my true Tier-0 attack surface?\". Facts only. Requires the control graph; the first graph call builds it.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "maxDepth": {
+                    "type": "integer",
+                    "description": "Max escalation hops to consider (default 6).",
+                    "minimum": 1
+                  },
+                  "maxNodes": {
+                    "type": "integer",
+                    "description": "Cap on derived members returned (default 2000).",
+                    "minimum": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "builtinCount": {
+                      "type": "integer"
+                    },
+                    "derivedCount": {
+                      "type": "integer"
+                    },
+                    "tier0Total": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "graph": {
+                      "type": "object"
+                    },
+                    "builtin": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "derived": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_identity_360": {
+      "post": {
+        "operationId": "get_identity_360",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_identity_360",
+        "description": "Identity exposure 360: for a single AD object, return every Indicator-of-Exposure deviance that concerns it, enriched and sorted by severity. Goes beyond Tenable's per-object view by resolving THREE layers: (1) target — deviances Tenable filed directly on this object; (2) trustee — deviances where this identity is the dangerous principal embedded inside ANOTHER object's finding (e.g. a risky ACE in a Dangerous-ACE list), which never appear under this object in Tenable; (3) inherited — deviances on a container/partition this object sits under, whose exposure inherits down. Each deviance carries its checker, reason, severity (raw O-CRITICITY plus the Critical/High/Medium/Low band), remediation cost (raw plus band), the related counterpart object, granted rights, resolved/ignored state, and a deeplink into the Tenable UI (plus a filter hint to narrow to the exact object). Provide exactly one of distinguishedName, sid, samAccountName, or objectId. Severity is profile-specific; omit profileId to use the preferred profile. Layer 3 requires the control graph and builds it on first use (tens of seconds on a large tenant). Deviances from checkers DISABLED in the profile/directory are excluded by default (see summary.suppressed). Facts only. CACHING: deviances + checker config are cached for a long TTL; pass refresh:true to force a rescan.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "distinguishedName": {
+                    "type": "string",
+                    "description": "Exact DN of the identity."
+                  },
+                  "sid": {
+                    "type": "string",
+                    "description": "Object SID of the identity."
+                  },
+                  "samAccountName": {
+                    "type": "string",
+                    "description": "SAM account name of the identity."
+                  },
+                  "objectId": {
+                    "type": "integer",
+                    "description": "Tenable AD object id of the identity."
+                  },
+                  "profileId": {
+                    "type": "integer",
+                    "description": "Profile (lens) id. Omit for the preferred profile."
+                  },
+                  "includeTarget": {
+                    "type": "boolean",
+                    "description": "Include deviances filed on the object (default true)."
+                  },
+                  "includeTrustee": {
+                    "type": "boolean",
+                    "description": "Include deviances where the object is the risky trustee (default true)."
+                  },
+                  "includeInherited": {
+                    "type": "boolean",
+                    "description": "Include container/partition-inherited deviances (default true; builds the graph)."
+                  },
+                  "minSeverityBand": {
+                    "type": "string",
+                    "enum": [
+                      "Critical",
+                      "High",
+                      "Medium",
+                      "Low"
+                    ],
+                    "description": "Only return deviances at or above this band."
+                  },
+                  "includeResolved": {
+                    "type": "boolean",
+                    "description": "Include resolved deviances (default false)."
+                  },
+                  "includeIgnored": {
+                    "type": "boolean",
+                    "description": "Include ignored deviances (default false)."
+                  },
+                  "includeDisabledCheckers": {
+                    "type": "string",
+                    "enum": [
+                      "exclude",
+                      "flag",
+                      "include"
+                    ],
+                    "description": "How to treat deviances from disabled checkers (default exclude)."
+                  },
+                  "refresh": {
+                    "type": "boolean",
+                    "description": "Force a fresh deviance scan instead of the cached index."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "identity": {
+                      "type": "object"
+                    },
+                    "summary": {
+                      "type": "object"
+                    },
+                    "deviances": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "meta": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/get_identity_360_summary": {
+      "post": {
+        "operationId": "get_identity_360_summary",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "get_identity_360_summary",
+        "description": "Batch identity-exposure roll-up: for a list of AD objects, return per-identity deviance COUNTS by severity band (Critical/High/Medium/Low), by layer (target/trustee/inherited), the total, and the single highest severity — but NOT the full deviance lists. Designed to populate per-user badges in a report (e.g. an attack path of several users, each showing its Critical/High/Medium/Low tally) in one call; drill into any identity with get_identity_360 for the full, sorted, deep-linked findings. Accepts a mix of distinguishedName / sid / samAccountName / objectId (as strings or numbers); unresolved inputs are returned with resolved:false rather than failing the batch. Counts use the same layers, profile, and filters as get_identity_360, so a badge here always matches the expanded view there. Omit profileId to use the preferred profile. Facts only. CACHING: shares the cached deviance index with get_identity_360 (this call warms it).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identities": {
+                    "type": "array",
+                    "items": {
+                      "type": [
+                        "string",
+                        "integer"
+                      ]
+                    },
+                    "description": "Identities to summarize (DN / SID / samAccountName / objectId)."
+                  },
+                  "profileId": {
+                    "type": "integer",
+                    "description": "Profile (lens) id. Omit for the preferred profile."
+                  },
+                  "includeTarget": {
+                    "type": "boolean",
+                    "description": "Include target-layer deviances (default true)."
+                  },
+                  "includeTrustee": {
+                    "type": "boolean",
+                    "description": "Include trustee-layer deviances (default true)."
+                  },
+                  "includeInherited": {
+                    "type": "boolean",
+                    "description": "Include inherited-layer deviances (default true; builds the graph)."
+                  },
+                  "minSeverityBand": {
+                    "type": "string",
+                    "enum": [
+                      "Critical",
+                      "High",
+                      "Medium",
+                      "Low"
+                    ],
+                    "description": "Only count deviances at or above this band."
+                  },
+                  "includeResolved": {
+                    "type": "boolean",
+                    "description": "Include resolved deviances (default false)."
+                  },
+                  "includeIgnored": {
+                    "type": "boolean",
+                    "description": "Include ignored deviances (default false)."
+                  },
+                  "includeDisabledCheckers": {
+                    "type": "string",
+                    "enum": [
+                      "exclude",
+                      "flag",
+                      "include"
+                    ],
+                    "description": "How to treat deviances from disabled checkers (default exclude)."
+                  },
+                  "refresh": {
+                    "type": "boolean",
+                    "description": "Force a fresh deviance scan instead of the cached index."
+                  }
+                },
+                "required": [
+                  "identities"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with freshness metadata. Domain-level errors can appear in the result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "identities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "unresolved": {
+                      "type": "integer"
+                    },
+                    "meta": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tools/{tool_name}": {
+      "post": {
+        "operationId": "invokeEnabledTool",
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Invoke an optionally enabled Tenable API tool",
+        "description": "Use the input schema from GET /v1/tools. Object results keep their top-level fields. Arrays, scalars, and objects with an upstream freshness field are returned under data.",
+        "parameters": [
+          {
+            "name": "tool_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9_]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result with upstream fetch metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "freshness": {
+                      "$ref": "#/components/schemas/Freshness"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "data": {}
+                  },
+                  "required": [
+                    "freshness"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UnknownTool"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Dedicated connector token."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ScanFreshness": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "enum": [
+              "ad_snapshot",
+              "deviance_snapshot"
+            ]
+          },
+          "scanStartedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scanCompletedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ageMs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Elapsed time since the scan completed."
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "Whether the age meets or exceeds the configured TTL."
+          }
+        },
+        "required": [
+          "source",
+          "scanStartedAt",
+          "scanCompletedAt",
+          "ageMs",
+          "stale"
+        ]
+      },
+      "LiveFreshness": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "const": "tie_live"
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Connector retrieval time from TIE."
+          }
+        },
+        "required": [
+          "source",
+          "fetchedAt"
+        ]
+      },
+      "Freshness": {
+        "type": "object",
+        "properties": {
+          "refreshInProgress": {
+            "type": "boolean",
+            "description": "Whether an AD snapshot scan is in progress when the response is sent."
+          },
+          "adSnapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanFreshness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "devianceIndex": {
+            "$ref": "#/components/schemas/ScanFreshness"
+          },
+          "object": {
+            "$ref": "#/components/schemas/LiveFreshness"
+          },
+          "upstream": {
+            "$ref": "#/components/schemas/LiveFreshness"
+          }
+        },
+        "required": [
+          "refreshInProgress"
+        ]
+      },
+      "CacheStatus": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "enum": [
+              "warming",
+              "refreshing",
+              "ready",
+              "failed"
+            ]
+          },
+          "phase": {
+            "enum": [
+              "waiting",
+              "scanning",
+              "consolidating",
+              "complete",
+              "failed"
+            ]
+          },
+          "trigger": {
+            "enum": [
+              "startup",
+              "manual",
+              "scheduled",
+              "expiry"
+            ]
+          },
+          "pagesFetched": {
+            "type": "integer"
+          },
+          "objectsFetched": {
+            "type": "integer"
+          },
+          "elapsedMs": {
+            "type": "integer"
+          },
+          "objectCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nextRefreshAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "phase",
+          "trigger",
+          "pagesFetched",
+          "objectsFetched",
+          "elapsedMs",
+          "objectCount",
+          "nextRefreshAt",
+          "freshness"
+        ]
+      },
+      "ADObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "directoryId": {
+            "type": "integer"
+          },
+          "objectId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "value": {},
+                "valueType": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "value",
+                "valueType"
+              ]
+            }
+          },
+          "derived": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "directoryId",
+          "objectId",
+          "type",
+          "attributes"
+        ]
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid JSON or tool arguments.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "A valid bearer token is required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "headers": {
+          "WWW-Authenticate": {
+            "schema": {
+              "const": "Bearer"
+            }
+          }
+        }
+      },
+      "UnknownTool": {
+        "description": "Unknown route or disabled tool.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "TooLarge": {
+        "description": "The JSON body exceeds 1 MiB.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Connector failure.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "UpstreamError": {
+        "description": "Tenable API request failed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "The cache is warming, blocked by a foreground refresh, or unavailable after a failed scan.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CacheStatus"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "example": 3
+            },
+            "description": "Suggested delay in seconds before polling again."
+          }
+        }
+      },
+      "ScanAccepted": {
+        "description": "Started a scan or joined the active scan.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CacheStatus"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "example": 3
+            },
+            "description": "Suggested delay in seconds before polling again."
+          }
+        }
+      }
+    }
+  }
+}
