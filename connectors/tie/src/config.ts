@@ -11,6 +11,7 @@ export interface TIEConfig {
   port: number;
   connectorToken: string;
   enabledTools: string[];
+  logFile?: string;
 }
 
 function integer(name: string, fallback: number, minimum: number, maximum = Number.MAX_SAFE_INTEGER): number {
@@ -52,5 +53,6 @@ export function loadConfig(): TIEConfig {
     warmChunk: integer('TIE_WARM_CHUNK', 5000, 1000),
     port: integer('PORT', 8080, 1, 65535),
     enabledTools: (process.env.TIE_ENABLED_TOOLS ?? '').split(',').map(name => name.trim()).filter(Boolean),
+    logFile: process.env.TIE_LOG_FILE?.trim() || undefined,
   };
 }

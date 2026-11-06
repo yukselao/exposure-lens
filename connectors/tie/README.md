@@ -29,11 +29,62 @@ Run `docker compose up --build -d`. Build time uses public registries for base i
 
 PostgreSQL settings configure the data lake service. The TIE connector serves JSON over HTTP independently.
 
+## Logging
+
+The connector writes one JSON record per line to stdout and, under Compose, appends the same records to `/var/log/tie/connector.log`. The `tie_logs` volume keeps the file across container recreation.
+
+```bash
+docker compose logs -f tie
+docker compose exec -T tie tail -n 50 /var/log/tie/connector.log
+```
+
+`ad_sync_started`, `ad_sync_progress`, `ad_sync_completed`, and `ad_sync_failed` report the trigger, progress counters, elapsed time, and next scheduled refresh where applicable. Progress is logged on the first page, every ten pages, or on the next page after ten seconds without a progress log. Each `http_request` records the method, known route, HTTP status, duration, and peer IP. Request bodies, query strings, bearer tokens, API keys, and AD records are excluded from log entries.
+
+For a standalone connector, set `TIE_LOG_FILE` to a writable file path to enable file logging. If the file becomes unavailable, stdout reports `log_file_unavailable` and continues receiving logs.
+
 ## Connector authentication
 
 Send `Authorization: Bearer <token>` on every request. Compose mounts this dedicated token as a Docker secret. Keep it separate from the upstream `TIE_API_KEY`, which the connector uses to authenticate to Tenable. Missing or invalid connector tokens return HTTP `401 Unauthorized`.
 
 If TIE uses an internal CA, mount the CA certificate into the TIE connector container and set `NODE_EXTRA_CA_CERTS` to the mounted file's path in a Compose override.
+
+## curl examples
+
+Run these from a trusted client with curl, access to the Compose network, and a copy of the connector token mounted at the path below. From the Compose host, run from the project root and change the two settings below to `TIE_URL=http://127.0.0.1:8080` and `TIE_TOKEN_FILE=./secrets/tie_connector_token`.
+
+```bash
+TIE_URL=http://tie:8080
+TIE_TOKEN_FILE=/run/secrets/tie_connector_token
+
+tie_curl() {
+  local token
+  token=$(cat "$TIE_TOKEN_FILE") || return
+  printf 'Authorization: Bearer %s\n' "$token" |
+    curl --silent --show-error --fail-with-body --header @- "$@"
+}
+```
+
+Check whether the cache is ready and when the next refresh is scheduled.
+
+```bash
+tie_curl "$TIE_URL/v1/status"
+```
+
+Query the snapshot for up to five user accounts.
+
+```bash
+tie_curl "$TIE_URL/v1/tools/query_ad_objects" \
+  --header 'Content-Type: application/json' \
+  --data '{"expression":"objectClass=user AND NOT objectClass=computer","limit":5}'
+```
+
+Fetch one user's current attributes from Tenable. Replace `analyst` with the target SAM account name.
+
+```bash
+tie_curl "$TIE_URL/v1/tools/get_ad_object" \
+  --header 'Content-Type: application/json' \
+  --data '{"samAccountName":"analyst","liveData":true}'
+```
 
 ## Startup and refresh
 

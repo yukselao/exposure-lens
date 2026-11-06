@@ -9,6 +9,9 @@ services:
       TIE_CONNECTOR_TOKEN_FILE: /run/secrets/tie_connector_token
       TIE_ENABLED_TOOLS: ${tie_enabled_tools:-}
       TIE_CACHE_REFRESH_INTERVAL_MINUTES: ${tie_cache_refresh_interval_minutes:-0}
+      TIE_LOG_FILE: /var/log/tie/connector.log
+    volumes:
+      - tie_logs:/var/log/tie
     secrets:
       - tie_connector_token
     networks:
@@ -40,3 +43,4 @@ secrets:
 
 volumes:
   postgres_data:
+  tie_logs:

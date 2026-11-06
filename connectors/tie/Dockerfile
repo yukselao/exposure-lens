@@ -12,6 +12,7 @@ ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
 COPY package.json LICENSE ./
+RUN mkdir -p /var/log/tie && chown node:node /var/log/tie
 USER node
 EXPOSE 8080
 CMD ["node", "build/index.js"]

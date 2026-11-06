@@ -1,5 +1,7 @@
 import type { ADObjectStore } from './ad-object-store.js';
+import { TIEUpstreamError } from './client.js';
 import { scanFreshness } from './freshness.js';
+import type { ConnectorLogger } from './logger.js';
 
 type CacheState = 'warming' | 'refreshing' | 'ready' | 'failed';
 type CachePhase = 'waiting' | 'scanning' | 'consolidating' | 'complete' | 'failed';
@@ -22,6 +24,7 @@ export class CacheLifecycle {
     private readonly createStore: () => ADObjectStore,
     private readonly publish: (store: ADObjectStore) => void,
     private readonly refreshIntervalMs: number,
+    private readonly logger: Pick<ConnectorLogger, 'info' | 'error'>,
   ) {}
 
   get refreshInProgress() {
@@ -68,6 +71,7 @@ export class CacheLifecycle {
     this.objectsFetched = 0;
     this.startedAt = Date.now();
     this.finishedAt = null;
+    this.logger.info('ad_sync_started', { trigger, state: this.state });
     void this.scan();
     return this.status();
   }
@@ -79,12 +83,21 @@ export class CacheLifecycle {
   }
 
   private async scan(): Promise<void> {
+    let lastProgressAt = this.startedAt;
+    let failure: string | undefined;
     try {
       // Existing requests keep their old store until they finish.
       const store = this.createStore();
       await store.ensureLoaded(true, ({ pages, objects }) => {
         this.pagesFetched = pages;
         this.objectsFetched = objects;
+        const now = Date.now();
+        if (pages === 1 || pages % 10 === 0 || now - lastProgressAt >= 10_000) {
+          this.logger.info('ad_sync_progress', {
+            trigger: this.trigger, pagesFetched: pages, objectsFetched: objects, elapsedMs: now - this.startedAt,
+          });
+          lastProgressAt = now;
+        }
       });
       this.phase = 'consolidating';
       this.objectCount = store.ensureConsolidated().count;
@@ -93,7 +106,7 @@ export class CacheLifecycle {
       this.phase = 'complete';
       this.state = 'ready';
     } catch (error) {
-      console.error('AD snapshot scan failed:', error);
+      failure = error instanceof TIEUpstreamError ? error.message : 'Unexpected AD snapshot error';
       this.phase = 'failed';
       this.state = 'failed';
     } finally {
@@ -102,6 +115,16 @@ export class CacheLifecycle {
         this.nextRefreshAt = new Date(this.finishedAt + this.refreshIntervalMs).toISOString();
         this.timer = setTimeout(() => this.start('scheduled'), this.refreshIntervalMs).unref();
       }
+      const details = {
+        trigger: this.trigger,
+        pagesFetched: this.pagesFetched,
+        objectsFetched: this.objectsFetched,
+        objectCount: this.objectCount,
+        elapsedMs: this.finishedAt - this.startedAt,
+        nextRefreshAt: this.nextRefreshAt,
+      };
+      if (failure) this.logger.error('ad_sync_failed', { ...details, reason: failure });
+      else this.logger.info('ad_sync_completed', details);
     }
   }
 }
