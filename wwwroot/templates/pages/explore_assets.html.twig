@@ -1,0 +1,25 @@
+<div class="explore" id="assets">
+  <aside class="card">
+    <div class="filter-group">
+      <div class="filter-title">Type</div>
+      <button type="button" class="filter-option" data-type="users">Users<span class="count" data-count="users"></span></button>
+      <button type="button" class="filter-option" data-type="devices">Devices<span class="count" data-count="devices"></span></button>
+      <button type="button" class="filter-option" data-type="iot">IOT Devices<span class="count" data-count="iot"></span></button>
+    </div>
+    <div class="filter-group" id="assetSourceGroup">
+      <div class="filter-title">Seen by</div>
+      <button type="button" class="filter-option active" data-source="">Any source</button>
+      <button type="button" class="filter-option" data-source="sc+ad">Security Center and AD</button>
+      <button type="button" class="filter-option" data-source="sc">Security Center only</button>
+      <button type="button" class="filter-option" data-source="ad">AD only</button>
+    </div>
+  </aside>
+  <section class="card">
+    <div class="toolbar">
+      <div class="search">{% import 'partials/icons.twig' as icons %}{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="assetSearch" placeholder="Search" aria-label="Search assets"></div>
+      <span class="muted" id="assetHint"></span>
+    </div>
+    <div class="table-wrap"><table class="table table-hover"><thead id="assetHead"></thead><tbody id="assetBody"></tbody></table></div>
+    <div class="pager" id="assetPager"></div>
+  </section>
+</div>

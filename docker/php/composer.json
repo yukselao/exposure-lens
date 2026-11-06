@@ -1,0 +1,11 @@
+{
+  "name": "exposure-lens/web",
+  "description": "Exposure Lens web UI (PHP + Twig)",
+  "require": {
+    "php": ">=8.3",
+    "twig/twig": "3.30.0"
+  },
+  "config": {
+    "vendor-dir": "vendor"
+  }
+}

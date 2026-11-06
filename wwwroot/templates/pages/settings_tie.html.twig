@@ -1,0 +1,45 @@
+<div class="row g-3">
+  <div class="col-xl-5">
+    <section class="card h-100">
+      <div class="card-header">Connection <span class="sub">Tenable Identity Exposure connector</span></div>
+      <div class="card-body">
+        <form id="tieForm" autocomplete="off" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="tie_url">Connector URL</label>
+            <input type="url" class="form-control" id="tie_url" name="connector_url" value="{{ tie.connector_url }}" placeholder="http://tie:8080">
+            <div class="form-text">Leave empty to use the connector in this stack (<span class="mono">http://tie:8080</span>).</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="tie_token">Connector token</label>
+            <input type="password" class="form-control mono" id="tie_token" name="token" autocomplete="new-password"
+                   placeholder="{{ tie.token_set ? 'Saved. Leave empty to keep it.' : 'Using the token file of this stack' }}">
+            <div class="form-text">The bearer token of the connector. The Tenable host and API key stay in <span class="mono">.env</span>.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="tie_interval">Sync every (minutes)</label>
+            <input type="number" class="form-control" id="tie_interval" name="sync_interval_minutes" min="0" step="1" value="{{ tie.sync_interval_minutes }}" style="max-width:160px">
+            <div class="form-text">0 means manual sync only.</div>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <button type="submit" class="btn btn-primary" id="tieSave">Save</button>
+            <button type="button" class="btn btn-outline-primary" id="tieTest">Test connection</button>
+          </div>
+          <div class="status-line mt-3" id="tieStatus" role="status"></div>
+        </form>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-7">
+    <section class="card h-100">
+      <div class="card-header">AD objects in PostgreSQL
+        <span class="ms-auto"><button type="button" class="btn btn-sm btn-primary" id="tieSync">Sync now</button></span></div>
+      <div class="card-body">
+        <div class="stat-row mb-3" id="tieCounts"></div>
+        <div class="status-line mb-2" id="tieSyncStatus" role="status"></div>
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th>Job</th><th>Type</th><th>Status</th><th>Started</th><th>Duration</th><th>Result</th></tr></thead>
+          <tbody id="tieJobs"></tbody></table></div>
+      </div>
+    </section>
+  </div>
+</div>

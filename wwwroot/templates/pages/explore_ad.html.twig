@@ -1,0 +1,46 @@
+{% import 'partials/icons.twig' as icons %}
+<div class="explore" id="ad">
+  <aside class="card">
+    <div class="filter-group">
+      <div class="filter-title">Object type</div>
+      <button type="button" class="filter-option" data-type="users">Users</button>
+      <button type="button" class="filter-option" data-type="service_accounts">Service Accounts</button>
+      <button type="button" class="filter-option" data-type="groups">Groups</button>
+      <button type="button" class="filter-option" data-type="computers">Devices</button>
+      <button type="button" class="filter-option" data-type="group_policies">Group Policies</button>
+    </div>
+    <div class="filter-group">
+      <div class="filter-title">Tier</div>
+      <button type="button" class="filter-option active" data-tier="">Any tier</button>
+      <button type="button" class="filter-option" data-tier="0">Tier 0</button>
+      <button type="button" class="filter-option" data-tier="1">Tier 1</button>
+      <button type="button" class="filter-option" data-tier="2">Tier 2</button>
+      <button type="button" class="filter-option" data-tier="none">No tier</button>
+    </div>
+    <div class="filter-group" id="adEnabledGroup">
+      <div class="filter-title">Account status</div>
+      <button type="button" class="filter-option active" data-enabled="">Any status</button>
+      <button type="button" class="filter-option" data-enabled="1">Enabled</button>
+      <button type="button" class="filter-option" data-enabled="0">Disabled</button>
+    </div>
+  </aside>
+  <section class="card">
+    <div class="toolbar">
+      <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="adSearch" placeholder="Search name, account, DN or SID" aria-label="Search AD objects"></div>
+      <div class="dropdown ms-auto">
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="adTierBtn" data-bs-toggle="dropdown" disabled>Set tier</button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><button class="dropdown-item" type="button" data-set-tier="0">Tier 0</button></li>
+          <li><button class="dropdown-item" type="button" data-set-tier="1">Tier 1</button></li>
+          <li><button class="dropdown-item" type="button" data-set-tier="2">Tier 2</button></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><button class="dropdown-item" type="button" data-set-tier="none">Remove from all tiers</button></li>
+          <li><button class="dropdown-item" type="button" data-set-tier="auto">Use automatic tier</button></li>
+        </ul>
+      </div>
+      <span class="muted" id="adSelected"></span>
+    </div>
+    <div class="table-wrap"><table class="table table-hover"><thead id="adHead"></thead><tbody id="adBody"></tbody></table></div>
+    <div class="pager" id="adPager"></div>
+  </section>
+</div>

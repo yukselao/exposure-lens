@@ -5,3 +5,9 @@
 /secrets/
 node_modules/
 build/
+/logs/**
+!/logs/*/
+!/logs/**/.gitkeep
+__pycache__/
+*.pyc
+.pytest_cache/

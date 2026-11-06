@@ -1,0 +1,52 @@
+<div class="dash-grid" id="dash">
+  <section class="card span-12">
+    <div class="card-header">Identities <span class="sub">Active Directory, from Identity Exposure</span><span class="ms-auto sub" id="dashTieSync"></span></div>
+    <div class="card-body">
+      <div class="stat-row" id="dashAd"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">Privilege tiers <span class="sub">objects per tier</span></div>
+    <div class="card-body" id="dashTiers"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">Findings by severity <span class="ms-auto sub" id="dashScSync"></span></div>
+    <div class="card-body" id="dashSeverity"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">Asset summary</div>
+    <div class="card-body">
+      <div class="row g-3 align-items-center">
+        <div class="col-5"><div class="chart-box" style="height:150px"><canvas id="chartAssets" aria-label="Computers by domain membership"></canvas></div></div>
+        <div class="col-7" id="dashAssets"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card span-8 row-2">
+    <div class="card-header">Top vulnerabilities <span class="sub">VPR 9 to 10</span></div>
+    <div class="table-wrap">
+      <table class="table table-hover">
+        <thead><tr><th>VPR</th><th>Severity</th><th>Plugin</th><th class="text-end">Hosts</th><th>Exploit</th></tr></thead>
+        <tbody id="dashTopVpr"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">Vulnerabilities by asset tag <span class="sub">Security Center pool and query</span></div>
+    <div class="card-body"><div class="chart-box"><canvas id="chartByQuery" aria-label="Findings per query by severity"></canvas></div>
+      <div id="dashByQueryEmpty" class="empty-state d-none"></div></div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">Local user discovery</div>
+    <div class="card-body empty-state">
+      <h2>No local user data yet</h2>
+      <p>Privileged and normal local user counts will come from Security Center plugin output. That connector step is not built yet.</p>
+    </div>
+  </section>
+</div>

@@ -1,3 +1,15 @@
+x-python: &python
+  build: ./docker/python
+  image: exposure-lens-python
+  networks:
+    - exposure
+
+x-pg-env: &pg-env
+  PG_HOST: postgres
+  PG_USER: ${pg_user:-exposure_lens}
+  PG_PASSWORD: ${pg_password:?Set pg_password in .env}
+  PG_DB: ${pg_db:-exposure_lens}
+
 services:
   tie:
     build: ./connectors/tie
@@ -27,8 +39,114 @@ services:
       POSTGRES_DB: ${pg_db:-exposure_lens}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     networks:
       - exposure
+
+  # Applies the Alembic revisions in ./db and exits.
+  migrate:
+    <<: *python
+    working_dir: /db
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      <<: *pg-env
+      PYTHONPATH: /db
+    volumes:
+      - ./db:/db:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Security Center -> PostgreSQL (vulnerabilities, host_assets).
+  sc:
+    <<: *python
+    command: ["python", "/app/main.py"]
+    environment:
+      <<: *pg-env
+      PYTHONPATH: /app:/common:/db
+      APP_SECRET_KEY_FILE: /run/secrets/app_secret_key
+      LOG_FILE: /var/log/connector/connector.log
+      LOG_LEVEL: ${sc_log_level:-INFO}
+      POLL_INTERVAL_SECONDS: ${sc_poll_interval_seconds:-30}
+    volumes:
+      - ./connectors/sc:/app:ro
+      - ./connectors/common:/common:ro
+      - ./db:/db:ro
+      - ./logs/sc:/var/log/connector
+    secrets:
+      - app_secret_key
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # TIE connector API -> PostgreSQL (ad_users, ad_groups, ad_computers, ad_group_policies).
+  tie_postgres:
+    <<: *python
+    command: ["python", "/app/main.py"]
+    environment:
+      <<: *pg-env
+      PYTHONPATH: /app:/common:/db
+      APP_SECRET_KEY_FILE: /run/secrets/app_secret_key
+      TIE_CONNECTOR_URL: http://tie:8080
+      TIE_CONNECTOR_TOKEN_FILE: /run/secrets/tie_connector_token
+      LOG_FILE: /var/log/connector/connector.log
+      LOG_LEVEL: ${tie_postgres_log_level:-INFO}
+      POLL_INTERVAL_SECONDS: ${tie_postgres_poll_interval_seconds:-30}
+    volumes:
+      - ./connectors/tie_postgres:/app:ro
+      - ./connectors/common:/common:ro
+      - ./db:/db:ro
+      - ./logs/tie_postgres:/var/log/connector
+    secrets:
+      - app_secret_key
+      - tie_connector_token
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      tie:
+        condition: service_started
+    restart: unless-stopped
+
+  # Web UI: php-fpm runs the application in ./wwwroot, nginx serves it.
+  php:
+    build: ./docker/php
+    image: exposure-lens-php
+    environment:
+      <<: *pg-env
+      APP_SECRET_KEY_FILE: /run/secrets/app_secret_key
+      LOG_DIR: /var/log/exposure-lens
+      TZ: ${tz:-Europe/Istanbul}
+    volumes:
+      - ./wwwroot:/var/www/html:ro
+      - ./logs:/var/log/exposure-lens:ro
+      - tie_logs:/var/log/exposure-lens/tie:ro
+    secrets:
+      - app_secret_key
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - exposure
+    restart: unless-stopped
+
+  web:
+    image: nginx:1.27-alpine
+    ports:
+      - "127.0.0.1:${web_port:-8085}:80"
+    volumes:
+      - ./wwwroot:/var/www/html:ro
+      - ./web/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+    networks:
+      - exposure
+    restart: unless-stopped
 
 networks:
   exposure:
@@ -40,6 +158,8 @@ networks:
 secrets:
   tie_connector_token:
     file: ${tie_connector_token_file:-./secrets/tie_connector_token}
+  app_secret_key:
+    file: ${app_secret_key_file:-./secrets/app_secret_key}
 
 volumes:
   postgres_data:

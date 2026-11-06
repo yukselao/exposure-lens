@@ -1,0 +1,78 @@
+{# Pool: name, description, schedule #}
+<div class="modal fade" id="poolModal" tabindex="-1" aria-labelledby="poolModalTitle" aria-hidden="true">
+  <div class="modal-dialog"><form class="modal-content" id="poolForm" novalidate>
+    <div class="modal-header"><h1 class="modal-title fs-5" id="poolModalTitle">Pool</h1><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <input type="hidden" name="id">
+      <div class="mb-3"><label class="form-label" for="pool_name">Name</label><input class="form-control" id="pool_name" name="name" maxlength="200" required></div>
+      <div class="mb-3"><label class="form-label" for="pool_description">Description</label><textarea class="form-control" id="pool_description" name="description" rows="2" maxlength="2000"></textarea></div>
+      <div class="row g-3">
+        <div class="col-6"><label class="form-label" for="pool_interval">Sync every (minutes)</label>
+          <input type="number" class="form-control" id="pool_interval" name="sync_interval_minutes" min="0" step="1" value="0">
+          <div class="form-text">0 means manual sync only.</div></div>
+        <div class="col-6 d-flex align-items-center"><div class="form-check form-switch mt-3">
+          <input class="form-check-input" type="checkbox" role="switch" id="pool_enabled" name="enabled" value="1" checked>
+          <label class="form-check-label" for="pool_enabled">Enabled</label></div></div>
+      </div>
+      <div class="status-line text-danger mt-2" id="poolError" role="alert"></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save pool</button></div>
+  </form></div>
+</div>
+
+{# Query: the filters that define one cumulative vulnerability query #}
+<div class="modal fade" id="queryModal" tabindex="-1" aria-labelledby="queryModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg"><form class="modal-content" id="queryForm" novalidate>
+    <div class="modal-header"><h1 class="modal-title fs-5" id="queryModalTitle">Query</h1><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <input type="hidden" name="id"><input type="hidden" name="pool_id">
+      <div class="row g-3 mb-3">
+        <div class="col-md-7"><label class="form-label" for="q_name">Name</label><input class="form-control" id="q_name" name="name" maxlength="200" required></div>
+        <div class="col-md-3"><label class="form-label" for="q_max">Record limit</label><input type="number" class="form-control" id="q_max" name="max_records" min="0" step="1000" value="0"><div class="form-text">0 means all records.</div></div>
+        <div class="col-md-2 d-flex align-items-center"><div class="form-check form-switch mt-3"><input class="form-check-input" type="checkbox" role="switch" id="q_enabled" name="enabled" value="1" checked><label class="form-check-label" for="q_enabled">Enabled</label></div></div>
+      </div>
+      <div class="filter-card">
+        <div class="filter-title">Filters <span class="fw-normal text-lowercase">· cumulative vulnerabilities; an empty filter is not applied</span></div>
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="form-label">Severity</div>
+            <div class="btn-group sev-toggle" role="group" aria-label="Severity">
+              {% for id, label in {'4': 'Critical', '3': 'High', '2': 'Medium', '1': 'Low', '0': 'Info'} %}
+              <input type="checkbox" class="btn-check q-sev" id="q_sev_{{ id }}" value="{{ id }}" autocomplete="off"><label class="btn btn-sm btn-outline-primary" for="q_sev_{{ id }}">{{ label }}</label>
+              {% endfor %}
+            </div>
+            <div class="form-text">None selected means every severity.</div>
+          </div>
+          {% for key, label in {'vpr': 'VPR', 'cvss_v3': 'CVSS v3', 'acr': 'Asset criticality (ACR)'} %}
+          <div class="col-md-4"><div class="form-label">{{ label }}</div>
+            <div class="input-group input-group-sm"><input type="number" class="form-control" id="q_{{ key }}_min" min="0" max="10" step="0.1" placeholder="min" aria-label="{{ label }} minimum"><span class="input-group-text">to</span><input type="number" class="form-control" id="q_{{ key }}_max" min="0" max="10" step="0.1" placeholder="max" aria-label="{{ label }} maximum"></div></div>
+          {% endfor %}
+          <div class="col-md-6"><label class="form-label" for="q_ip">IP addresses</label><input class="form-control form-control-sm mono" id="q_ip" placeholder="10.0.0.5, 10.0.1.0/24, 10.0.2.1-10.0.2.50"></div>
+          <div class="col-md-6"><label class="form-label" for="q_plugins">Plugin IDs</label><input class="form-control form-control-sm mono" id="q_plugins" placeholder="20811, 22869"></div>
+          <div class="col-md-6"><label class="form-label" for="q_name_contains">Plugin name contains</label><input class="form-control form-control-sm" id="q_name_contains" maxlength="200"></div>
+          <div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="q_exploit"><label class="form-check-label" for="q_exploit">Only findings with a known exploit</label></div></div>
+          <div class="col-md-6"><div class="form-label">Repositories</div><div class="pick-list" id="q_repositories"></div></div>
+          <div class="col-md-6"><div class="form-label d-flex">Plugin families<input type="search" class="form-control form-control-sm ms-auto" id="q_family_search" placeholder="Find a family" aria-label="Find a plugin family" style="max-width:170px"></div><div class="pick-list" id="q_families"></div></div>
+        </div>
+        <div class="form-text mt-2" id="queryMetaHint"></div>
+      </div>
+      <div class="status-line text-danger mt-2" id="queryError" role="alert"></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save query</button></div>
+  </form></div>
+</div>
+
+{# Confirm a delete #}
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmTitle" aria-hidden="true">
+  <div class="modal-dialog modal-sm"><div class="modal-content">
+    <div class="modal-header"><h1 class="modal-title fs-6" id="confirmTitle"></h1></div>
+    <div class="modal-body" id="confirmText"></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-danger" id="confirmOk"></button></div>
+  </div></div>
+</div>
+
+{# Detail panel for an AD object or a device #}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="detailPanel" aria-labelledby="detailTitle">
+  <div class="offcanvas-header border-bottom"><h2 class="offcanvas-title fs-6" id="detailTitle"></h2><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button></div>
+  <div class="offcanvas-body" id="detailBody"></div>
+</div>

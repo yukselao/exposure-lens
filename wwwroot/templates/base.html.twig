@@ -1,0 +1,69 @@
+{% import 'partials/icons.twig' as icons %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ CSRF }}">
+  <title>{{ title }} · Exposure Lens</title>
+  <link rel="icon" type="image/svg+xml" href="{{ asset('/assets/favicon.svg') }}">
+  <link rel="stylesheet" href="{{ asset('/assets/vendor/bootstrap-5.3.3.min.css') }}">
+  <link rel="stylesheet" href="{{ asset('/assets/app.css') }}">
+</head>
+<body data-page="{{ page }}">
+
+<header id="topbar">
+  <a class="brand" href="/">{{ icons.ic('lens', 22) }}<span>Exposure <b>Lens</b></span></a>
+  <span class="topbar-title">{{ title }}</span>
+  <nav class="topbar-actions" aria-label="Tools">
+    <a class="topbar-link {{ page == 'logs' ? 'active' }}" href="/logs" title="Connector logs">{{ icons.ic('logs', 16) }}<span>Logs</span></a>
+  </nav>
+</header>
+
+<nav id="rail" aria-label="Main menu">
+  <a class="rail-item {{ section == 'dashboard' ? 'active' }}" href="/">{{ icons.ic('dashboard', 20) }}<span>Dashboard</span></a>
+  <button type="button" class="rail-item {{ section == 'explore' ? 'active' }}" data-flyout="explore" aria-expanded="false">{{ icons.ic('explore', 20) }}<span>Explore</span></button>
+  <a class="rail-item {{ section == 'risk' ? 'active' }}" href="/risk">{{ icons.ic('risk', 20) }}<span>Risk</span></a>
+  <a class="rail-item {{ section == 'reports' ? 'active' }}" href="/reports">{{ icons.ic('reports', 20) }}<span>Reports</span></a>
+  <div class="rail-spacer"></div>
+  <button type="button" class="rail-item {{ section == 'settings' ? 'active' }}" data-flyout="settings" aria-expanded="false">{{ icons.ic('gear', 20) }}<span>Settings</span></button>
+</nav>
+
+<aside class="flyout" id="flyout-explore" aria-label="Explore" hidden>
+  <div class="flyout-title">Explore</div>
+  <a class="flyout-link {{ page == 'explore-assets' ? 'active' }}" href="/explore/assets">{{ icons.ic('box', 18) }}Asset Inventory</a>
+  <a class="flyout-link {{ page == 'explore-ad' ? 'active' }}" href="/explore/ad-objects">{{ icons.ic('people', 18) }}AD Objects</a>
+  <a class="flyout-link {{ page == 'explore-software' ? 'active' }}" href="/explore/software">{{ icons.ic('disc', 18) }}Software Inventory</a>
+</aside>
+<aside class="flyout flyout-bottom" id="flyout-settings" aria-label="Settings" hidden>
+  <div class="flyout-title">Settings</div>
+  <a class="flyout-link {{ page == 'settings-sc' ? 'active' }}" href="/settings/security-center">{{ icons.ic('shield', 18) }}Security Center</a>
+  <a class="flyout-link {{ page == 'settings-tie' ? 'active' }}" href="/settings/identity-exposure">{{ icons.ic('id', 18) }}Identity Exposure</a>
+</aside>
+
+<main id="main">
+  {% if db_error %}
+    <div class="alert alert-danger">The database cannot be reached. Check that the <code>postgres</code> and <code>migrate</code> services ran.</div>
+  {% endif %}
+  {% if page == 'dashboard' %}{% include 'pages/dashboard.html.twig' %}
+  {% elseif page == 'explore-assets' %}{% include 'pages/explore_assets.html.twig' %}
+  {% elseif page == 'explore-ad' %}{% include 'pages/explore_ad.html.twig' %}
+  {% elseif page == 'explore-software' %}{% include 'pages/explore_software.html.twig' %}
+  {% elseif page == 'risk' or page == 'reports' %}{% include 'pages/placeholder.html.twig' %}
+  {% elseif page == 'settings-sc' %}{% include 'pages/settings_sc.html.twig' %}
+  {% elseif page == 'settings-tie' %}{% include 'pages/settings_tie.html.twig' %}
+  {% elseif page == 'logs' %}{% include 'pages/logs.html.twig' %}
+  {% else %}
+    <div class="card"><div class="card-body empty-state"><h2>Page not found</h2><p>This address does not exist. <a href="/">Go to the dashboard</a>.</p></div></div>
+  {% endif %}
+</main>
+
+{% include 'modals/modals.html.twig' %}
+<div id="toastBox" aria-live="polite" aria-atomic="true"></div>
+
+<script src="{{ asset('/assets/vendor/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ asset('/assets/vendor/bootstrap-5.3.3.bundle.min.js') }}"></script>
+{% if page == 'dashboard' %}<script src="{{ asset('/assets/vendor/chart-4.4.7.umd.min.js') }}"></script>{% endif %}
+<script src="{{ asset('/assets/app.js') }}"></script>
+</body>
+</html>
