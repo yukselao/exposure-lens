@@ -1,6 +1,8 @@
 services:
   tie:
     build: ./connectors/tie
+    ports:
+      - "127.0.0.1:8080:8080"
     environment:
       TIE_BASE_URL: ${tie_host:?Set tie_host in .env}
       TIE_API_KEY: ${tie_apikey:?Set tie_apikey in .env}
@@ -14,6 +16,8 @@ services:
 
   postgres:
     image: postgres:17-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: ${pg_user:-exposure_lens}
       POSTGRES_PASSWORD: ${pg_password:?Set pg_password in .env}
@@ -26,6 +30,9 @@ services:
 networks:
   exposure:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.98.0.0/24
 
 secrets:
   tie_connector_token:
