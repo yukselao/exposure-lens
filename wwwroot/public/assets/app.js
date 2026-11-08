@@ -632,6 +632,7 @@
   // ---- Asset Details page ---------------------------------------------------------------------------
   function initAssetView() {
     var q = query(), current = null, tab = (window.location.hash || '').replace('#', '') || 'overview', charts = [];
+    var MATCH_LABEL = { exact: ['ok', 'Exact (SID)'], name: ['run', 'By name'], inferred: ['wait', 'Inferred'], 'demo alias': ['bad', 'Demo alias'], 'telemetry only': ['', 'Not in AD'] };
     var $pane = $('#avPane');
 
     function fail(text) { $('#avSyncing').prop('hidden', true); $('#avError').prop('hidden', false).text(text); }
@@ -768,6 +769,38 @@
       })) + '<button type="button" class="btn btn-sm btn-link px-0" data-goto="systems">All connected systems →</button>');
     }
 
+    // -- "How connected?": the connection summary and the chain of every fact behind it (computed at sync)
+    function connectionOf(key) { return ((current.profile || {}).connections || []).filter(function (c) { return String(c.key) === String(key); })[0]; }
+    function connectionButton(key, cols) {
+      if (!connectionOf(key)) return '';
+      return '<button type="button" class="btn btn-sm btn-outline-primary text-nowrap" data-conn="' + esc(key) + '" aria-expanded="false">How connected?</button>';
+    }
+    function connectionRow(key, cols) {
+      var c = connectionOf(key);
+      if (!c) return '';
+      var facts = c.facts.map(function (i) { return current.systems[i]; }).filter(Boolean);
+      var m = MATCH_LABEL[c.quality] || ['', c.quality || ''];
+      return '<tr class="conn-detail" data-for="' + esc(key) + '" hidden><td colspan="' + cols + '"><div class="conn-box">' +
+        '<div class="conn-summary"><span class="badge-soft ' + m[0] + '">' + esc(m[1]) + '</span> ' + esc(c.summary) + '</div>' +
+        facts.map(function (s) {
+          var chain = (s.correlation || []).map(function (st) { return '<li class="step-' + esc(st.kind) + '"><span class="step-title">' + esc(st.title) + '</span><span class="step-text">' + esc(st.text) + '</span></li>'; }).join('');
+          return '<div class="conn-fact"><div class="conn-fact-head"><span class="chip">' + esc(accessLabel(s.access_type)) + '</span>' +
+            '<span class="badge-soft ' + (s.access_class === 'usage' ? 'bad' : 'run') + '">' + esc(s.access_class === 'usage' ? 'used' : 'has the right') + '</span>' +
+            (s.via_group ? '<span class="muted small-text">via ' + esc(s.via_group) + '</span>' : '') + '<span class="muted small-text ms-auto">last seen ' + esc(fmtDay(s.last_seen)) + '</span></div>' +
+            '<div class="conn-fact-body"><div>' + (chain ? '<ol class="corr-steps">' + chain + '</ol>' : '<span class="muted">' + esc(s.explanation || s.evidence || '') + '</span>') + '</div>' +
+            '<div>' + (s.output_excerpt ? '<div class="small-text mb-1">Plugin ' + esc(s.evidence_plugin_id) + ' output, matching lines</div><pre class="evidence-out">' + esc(s.output_excerpt) + '</pre>' +
+              (s.plugin_output_id ? '<button type="button" class="btn btn-sm btn-link px-0" data-output="' + esc(s.plugin_output_id) + '">View full output</button>' : '') : '') + '</div></div></div>';
+        }).join('') + '</div></td></tr>';
+    }
+    $pane.on('click', '[data-conn]', function () {
+      var key = this.dataset.conn, $row = $pane.find('tr.conn-detail').filter(function () { return this.dataset.for === key; });
+      var open = $row.prop('hidden');
+      $row.prop('hidden', !open); $(this).attr('aria-expanded', String(open)).toggleClass('active', open).text(open ? 'Hide' : 'How connected?');
+    });
+    function connectionsNote() {
+      return (current.profile || {}).connections ? '' : '<div class="alert alert-info py-2">This snapshot was taken before connection details were recorded. Press <b>Re-sync</b> to see how each system is connected.</div>';
+    }
+
     // -- Connected systems (identity): one row per host
     function connectedSystems() {
       var by = {};
@@ -778,12 +811,13 @@
         if (s.last_seen > h.last_seen) h.last_seen = s.last_seen;
       });
       var rows = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return (b.critical - a.critical) || ((b.max_vpr || 0) - (a.max_vpr || 0)); });
-      return '<p class="muted">Systems this identity can log on to or administer (<b>rights</b>), and systems where it was seen (<b>usage</b>), from Nessus plugin output correlated with Active Directory.</p>' +
-        tbl(['Host', 'Operating system', 'Access', 'Via group', 'Tier', 'ACR', 'Critical', 'High', 'Max VPR', 'Exploitable', 'Credentialed', 'Last seen'], rows.map(function (h) {
+      return '<p class="muted">Systems this identity can log on to or administer (<b>rights</b>), and systems where it was seen (<b>usage</b>), from Nessus plugin output correlated with Active Directory. <b>How connected?</b> shows how each link was established.</p>' + connectionsNote() +
+        tbl(['Host', 'Operating system', 'Access', 'Via group', 'Tier', 'ACR', 'Critical', 'High', 'Max VPR', 'Exploitable', 'Credentialed', 'Last seen', ''], rows.map(function (h) {
           return '<tr>' + td(hostLink(h.host_asset_id, h.host_name) + '<div class="muted mono small-text">' + esc(h.ip) + '</div>') + td('<div class="truncate" style="max-width:220px" title="' + esc(h.os) + '">' + esc(h.os) + '</div>') +
             td(h.access.map(function (a) { return '<span class="chip">' + esc(accessLabel(a)) + '</span>'; }).join('')) + td(esc(h.via.join(', ')) || '<span class="muted">direct</span>') +
             td(tierBadge(h.host_tier) || '<span class="muted">–</span>') + td(esc(h.acr_score || ''), 'text-end') + td(countCell(h.critical), 'text-end') + td(countCell(h.high), 'text-end') + td(vpr(h.max_vpr), 'text-end') +
-            td(countCell(h.exploitable), 'text-end') + td(yes(h.credentialed) ? '<span class="badge-soft ok">yes</span>' : '<span class="badge-soft wait">no</span>') + td(esc(fmtDay(h.last_seen)), 'text-nowrap') + '</tr>';
+            td(countCell(h.exploitable), 'text-end') + td(yes(h.credentialed) ? '<span class="badge-soft ok">yes</span>' : '<span class="badge-soft wait">no</span>') + td(esc(fmtDay(h.last_seen)), 'text-nowrap') +
+            td(connectionButton(h.host_asset_id), 'text-end') + '</tr>' + connectionRow(h.host_asset_id, 13);
         }), 'No host access was found for this identity.');
     }
     // -- Identities (host): one row per identity
@@ -794,19 +828,20 @@
         if (i.access.indexOf(s.access_type) < 0) i.access.push(s.access_type);
       });
       var rows = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return (yes(b.tier0_like) - yes(a.tier0_like)) || String(a.identity_name).localeCompare(String(b.identity_name)); });
-      return '<p class="muted">Identities that hold rights on this host or were seen using it. <b>Other hosts</b> is how many more systems the same identity reaches.</p>' +
-        tbl(['Identity', 'Kind', 'Scope', 'Tier', 'Access', 'Other hosts', 'Last seen', ''], rows.map(function (i) {
+      return '<p class="muted">Identities that hold rights on this host or were seen using it. <b>Other hosts</b> is how many more systems the same identity reaches. <b>How connected?</b> shows how each link was established.</p>' + connectionsNote() +
+        tbl(['Identity', 'Kind', 'Scope', 'Tier', 'Access', 'Other hosts', 'Last seen', '', ''], rows.map(function (i) {
           var ref = i.ad_object_id && (i.object_type === 'user' || i.object_type === 'service_account') ? { kind: 'identity', ad_user_id: i.ad_object_id } : { kind: 'identity', identity_key: i.identity_key };
           return '<tr>' + td('<b>' + esc(i.identity_name) + '</b>' + (yes(i.privileged_hint) ? ' <span class="badge-soft tier-0">privileged</span>' : '')) + td(esc(i.identity_kind)) + td(esc(i.scope)) +
             td(tierBadge(i.tier) || '<span class="muted">–</span>') + td(i.access.map(function (a) { return '<span class="chip">' + esc(accessLabel(a)) + '</span>'; }).join('')) +
             td(countCell(i.other_hosts), 'text-end') + td(esc(fmtDay(i.last_seen)), 'text-nowrap') +
-            td(i.identity_kind === 'group' || i.identity_kind === 'computer' ? '' : '<button type="button" class="btn btn-sm btn-outline-primary" data-sync-ref="' + esc(JSON.stringify(ref)) + '">Asset details</button>', 'text-end') + '</tr>';
+            td(connectionButton(i.identity_key), 'text-end') +
+            td(i.identity_kind === 'group' || i.identity_kind === 'computer' ? '' : '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-sync-ref="' + esc(JSON.stringify(ref)) + '">Asset details</button>', 'text-end') +
+            '</tr>' + connectionRow(i.identity_key, 9);
         }), 'No identity is linked to this host.');
     }
     $pane.on('click', '[data-sync-ref]', function () { syncAssetInNewTab(JSON.parse(this.dataset.syncRef)); });
 
     // -- Correlation evidence: the raw access facts
-    var MATCH_LABEL = { exact: ['ok', 'Exact (SID)'], name: ['run', 'By name'], inferred: ['wait', 'Inferred'], 'demo alias': ['bad', 'Demo alias'], 'telemetry only': ['', 'Not in AD'] };
     function evidenceTab() {
       var isHost = current.asset_kind === 'host';
       var q = {};

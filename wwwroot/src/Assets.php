@@ -161,6 +161,7 @@ final class Assets
             unset($h);
         }
         $risk = self::identityRisk($profile, $systems, $hosts, $findings, $acr);
+        $profile['connections'] = self::connections($systems, 'host_asset_id', $ad ? (string) ($ad['display_name'] ?: $ad['sam_account_name']) : $name);
         $summary = self::summary($hosts, $findings, $acr) + ['access_facts' => count($systems), 'groups' => count($profile['groups'] ?? [])];
 
         return ['key' => $key, 'name' => $name, 'subtitle' => $subtitle, 'ad_object_key' => $ad['object_key'] ?? null, 'host_asset_id' => null,
@@ -274,6 +275,7 @@ final class Assets
         $demo = array_filter($systems, fn ($s) => ($s['match_quality'] ?? '') === 'demo alias');
         if ($demo) $add('info', 'Relies on the demo identity mapping', count($demo) . ' of ' . count($systems) . ' access facts exist only because of an alias in the identity_mapping settings; see Correlation Evidence.');
 
+        $profile['connections'] = self::connections($systems, 'identity_key', null);
         $risk = self::riskBlock($factors, $hosts, $findings, $acr) + [
             'by_access_type' => self::countBy($systems, 'access_type'),
             'by_identity_kind' => self::countBy($systems, 'identity_kind'),
@@ -480,6 +482,73 @@ final class Assets
             $s['correlation'] = $steps;
             $s['match_quality'] = $quality;
         }
+    }
+
+    private const QUALITY_ORDER = ['demo alias' => 0, 'telemetry only' => 1, 'inferred' => 2, 'name' => 3, 'exact' => 4];
+    private const ACCESS_NOUN = [
+        'local_admin' => 'local administrator', 'rdp_right' => 'Remote Desktop right', 'psremote_right' => 'PowerShell remoting right',
+        'session' => 'interactive session', 'last_logon' => 'last logon', 'smb_session' => 'SMB session', 'service_account' => 'service it runs',
+    ];
+
+    /**
+     * One entry per connected system (identity snapshot, grouped by host) or per identity
+     * (host snapshot): how the link was established, in one sentence, with the indexes of
+     * the access facts (rows of `systems`) whose chains explain it.
+     */
+    private static function connections(array $systems, string $by, ?string $subject): array
+    {
+        $out = [];
+        foreach ($systems as $i => $s) {
+            $k = (string) $s[$by];
+            $c = &$out[$k];
+            $c ??= ['key' => $k, 'host_asset_id' => $s['host_asset_id'] ?? null, 'host_name' => $s['host_name'] ?? null,
+                    'identity_key' => $s['identity_key'] ?? null, 'identity_name' => $s['identity_name'] ?? null,
+                    'facts' => [], 'ways' => [], 'direct_as' => [], 'groups' => [], 'plugins' => [], 'quality' => $s['match_quality'] ?? null];
+            $c['facts'][] = $i;
+            $noun = self::ACCESS_NOUN[$s['access_type']] ?? str_replace('_', ' ', (string) $s['access_type']);
+            if (!empty($s['via_group'])) {
+                $g = ($s['via_group_domain'] ? $s['via_group_domain'] . '\\' : '') . $s['via_group'];
+                $c['ways'][] = "$noun through $g";
+                $c['groups'][$g] = true;
+            } else {
+                $as = $s['principal_name'] !== null ? (($s['principal_domain'] ? $s['principal_domain'] . '\\' : '') . $s['principal_name']) : null;
+                $c['ways'][] = $noun;
+                if ($as) $c['direct_as'][$as] = true;
+            }
+            if ($s['evidence_plugin_id']) $c['plugins'][(string) $s['evidence_plugin_id']] = true;
+            $q = $s['match_quality'] ?? null;
+            if ($q !== null && (self::QUALITY_ORDER[$q] ?? 9) < (self::QUALITY_ORDER[$c['quality']] ?? 9)) $c['quality'] = $q;
+            unset($c);
+        }
+        foreach ($out as &$c) {
+            $who = $subject ?? (string) $c['identity_name'];
+            $where = (string) ($c['host_name'] ?? 'this host');
+            $ways = array_values(array_unique($c['ways']));
+            $n = count($ways);
+            $list = $n > 1 ? implode(', ', array_slice($ways, 0, -1)) . ' and ' . end($ways) : ($ways[0] ?? 'access');
+            $parts = ["$who is connected to $where in " . ($n === 1 ? 'one way' : "$n ways") . ": $list."];
+            if ($c['direct_as']) {
+                $parts[] = 'The scan names the account directly as ' . implode(', ', array_keys($c['direct_as'])) . '.';
+            }
+            if ($c['groups']) {
+                $parts[] = 'Through ' . implode(', ', array_keys($c['groups'])) . ' the name is not in the plugin output; the link is the Active Directory group membership.';
+            }
+            if ($c['plugins']) {
+                $parts[] = 'Evidence: Nessus plugin' . (count($c['plugins']) > 1 ? 's ' : ' ') . implode(', ', array_keys($c['plugins'])) . '.';
+            }
+            if ($c['quality'] === 'demo alias') {
+                $parts[] = 'This connection exists only because of the demo identity_mapping.';
+            } elseif ($c['quality'] === 'inferred') {
+                $parts[] = 'The match is inferred from the host\'s domain (the output gives a bare name).';
+            }
+            $c['summary'] = implode(' ', $parts);
+            $c['ways'] = $ways;
+            $c['groups'] = array_keys($c['groups']);
+            $c['direct_as'] = array_keys($c['direct_as']);
+            $c['plugins'] = array_keys($c['plugins']);
+        }
+        unset($c);
+        return array_values($out);
     }
 
     private static function pgTextArray(array $values): string

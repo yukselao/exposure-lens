@@ -610,3 +610,11 @@ h3.has-info .info-tip { top: 50%; transform: translateY(-50%); right: 0; }
 .crumbs a { color: var(--accent); text-decoration: none; }
 .crumbs a:hover { text-decoration: underline; }
 .crumbs [aria-current] { color: var(--text-body); font-weight: 600; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+tr.conn-detail > td { background: var(--bg-page-alt); padding: 0; }
+.conn-box { padding: 12px 14px; display: grid; gap: 10px; }
+.conn-summary { font-weight: 600; line-height: 19px; }
+.conn-fact { background: var(--card); border: 1px solid var(--border-base); border-radius: 8px; padding: 10px 12px; }
+.conn-fact-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.conn-fact-body { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 1100px) { .conn-fact-body { grid-template-columns: 1fr; } }
+[data-conn].active { background: var(--accent); color: #fff; }

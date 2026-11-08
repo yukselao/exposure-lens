@@ -45,6 +45,10 @@ try {
             'each access fact carries an explanation, a correlation chain and a match quality');
         $via = array_values(array_filter($p['systems'], fn ($s) => !empty($s['via_group'])));
         ok(!$via || in_array('membership', array_column($via[0]['correlation'], 'kind'), true), 'a right held through a group explains the AD membership');
+        $conns = $p['profile']['connections'] ?? [];
+        $hostsReached = count(array_unique(array_column($p['systems'], 'host_asset_id')));
+        ok(count($conns) === $hostsReached, 'one connection summary per connected system');
+        ok($conns && !empty($conns[0]['summary']) && $conns[0]['facts'] && isset($p['systems'][$conns[0]['facts'][0]]), 'a connection has a summary and points at its access facts');
         ok(isset($p['risk']['score'], $p['risk']['level'], $p['risk']['factors'], $p['risk']['questions']), 'risk block has score, level, factors, questions');
         ok($p['risk']['score'] >= 0 && $p['risk']['score'] <= 100, 'risk score within 0..100');
         ok($ms < 2000, sprintf('identity sync took %.0f ms', $ms));
@@ -58,6 +62,7 @@ try {
     $h = Assets::get(Assets::sync('host', ['host_asset_id' => $host])['id']);
     ok($h['asset_kind'] === 'host' && (int) $h['host_asset_id'] === $host, 'host snapshot keyed by host id');
     ok(isset($h['summary']['identities']) && count($h['systems']) > 0, 'host lists the identities that reach it');
+    ok(count($h['profile']['connections'] ?? []) === count(array_unique(array_column($h['systems'], 'identity_key'))), 'host has one connection summary per identity');
 
     $list = Assets::list('host', '', 50, 0, 'risk');
     ok($list['total'] >= 1 && $list['rows'][0]['asset_type'] === 'host', 'list filters by type');
