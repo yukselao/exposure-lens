@@ -19,9 +19,10 @@
   <button type="button" class="header-btn" id="navToggle" aria-label="Show or hide menu labels" aria-expanded="false"><span class="icon i-menu"></span></button>
   <a class="brand" href="/">Exposure <span class="product">Lens</span></a>
   <nav class="topbar-actions" aria-label="Tools">
+    <a class="header-link {{ page == 'asset-sync' ? 'active' }}" href="/explore/assets/sync" title="Choose AD users and sync their asset details"><span class="icon icon-16 i-scan"></span><span>Asset Sync</span></a>
     <a class="header-link {{ page == 'logs' ? 'active' }}" href="/logs" title="Connector logs">{{ icons.ic('logs', 18) }}<span>Logs</span></a>
-    <button type="button" class="header-btn agent-toggle" id="agentToggle" aria-label="Agent Tenable" aria-expanded="false" title="Agent Tenable"><span class="icon i-robot"></span></button>
     <button type="button" class="header-btn" data-flyout="settings" aria-label="Settings" aria-expanded="false" title="Settings"><span class="icon i-settings"></span></button>
+    <a class="header-link {{ page == 'help' ? 'active' }}" href="/help" title="How Exposure Lens works"><span class="icon icon-16 i-info"></span><span>Help</span></a>
   </nav>
 </header>
 
@@ -33,7 +34,7 @@
 </nav>
 
 <aside class="flyout" id="flyout-explore" aria-label="Explore" hidden>
-  <a class="flyout-link {{ page in ['explore-assets', 'asset-view'] ? 'active' }}" href="/explore/assets">Assets</a>
+  <a class="flyout-link {{ page in ['explore-assets', 'asset-view', 'asset-sync'] ? 'active' }}" href="/explore/assets">Assets</a>
   <a class="flyout-link {{ page == 'explore-hosts' ? 'active' }}" href="/explore/hosts">Hosts</a>
   <a class="flyout-link {{ page == 'explore-ad' ? 'active' }}" href="/explore/ad-objects">AD Objects</a>
   <a class="flyout-link {{ page == 'explore-local-users' ? 'active' }}" href="/explore/local-users">Local Users</a>
@@ -69,6 +70,7 @@
   {% elseif page == 'explore-extensions' %}{% include 'pages/explore_extensions.html.twig' %}
   {% elseif page == 'explore-findings' %}{% include 'pages/explore_findings.html.twig' %}
   {% elseif page == 'explore-hosts' %}{% include 'pages/explore_hosts.html.twig' %}
+  {% elseif page == 'asset-sync' %}{% include 'pages/asset_sync.html.twig' %}
   {% elseif page == 'asset-view' %}{% include 'pages/asset_view.html.twig' %}
   {% elseif page == 'risk' %}{% include 'pages/risk.html.twig' %}
   {% elseif page == 'reports' %}{% include 'pages/placeholder.html.twig' %}
@@ -78,6 +80,7 @@
   {% elseif page == 'settings-catalog' %}{% include 'pages/settings_catalog.html.twig' %}
   {% elseif page == 'settings-ai' %}{% include 'pages/settings_ai.html.twig' %}
   {% elseif page == 'logs' %}{% include 'pages/logs.html.twig' %}
+  {% elseif page == 'help' %}{% include 'pages/help.html.twig' %}
   {% else %}
     <div class="card"><div class="card-body empty-state"><p>This address does not exist. <a href="/">Go to the dashboard</a>.</p></div></div>
   {% endif %}
@@ -85,6 +88,12 @@
 
 {% include 'modals/modals.html.twig' %}
 {% include 'partials/agent.html.twig' %}
+<button type="button" class="agent-fab" id="agentToggle" aria-label="Open Agent Tenable" aria-expanded="false" aria-controls="agent">
+  <span class="fab-ring" aria-hidden="true"></span>
+  <span class="icon i-robot fab-robot" aria-hidden="true"></span>
+  <span class="icon i-close fab-close" aria-hidden="true"></span>
+  <span class="fab-label">Ask Agent Tenable</span>
+</button>
 <div id="toastBox" aria-live="polite" aria-atomic="true"></div>
 
 <script src="{{ asset('/assets/vendor/jquery-3.7.1.min.js') }}"></script>

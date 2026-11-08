@@ -1,0 +1,58 @@
+{% import 'partials/icons.twig' as icons %}
+{# Asset Sync: pick AD users with filters, see how many match, sync only those. #}
+<div class="explore" id="assetSync">
+  <aside class="card">
+    <form id="syncFilters" class="sync-filters" autocomplete="off">
+      <div class="filter-title">Filter AD users</div>
+      <label class="form-label" for="sfQ">Name, account, UPN or e-mail</label>
+      <input type="search" class="form-control form-control-sm" id="sfQ" name="q" placeholder="contains…">
+      <label class="form-label" for="sfDomain">Domain</label>
+      <select class="form-select form-select-sm" id="sfDomain" name="domain_id"><option value="">All domains</option></select>
+      <label class="form-label" for="sfType">Type</label>
+      <select class="form-select form-select-sm" id="sfType" name="type"><option value="">Users and service accounts</option><option value="user">Users</option><option value="service_account">Service accounts</option></select>
+      <label class="form-label" for="sfTier">Tier</label>
+      <select class="form-select form-select-sm" id="sfTier" name="tier"><option value="">Any tier</option><option value="0">Tier 0</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="none">No tier</option></select>
+      <label class="form-label" for="sfStatus">Status</label>
+      <select class="form-select form-select-sm" id="sfStatus" name="status"><option value="">Enabled and disabled</option><option value="enabled">Enabled</option><option value="disabled">Disabled</option></select>
+      <label class="form-label" for="sfReach">Host access</label>
+      <select class="form-select form-select-sm" id="sfReach" name="reach"><option value="">Any</option><option value="yes">Reaches at least one host</option><option value="no">Reaches no host</option></select>
+      <label class="form-label" for="sfSnap">Asset snapshot</label>
+      <select class="form-select form-select-sm" id="sfSnap" name="snapshot"><option value="">Any</option><option value="none">Never synced</option><option value="synced">Already synced</option><option value="stale">Synced more than a day ago</option></select>
+      <label class="form-label" for="sfOu">Distinguished name contains</label>
+      <input type="search" class="form-control form-control-sm" id="sfOu" name="ou" placeholder="e.g. OU=Tier-0">
+      <button type="reset" class="btn btn-sm btn-link px-0 mt-2" id="sfReset">Clear filters</button>
+    </form>
+  </aside>
+
+  <div class="sync-main">
+    <section class="card sync-summary">
+      <div class="card-body">
+        <div class="sync-counts">
+          <div><span class="label">Users matching</span><b id="scTotal">–</b></div>
+          <div><span class="label">Reach at least one host</span><b id="scAccess">–</b></div>
+          <div><span class="label">Already synced</span><b id="scSynced">–</b></div>
+          <div><span class="label">Estimated time</span><b id="scTime">–</b></div>
+        </div>
+        <div class="sync-actions">
+          <button type="button" class="btn btn-primary" id="scRun" disabled><span class="icon icon-16 i-scan"></span> <span id="scRunLabel">Sync users</span></button>
+          <button type="button" class="btn btn-outline-secondary" id="scCancel" hidden>Cancel</button>
+          <a class="btn btn-link" href="/explore/assets">Open Assets</a>
+          <span class="muted small-text">Users are synced in batches of 50; you can leave the filters as they are while it runs. A sync replaces the user's existing snapshot.</span>
+        </div>
+        <div class="sync-progress" id="scProgress" hidden>
+          <div class="progress" role="progressbar" aria-label="Sync progress" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" id="scBar" style="width:0%"></div></div>
+          <div class="small-text mt-1" id="scStatus"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="toolbar"><h3 class="me-2 mb-0">Matching users</h3><span class="muted" id="scHint"></span></div>
+      <div class="table-wrap"><table class="table table-hover">
+        <thead><tr><th>User</th><th>Domain</th><th>Type</th><th>Tier</th><th>Status</th><th class="text-end">Hosts reached</th><th>Snapshot</th><th></th></tr></thead>
+        <tbody id="scBody"></tbody>
+      </table></div>
+      <div class="pager" id="scPager"></div>
+    </section>
+  </div>
+</div>

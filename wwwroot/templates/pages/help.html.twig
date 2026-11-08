@@ -1,0 +1,169 @@
+{# Help: how Exposure Lens works. Static content; keep it in step with README.md. #}
+<div class="help" id="help">
+  <nav class="help-toc card" aria-label="On this page">
+    <div class="filter-title">On this page</div>
+    <a href="#help-overview">Overview</a>
+    <a href="#help-explore">Explore: Assets, Hosts, AD Objects</a>
+    <a href="#help-asset-sync">Asset sync</a>
+    <a href="#help-asset-details">Asset Details</a>
+    <a href="#help-correlation">How correlation works</a>
+    <a href="#help-risk">Risk score and factors</a>
+    <a href="#help-cost">What a sync costs</a>
+    <a href="#help-agent">Agent Tenable</a>
+    <a href="#help-mapping">Identity mapping (demo)</a>
+    <a href="#help-dashboard">Dashboard numbers</a>
+    <a href="#help-data">Data notes</a>
+    <a href="#help-glossary">Glossary</a>
+  </nav>
+
+  <div class="help-body">
+    <section class="card help-sec" id="help-overview"><div class="card-body">
+      <h2>Overview</h2>
+      <p>Exposure Lens joins two Tenable sources and shows what one means for the other:</p>
+      <ul>
+        <li><b>Tenable Security Center (SC)</b>: hosts, vulnerabilities (VPR, CVSS, ACR, AES) and the raw output of Nessus plugins.</li>
+        <li><b>Tenable Identity Exposure (TIE)</b>: Active Directory users, groups, computers, GPOs, group memberships and privilege tiers.</li>
+      </ul>
+      <p>The <b>CTEM pipeline</b> (Settings &gt; CTEM Pipeline) reads the plugin output (local groups, sessions, logons, services, local accounts, software), matches every account it finds to Active Directory, and builds the <b>access facts</b>: which identity holds which right on, or was seen using, which host. Everything identity-to-host in this application comes from those facts.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-explore"><div class="card-body">
+      <h2>Explore: Assets, Hosts, AD Objects</h2>
+      <table class="table help-table">
+        <thead><tr><th>Page</th><th>Shows</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td><a href="/explore/assets">Assets</a></td><td>The central asset table: users, service accounts and hosts that have been <b>analysed</b>, with risk score, reach and findings. Click a row for its Asset Details page.</td><td>Correlated snapshot (asset sync)</td></tr>
+          <tr><td><a href="/explore/hosts">Hosts</a></td><td>Every host Security Center returned, devices and IoT, as SC reports it.</td><td>Security Center</td></tr>
+          <tr><td><a href="/explore/ad-objects">AD Objects</a></td><td>Users, service accounts, groups, computers and GPOs with their tiers.</td><td>Identity Exposure</td></tr>
+          <tr><td><a href="/explore/findings">Findings</a></td><td>Every vulnerability, filterable by host, network, account, plugin, CVE and port.</td><td>Security Center</td></tr>
+          <tr><td><a href="/explore/local-users">Local Users</a>, <a href="/explore/software">Software</a>, <a href="/explore/browser-extensions">Browser Extensions</a></td><td>Inventories parsed from plugin output.</td><td>CTEM pipeline</td></tr>
+        </tbody>
+      </table>
+      <p>Clicking a row in Hosts, AD Objects, Findings or the Risk evidence opens the <b>detail panel</b> on the right. It has <b>AI Analyze</b> (attach the record to a chat question) and, for users, service accounts, computers and hosts, <b>Sync asset details</b>.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-asset-sync"><div class="card-body">
+      <h2>Asset sync</h2>
+      <p>An asset sync analyses one identity or host and stores the result as a snapshot in the asset table. It runs <b>only on demand</b>:</p>
+      <ul>
+        <li><b>Sync asset details</b> in a detail panel: a new tab opens, runs the analysis and then shows the Asset Details page.</li>
+        <li><b>Agent Tenable</b>, when it investigates one account or one host. The chat shows an <i>Asset details</i> card and opens the page.</li>
+        <li><b>Re-sync</b> on an Asset Details page or in the Assets list.</li>
+        <li><b><a href="/explore/assets/sync">Asset Sync</a></b> (top right): filter AD users by name, domain, type, tier, status, host access, snapshot age or distinguished name, see how many match, how many reach a host, how many are already synced and the estimated time, then sync only those. It runs in batches of 50 with a progress bar and can be cancelled; each row also has its own <b>Sync</b> button.</li>
+      </ul>
+      <p>A sync is plain SQL over the current tables, not a model output. <b>The same data always gives the same snapshot, whoever triggers it</b>, and there is one snapshot per asset, shared by all viewers. It changes only when the data under it changes: a new Security Center or Identity Exposure sync, or a new correlation run. A snapshot shows the state at its sync time; re-sync after the pipeline has run to refresh it.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-asset-details"><div class="card-body">
+      <h2>Asset Details</h2>
+      <table class="table help-table">
+        <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td>Overview</td><td>User information (name, account, UPN, e-mail, organizational unit, status, tier), account security (password age and findings, userAccountControl, SPNs, delegation, SID history), the path to Tier 0, the top risk factors and the most exposed systems. For a host: host information, directory membership and exposure.</td></tr>
+          <tr><td>Connected Systems / Identities</td><td>One row per host the identity reaches (for a host: per identity that reaches it). <b>How connected?</b> opens a summary of every way the link exists and, for each, the correlation chain and the plugin output lines.</td></tr>
+          <tr><td>Vulnerabilities</td><td>The findings on the connected systems; filter by severity and exploit, group by plugin, host or CVE.</td></tr>
+          <tr><td>Risk</td><td>Score, the four risk questions, all risk factors, charts (severity, tier, access type, plugin family), most exposed systems, top plugins and CVEs, exposure by /24 network.</td></tr>
+          <tr><td>Correlation Evidence</td><td>Every access fact with its explanation, numbered chain, plugin output lines and match quality.</td></tr>
+          <tr><td>Groups / Local Accounts &amp; Services</td><td>Direct AD group memberships; for a host, its local accounts and services.</td></tr>
+        </tbody>
+      </table>
+      <p><b>Ask Agent Tenable</b> attaches the snapshot to the chat; <b>Delete</b> removes it from the asset table (the source data is not touched).</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-correlation"><div class="card-body">
+      <h2>How correlation works</h2>
+      <p>Every access fact is explained at sync time in up to four steps:</p>
+      <ol class="help-steps">
+        <li><b>Seen on the host.</b> A Nessus plugin reports an account or group on a host, e.g. plugin 71246 lists <code>LABNET\Domain Admins</code> in the local Administrators group.</li>
+        <li><b>Matched to Active Directory.</b> That name is tied to an AD object, in this order: by <b>SID</b> (exact), by <b>domain and account name</b>, by <b>user principal name</b>, or, for a bare name, in the <b>domain the host belongs to</b> (inferred). An <b>identity alias</b> or <b>domain alias</b> (see Identity mapping) can do it too.</li>
+        <li><b>Group membership.</b> When the right belongs to a group, it reaches every member, nested groups included, from the Identity Exposure membership data. The member's name does <i>not</i> appear in the plugin output; the link is the AD membership.</li>
+        <li><b>Result.</b> e.g. <i>Frederic Boren has local administrator rights on winxpro through Domain Admins.</i></li>
+      </ol>
+      <table class="table help-table">
+        <thead><tr><th>Match quality</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge-soft ok">Exact (SID)</span></td><td>The SID in the output equals the AD object's SID.</td></tr>
+          <tr><td><span class="badge-soft run">By name</span></td><td>DOMAIN\name or UPN equals the AD account.</td></tr>
+          <tr><td><span class="badge-soft wait">Inferred</span></td><td>A bare name matched in the host's domain; one candidate only.</td></tr>
+          <tr><td><span class="badge-soft bad">Demo alias</span></td><td>Exists only because of an alias in the identity mapping settings.</td></tr>
+          <tr><td><span class="badge-soft">Not in AD</span></td><td>Seen on hosts but not in the synced directories.</td></tr>
+        </tbody>
+      </table>
+      <p>Access types: <b>rights</b> are local Administrators, Remote Desktop Users and Remote Management Users membership; <b>usage</b> is an interactive session, the last logon, an SMB session or a service running as the account. The scanner's own login is ignored.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-risk"><div class="card-body">
+      <h2>Risk score and factors</h2>
+      <p>Each risk factor has a level. The score adds <b>Critical 25</b>, <b>High 12</b> and <b>Medium 5</b> per factor and is capped at <b>100</b>; Info factors add nothing. Level: 70+ critical, 40+ high, 15+ medium, otherwise low.</p>
+      <p>Identity factors include: Tier 0 or Tier 1 account; Tier 0 credentials used on non-Tier-0 hosts; admin or remote rights on hosts with Critical findings; reaches hosts with Critical findings or high ACR; known exploits on reached hosts; breached or weak password; password older than a year; SPNs (Kerberoastable); password never expires or not required; constrained delegation; runs services on vulnerable hosts; disabled but still present on hosts; incomplete telemetry; reliance on the demo mapping.</p>
+      <p>Host factors include: Tier 0 host; ACR at or above the threshold; Critical findings; public exploits; Tier 0 credentials on a non-Tier-0 host; more than ten local administrators; domain accounts running services; not scanned with credentials; not domain joined.</p>
+      <p>The four <b>risk questions</b> are the ones on the Risk page, answered for one identity: reaches Critical hosts, reaches high-ACR hosts, Tier 0 account used outside Tier 0, runs services on Critical hosts. The ACR threshold is set in Settings &gt; CTEM (7 by default).</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-cost"><div class="card-body">
+      <h2>What a sync costs</h2>
+      <p>Measured on this installation by syncing all 1,913 AD users in one transaction and rolling it back:</p>
+      <table class="table help-table">
+        <tbody>
+          <tr><td>All users, one after another</td><td><b>13.6 s</b> in total</td></tr>
+          <tr><td>Per user</td><td>7 ms on average, 99 ms for the largest</td></tr>
+          <tr><td>Storage, all users</td><td><b>11 MB</b></td></tr>
+          <tr><td>A user with no host access</td><td>about 2.5 KB</td></tr>
+          <tr><td>A user with host access</td><td>about 366 KB on average, 447 KB at most</td></tr>
+        </tbody>
+      </table>
+      <p>The cost follows the number of identities <b>that reach hosts</b>, not the number of users: a snapshot copies the findings of every host the identity reaches (at most 3,000). With 10,000 users of whom 30% reach hosts, expect roughly 1 to 5 minutes and 0.3 to 1.2 GB, because the same domain controller findings are copied into every Domain Admin's snapshot. That is why assets are synced on demand. A bulk mode would store only the summary, risk and connections for everyone and read the findings live when the page opens.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-agent"><div class="card-body">
+      <h2>Agent Tenable</h2>
+      <p>The robot at the bottom right opens the assistant on every page. It answers from the data in Exposure Lens by calling read-only database tools, and shows every tool result as a table.</p>
+      <ul>
+        <li><b>Chat</b>: ask about an account, host, network, CVE or plugin. A person investigation opens with an identity card.</li>
+        <li><b>History</b>: every answer is saved on the server. Search, reopen (the conversation becomes the active one and continues) or delete conversations, one by one or all.</li>
+        <li><b>Prompts</b>: ready-made questions. <b>Skills</b>: the point of view (Exposure Analyst, Vulnerability Analyst, AD Administrator, Offensive Security). <b>Tools</b>: what the model can query.</li>
+        <li><b>AI Analyze</b> in a detail panel and <b>Ask Agent Tenable</b> on an Asset Details page attach that record to the next question.</li>
+      </ul>
+      <p>The model and server are set in <a href="/settings/agent">Settings &gt; Agent Tenable</a>. Tool, skill and prompt files are read on every message, so edits apply to the next question.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-mapping"><div class="card-body">
+      <h2>Identity mapping (demo)</h2>
+      <p>The settings row <code>identity_mapping</code> can tie names in scan output to AD when they differ: a renamed domain, a NetBIOS/DNS mismatch, or a demo lab scanned by Security Center next to a different demo directory in Identity Exposure.</p>
+      <ul>
+        <li><code>domain_aliases</code>: a telemetry domain to a TIE NetBIOS name, e.g. <code>labnet → alsid</code>.</li>
+        <li><code>identity_aliases</code>: one telemetry identity to one AD account, e.g. <code>demo\sccmadmin → alsid\taher</code>.</li>
+      </ul>
+      <p>Facts that exist only because of an alias are labelled <span class="badge-soft bad">Demo alias</span> everywhere. To undo, delete the row and run <b>correlate</b> in Settings &gt; CTEM Pipeline. Details are in <code>connectors/ctem/README.md</code>.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-dashboard"><div class="card-body">
+      <h2>Dashboard numbers</h2>
+      <p>Every dashboard widget has an <span class="icon icon-16 i-info" aria-hidden="true"></span> icon at its top right. Hold the pointer on it, or focus it with the keyboard, to read exactly how the number is calculated.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-data"><div class="card-body">
+      <h2>Data notes</h2>
+      <ul>
+        <li>Identity Exposure does not return department, title, manager or given name and surname; the organizational unit from the distinguished name is shown instead.</li>
+        <li>Findings are the cumulative ones your Security Center queries return; if a query collects only High and Critical, Medium and Low stay at zero.</li>
+        <li>Hosts scanned without credentials report no sessions, local groups or services, so an empty result there is not proof of safety.</li>
+        <li>Built-in groups such as Account Operators have the same SID in every domain, so their memberships can mix across domains.</li>
+      </ul>
+    </div></section>
+
+    <section class="card help-sec" id="help-glossary"><div class="card-body">
+      <h2>Glossary</h2>
+      <dl class="help-dl">
+        <dt>Tier 0 / 1 / 2</dt><dd>Privilege tiers: 0 controls the domain, 1 administers servers and applications, 2 is workstations and standard users. From Identity Exposure or set manually under AD Objects.</dd>
+        <dt>VPR</dt><dd>Vulnerability Priority Rating, 0 to 10, Tenable's likelihood-of-exploitation score.</dd>
+        <dt>ACR</dt><dd>Asset Criticality Rating, 1 to 10: how important the asset is to the business.</dd>
+        <dt>AES</dt><dd>Asset Exposure Score, 0 to 1000, combining ACR and the asset's vulnerabilities.</dd>
+        <dt>CVSS</dt><dd>Common Vulnerability Scoring System base score, 0 to 10.</dd>
+        <dt>Severity</dt><dd>4 Critical, 3 High, 2 Medium, 1 Low, 0 Info.</dd>
+        <dt>Access fact</dt><dd>One identity, one host, one access type, with the plugin that proves it.</dd>
+        <dt>Kerberoastable</dt><dd>An account with an SPN: any domain user can request a ticket for it and try to crack the password offline.</dd>
+      </dl>
+    </div></section>
+  </div>
+</div>

@@ -629,6 +629,77 @@
     return { kind: 'identity', identity_key: p.asset_key };
   }
 
+  // ---- Asset Sync: filter AD users, see the count, sync only those -----------------------------------
+  function initAssetSync() {
+    var state = { page: 1, size: 50 }, running = null, total = 0;
+    var $form = $('#syncFilters');
+    function filters() { var f = {}; $form.serializeArray().forEach(function (x) { if (x.value !== '') f[x.name] = x.value; }); return f; }
+    function secs(n) { n = Number(n) || 0; return n < 60 ? n + ' s' : Math.floor(n / 60) + ' min ' + (n % 60) + ' s'; }
+    api('ad_directories').done(function (d) {
+      $('#sfDomain').append(d.rows.filter(function (r) { return r.domain_id; }).map(function (r) { return '<option value="' + esc(r.domain_id) + '">' + esc(r.netbios_name) + ' (' + num(r.users) + ')</option>'; }).join(''));
+    });
+    function load() {
+      $('#scBody').html(loadingRow(8));
+      api('asset_sync_candidates', $.extend(filters(), { page: state.page, size: state.size })).done(function (d) {
+        var c = d.counts; total = c.total;
+        $('#scTotal').text(num(c.total)); $('#scAccess').text(num(c.with_access)); $('#scSynced').text(num(c.synced)); $('#scTime').text('≈ ' + secs(c.estimate_seconds));
+        $('#scRunLabel').text(c.total ? 'Sync ' + num(c.total) + ' user' + (c.total === 1 ? '' : 's') : 'No user matches');
+        $('#scRun').prop('disabled', !c.total || !!running);
+        $('#scHint').text(c.total > d.rows.length ? 'Showing ' + num(d.rows.length) + ' of ' + num(c.total) + ', most connected first' : '');
+        $('#scBody').html(d.rows.length ? d.rows.map(function (r) {
+          var snap = r.asset_id ? '<a href="/explore/assets/view?id=' + esc(r.asset_id) + '">' + riskBadge(r.risk_level, r.risk_score) + '</a> <span class="muted small-text">' + esc(ago(r.synced_at)) + '</span>' : '<span class="muted">never</span>';
+          return '<tr><td><b>' + esc(r.display_name || r.sam_account_name) + '</b><div class="muted mono small-text">' + esc(r.sam_account_name) + '</div></td><td>' + esc(r.domain || '') + '</td>' +
+            '<td><span class="chip">' + (r.account_type === 'user' ? 'User' : 'Service account') + '</span></td><td>' + (tierBadge(r.tier) || '<span class="muted">–</span>') + '</td><td>' + enabledBadge(r.enabled) + '</td>' +
+            '<td class="text-end">' + countCell(r.hosts) + '</td><td>' + snap + '</td>' +
+            '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary" data-one="' + esc(r.id) + '">Sync</button></td></tr>';
+        }).join('') : emptyRow(8, 'No AD user matches these filters.'));
+        renderPager($('#scPager'), state, c.total, load);
+      }).fail(function (xhr) { $('#scBody').html(emptyRow(8, esc(errText(xhr)))); });
+    }
+    var reload = debounce(function () { state.page = 1; load(); }, 300);
+    $form.on('input change', reload).on('reset', function () { setTimeout(reload, 0); }).on('submit', function (e) { e.preventDefault(); });
+    $('#scBody').on('click', '[data-one]', function () {
+      var $b = $(this).prop('disabled', true).text('Syncing…');
+      post('asset_sync', { kind: 'identity', ad_user_id: this.dataset.one }).done(function (r) { toast('Synced ' + r.name + ' in ' + r.ms + ' ms.'); load(); })
+        .fail(function (xhr) { toast(errText(xhr), 'error'); $b.prop('disabled', false).text('Sync'); });
+    });
+
+    $('#scRun').on('click', function () {
+      if (!total || running) return;
+      var f = filters(), planned = total;
+      function start() {
+        running = { cancelled: false, done: 0, ok: 0, failed: 0, t0: Date.now(), after: 0 };
+        $('#scRun').prop('disabled', true); $('#scCancel').prop('hidden', false); $('#scProgress').prop('hidden', false);
+        $form.find('input, select, button').prop('disabled', true);
+        step();
+      }
+      function step() {
+        if (running.cancelled) return finish('Cancelled');
+        post('asset_sync_batch', $.extend({}, f, { after_id: running.after, limit: 50 })).done(function (r) {
+          running.after = r.last_id; running.ok += r.synced; running.failed += r.failed; running.done += r.synced + r.failed;
+          var pct = Math.min(100, Math.round(running.done / planned * 100));
+          $('#scBar').css('width', pct + '%').text(pct + '%');
+          var el = (Date.now() - running.t0) / 1000, left = running.done ? Math.max(0, Math.round(el / running.done * (planned - running.done))) : 0;
+          $('#scStatus').text(num(running.done) + ' of ' + num(planned) + ' processed · ' + num(running.ok) + ' synced' + (running.failed ? ' · ' + num(running.failed) + ' failed' : '') + ' · ' + secs(Math.round(el)) + ' elapsed' + (r.done ? '' : ', about ' + secs(left) + ' left'));
+          if (r.errors && r.errors.length) r.errors.forEach(function (e) { console.warn('asset sync failed for AD user ' + e.id + ': ' + e.error); });
+          if (r.done) finish('Done'); else step();
+        }).fail(function (xhr) { finish('Stopped: ' + errText(xhr)); });
+      }
+      function finish(word) {
+        var r = running; running = null;
+        $('#scCancel').prop('hidden', true); $form.find('input, select, button').prop('disabled', false);
+        $('#scStatus').text(word + ' · ' + num(r.ok) + ' synced' + (r.failed ? ', ' + num(r.failed) + ' failed (see the browser console)' : '') + ' in ' + secs(Math.round((Date.now() - r.t0) / 1000)) + '.');
+        if (word === 'Done') $('#scBar').css('width', '100%').text('100%');
+        toast(word + ': ' + num(r.ok) + ' asset' + (r.ok === 1 ? '' : 's') + ' synced.');
+        load();
+      }
+      if (planned > 200) confirmAction('Sync ' + num(planned) + ' users', 'Analyse ' + num(planned) + ' AD users and store their asset snapshots? This takes about ' + $('#scTime').text().replace('≈ ', '') + '. You can cancel at any time.', 'Sync', start);
+      else start();
+    });
+    $('#scCancel').on('click', function () { if (running) { running.cancelled = true; $(this).prop('disabled', true).text('Cancelling…'); setTimeout(function () { $('#scCancel').prop('disabled', false).text('Cancel'); }, 1500); } });
+    load();
+  }
+
   // ---- Asset Details page ---------------------------------------------------------------------------
   function initAssetView() {
     var q = query(), current = null, tab = (window.location.hash || '').replace('#', '') || 'overview', charts = [];
@@ -671,7 +742,7 @@
       if (pr.org_unit) badges.push('<span class="chip" title="Organizational unit">' + esc(pr.org_unit) + '</span>');
       $('#avBadges').html(badges.join(''));
       $('#avScore').html('<div class="gauge risk-' + esc(r.level || 'low') + '"><b>' + esc(r.score === undefined ? '–' : Math.round(r.score)) + '</b><span>' + esc(r.level || '') + ' risk</span></div>');
-      $('#avSynced').html('Synced ' + esc(ago(p.synced_at)) + ' (' + esc(fmtDate(p.synced_at)) + ')' + (p.source === 'agent' ? ' by Agent Tenable' : '') + (p.sync_ms !== null ? ' · ' + esc(p.sync_ms) + ' ms' : ''));
+      $('#avSynced').html('Synced ' + esc(ago(p.synced_at)) + ' (' + esc(fmtDate(p.synced_at)) + ')' + ({ agent: ' by Agent Tenable', bulk: ' by Asset Sync' }[p.source] || '') + (p.sync_ms !== null ? ' · ' + esc(p.sync_ms) + ' ms' : ''));
       var kpis = isHost
         ? [['Identities', s.identities, 'systems'], ['Tier 0 identities', s.tier0_identities, 'systems'], ['Critical', s.critical, 'vulns'], ['High', s.high, 'vulns'], ['Exploitable', s.exploitable, 'vulns'], ['Max VPR', s.max_vpr, 'risk']]
         : [['Connected systems', s.hosts, 'systems'], ['With Critical findings', s.hosts_with_critical, 'systems'], ['High-ACR hosts', s.high_acr_hosts, 'systems'], ['Critical', s.critical, 'vulns'], ['High', s.high, 'vulns'], ['Exploitable', s.exploitable, 'vulns']];
@@ -1754,12 +1825,12 @@
 
     // -- open, close, resize, tabs
     function open(tab) {
-      $panel.removeAttr('hidden'); $('#agentToggle').attr('aria-expanded', 'true');
+      $panel.removeAttr('hidden'); $('#agentToggle').attr({ 'aria-expanded': 'true', 'aria-label': 'Close Agent Tenable' });
       if (!meta) load();
       if (tab) showTab(tab);
       setTimeout(function () { $input.trigger('focus'); scrollLog(); }, 50);
     }
-    function close() { $panel.attr('hidden', true); $('#agentToggle').attr('aria-expanded', 'false'); }
+    function close() { $panel.attr('hidden', true); $('#agentToggle').attr({ 'aria-expanded': 'false', 'aria-label': 'Open Agent Tenable' }); }
     $('#agentToggle').on('click', function () { $panel.attr('hidden') === undefined ? close() : open(); });
     $('#agentClose').on('click', close);
     $('#agentSize').on('click', function () { state.large = !state.large; applySize(); persist(); scrollLog(); });
@@ -2394,6 +2465,6 @@
   var pages = { 'dashboard': initDashboard, 'explore-assets': initAssets, 'explore-ad': initAd, 'settings-sc': initSettingsSc,
     'settings-tie': initSettingsTie, 'logs': initLogs, 'risk': initRisk, 'explore-software': initSoftware, 'explore-local-users': initLocalUsers,
     'explore-extensions': initExtensions, 'settings-ctem': initCtem, 'settings-catalog': initCatalog, 'settings-ai': initSettingsAi, 'explore-findings': initFindings,
-    'asset-view': initAssetView, 'explore-hosts': initHosts };
+    'asset-view': initAssetView, 'explore-hosts': initHosts, 'asset-sync': initAssetSync };
   if (pages[PAGE]) pages[PAGE]();
 })(jQuery);
