@@ -15,7 +15,8 @@ description: The systems one account reaches or is used on - local admin rights,
 }
 ```
 
-**Returns** `summary` (hosts, hosts_with_critical, hosts_high_acr, by_access_type) and `rows`
+**Returns** `person` (identity card: display name, account, UPN, mail, telephone, description,
+org_unit from the DN, enabled, tier, last logon, pwd_last_set), `summary` (hosts, hosts_with_critical, hosts_high_acr, by_access_type) and `rows`
 (host_name, ip, os, access_type, access_class, via_group, evidence, confidence, last_seen,
 critical, high, max_vpr, acr_score, host_tier, host_asset_id).
 

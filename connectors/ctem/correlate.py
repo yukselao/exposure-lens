@@ -18,10 +18,37 @@ ORPHANS = """
 
 RESET = "UPDATE principals SET ad_object_key = NULL, resolved_by = NULL WHERE ad_object_key IS NOT NULL OR resolved_by IS NOT NULL"
 
+# Optional mappings in settings section "identity_mapping" (no UI; set with SQL):
+#   domain_aliases   {"demo": "alsid"}               a telemetry domain (NetBIOS or first DNS label) -> a TIE NetBIOS name
+#   identity_aliases {"demo\\sccmadmin": "alsid\\taher"}  one telemetry identity -> one AD account
+# For renamed domains, NetBIOS/DNS mismatches, or tying a demo lab to a demo directory.
+DOMAIN_ALIASES = """
+    SELECT lower(key) AS src, lower(value) AS dst
+    FROM settings, jsonb_each_text(COALESCE(data->'domain_aliases', '{}'::jsonb)) WHERE section = 'identity_mapping'
+"""
+
+BY_ALIAS = r"""
+    UPDATE principals p SET ad_object_key = m.object_key, resolved_by = 'alias'
+    FROM (
+        SELECT DISTINCT ON (x.id) x.id, o.object_key
+        FROM principals x
+        JOIN (SELECT lower(key) AS src, lower(value) AS dst
+              FROM settings, jsonb_each_text(COALESCE(data->'identity_aliases', '{}'::jsonb))
+              WHERE section = 'identity_mapping') a
+          ON a.src = split_part(lower(x.domain), '.', 1) || '\' || lower(x.name)
+        JOIN ad_domains d ON lower(d.netbios_name) = split_part(a.dst, '\', 1)
+        JOIN v_ad_objects o ON o.directory_id = d.directory_id AND lower(o.sam_account_name) = split_part(a.dst, '\', 2)
+                           AND (d.nc_name IS NULL OR lower(o.dn) LIKE '%' || lower(d.nc_name))
+        WHERE x.scope = 'domain'
+        ORDER BY x.id, o.object_key
+    ) m
+    WHERE p.id = m.id
+"""
+
 BY_SID = """
     UPDATE principals p SET ad_object_key = o.object_key, resolved_by = 'sid'
     FROM v_ad_objects o
-    WHERE p.sid IS NOT NULL AND lower(p.sid) = o.object_key AND p.scope <> 'builtin'
+    WHERE p.sid IS NOT NULL AND lower(p.sid) = o.object_key AND p.scope <> 'builtin' AND p.ad_object_key IS NULL
 """
 
 BY_DOMAIN_NAME = r"""
@@ -29,8 +56,9 @@ BY_DOMAIN_NAME = r"""
     FROM (
         SELECT DISTINCT ON (x.id) x.id, o.object_key
         FROM principals x
-        JOIN ad_domains d ON lower(x.domain) IN (lower(d.netbios_name), lower(d.dns_name))
-                          OR split_part(lower(x.domain), '.', 1) = lower(d.netbios_name)
+        LEFT JOIN (""" + DOMAIN_ALIASES + """) da ON da.src = split_part(lower(x.domain), '.', 1)
+        JOIN ad_domains d ON COALESCE(da.dst, lower(x.domain)) IN (lower(d.netbios_name), lower(d.dns_name))
+                          OR split_part(COALESCE(da.dst, lower(x.domain)), '.', 1) = lower(d.netbios_name)
         JOIN v_ad_objects o ON o.directory_id = d.directory_id AND lower(o.sam_account_name) = lower(x.name)
                            AND (d.nc_name IS NULL OR lower(o.dn) LIKE '%' || lower(d.nc_name))
         WHERE x.scope = 'domain' AND x.ad_object_key IS NULL
@@ -60,7 +88,8 @@ BY_HOST_DOMAIN = """
         SELECT p.id, min(o.object_key) AS object_key, count(DISTINCT o.object_key) AS n
         FROM principals p
         JOIN host_domain h ON h.host_asset_id = p.host_asset_id
-        JOIN ad_domains d ON h.domain IN (lower(d.dns_name), lower(d.netbios_name))
+        LEFT JOIN (""" + DOMAIN_ALIASES + """) da ON da.src = split_part(h.domain, '.', 1)
+        JOIN ad_domains d ON COALESCE(da.dst, h.domain) IN (lower(d.dns_name), lower(d.netbios_name))
         JOIN v_ad_objects o ON o.directory_id = d.directory_id AND lower(o.sam_account_name) = lower(p.name)
                            AND (d.nc_name IS NULL OR lower(o.dn) LIKE '%' || lower(d.nc_name))
         WHERE p.scope = 'unknown' AND p.ad_object_key IS NULL
@@ -162,7 +191,7 @@ def correlate(session, log, job_id=None) -> dict:
     orphans = session.execute(text(ORPHANS)).rowcount
     session.execute(text(RESET))
     resolved = {}
-    for name, statement in (("sid", BY_SID), ("domain_name", BY_DOMAIN_NAME), ("upn", BY_UPN), ("host_domain", BY_HOST_DOMAIN)):
+    for name, statement in (("alias", BY_ALIAS), ("sid", BY_SID), ("domain_name", BY_DOMAIN_NAME), ("upn", BY_UPN), ("host_domain", BY_HOST_DOMAIN)):
         resolved[name] = session.execute(text(statement)).rowcount
     log.info("principals_resolved", job_id=job_id, orphans_removed=orphans, **resolved)
     direct = session.execute(text(ACCESS_DIRECT)).rowcount
