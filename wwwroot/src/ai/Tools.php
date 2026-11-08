@@ -38,6 +38,25 @@ final class Tools
             return self::renderChart($args);
         }
         $pdo = Db::pdo();
+        if ($pdo->inTransaction()) {
+            // Called inside the caller's transaction (an asset sync, a test): a savepoint keeps the
+            // timeout local to the tool and never ends the caller's transaction.
+            Db::run('SAVEPOINT tool_run', []);
+            try {
+                Db::run('SET LOCAL statement_timeout = ' . self::STATEMENT_TIMEOUT_MS, []);
+                $result = self::$name($args);
+                Db::run('ROLLBACK TO SAVEPOINT tool_run', []);
+                Db::run('RELEASE SAVEPOINT tool_run', []);
+                return $result;
+            } catch (Throwable $e) {
+                try {
+                    Db::run('ROLLBACK TO SAVEPOINT tool_run', []);
+                    Db::run('RELEASE SAVEPOINT tool_run', []);
+                } catch (Throwable $ignored) {
+                }
+                throw $e;
+            }
+        }
         Db::run('BEGIN READ ONLY', []);
         try {
             Db::run('SET LOCAL statement_timeout = ' . self::STATEMENT_TIMEOUT_MS, []);

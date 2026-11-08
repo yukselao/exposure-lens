@@ -594,3 +594,19 @@ h3.has-info .info-tip { top: 50%; transform: translateY(-50%); right: 0; }
 .donut-wrap.has-info .info-tip { top: 0; right: 0; }
 .info-tooltip { --bs-tooltip-max-width: 380px; --bs-tooltip-font-size: 12.5px; --bs-tooltip-padding-x: 12px; --bs-tooltip-padding-y: 10px; --bs-tooltip-bg: #1f2430; }
 .info-tooltip .tooltip-inner { text-align: left; white-space: pre-line; line-height: 17px; }
+.match-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.corr-cell { min-width: 360px; max-width: 560px; }
+.corr-expl { font-weight: 600; line-height: 18px; margin-bottom: 6px; }
+.corr-steps { list-style: none; counter-reset: step; padding: 0; margin: 0; display: grid; gap: 4px; }
+.corr-steps li { counter-increment: step; display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 6px; font-size: 12px; line-height: 16px; color: var(--text-alt); }
+.corr-steps li::before { content: counter(step); grid-row: span 2; width: 18px; height: 18px; border-radius: 50%; background: var(--bg-selected); color: var(--accent); font-weight: 700; font-size: 11px; display: grid; place-items: center; }
+.corr-steps .step-title { font-weight: 700; color: var(--text-body); }
+.corr-steps li.step-result::before { background: var(--accent); color: #fff; }
+
+/* ---- Breadcrumb ----------------------------------------------------------------------------- */
+.crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; list-style: none; margin: 0 0 10px; padding: 0; font-size: 13px; color: var(--text-alt); }
+.crumbs li { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.crumbs li + li::before { content: "›"; color: #b8bcc6; margin-right: 2px; }
+.crumbs a { color: var(--accent); text-decoration: none; }
+.crumbs a:hover { text-decoration: underline; }
+.crumbs [aria-current] { color: var(--text-body); font-weight: 600; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

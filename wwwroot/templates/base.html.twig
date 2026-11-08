@@ -53,6 +53,13 @@
   {% if db_error %}
     <div class="alert alert-danger m-3">The database cannot be reached. Check that the <code>postgres</code> and <code>migrate</code> services ran.</div>
   {% endif %}
+  {% if crumbs is defined and crumbs %}
+    <nav class="crumbs" aria-label="Breadcrumb"><ol>
+      {% for c in crumbs %}
+        <li>{% if c[1] and not loop.last %}<a href="{{ c[1] }}">{{ c[0] }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ c[0] }}</span>{% endif %}</li>
+      {% endfor %}
+    </ol></nav>
+  {% endif %}
   {% if page != 'dashboard' and page != 'asset-view' %}<h1 class="page-title">{{ title }}</h1>{% endif %}
   {% if page == 'dashboard' %}{% include 'pages/dashboard.html.twig' %}
   {% elseif page == 'explore-assets' %}{% include 'pages/explore_assets.html.twig' %}

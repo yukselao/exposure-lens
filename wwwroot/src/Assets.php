@@ -143,12 +143,12 @@ final class Assets
                     a.identity_name, a.via_group_key, g.name AS via_group, a.evidence, a.confidence, a.last_seen,
                     a.critical, a.high, a.max_vpr, a.exploitable, a.acr_score, a.aes_score, a.host_tier, a.credentialed,
                     " . self::EVIDENCE_COLUMNS . "
-             FROM v_risk_access a LEFT JOIN v_ad_objects g ON g.object_key = a.via_group_key " . self::EVIDENCE_JOINS . "
+             FROM v_risk_access a LEFT JOIN LATERAL (SELECT o2.name, o2.sam_account_name, d2.netbios_name AS domain FROM v_ad_objects o2 LEFT JOIN ad_domains d2 ON d2.directory_id = o2.directory_id WHERE o2.object_key = a.via_group_key LIMIT 1) g ON true " . self::EVIDENCE_JOINS . "
              WHERE {$r['where']}
              ORDER BY a.critical DESC, a.max_vpr DESC NULLS LAST, a.host_name, a.access_type LIMIT " . self::MAX_SYSTEMS,
             $r['params']
         );
-        self::attachEvidence($systems);
+        self::attachEvidence($systems, $ad ? (string) ($ad['display_name'] ?: $ad['sam_account_name']) : null);
         $hostIds = array_values(array_unique(array_map(fn ($s) => (int) $s['host_asset_id'], $systems)));
         $findings = self::findings($hostIds);
 
@@ -201,6 +201,8 @@ final class Assets
         if (($profile['enabled'] ?? null) === false && $hosts) $add('medium', 'Disabled but still has access', 'The account is disabled in AD yet still appears on hosts.');
         if ($uncred) $add('info', 'Incomplete telemetry', count($uncred) . ' reached host(s) were scanned without credentials; sessions and local groups there are unknown.');
         if (!$hosts) $add('info', 'No host access seen', 'No local group, session, logon or service ties this identity to a scanned host.');
+        $demo = array_filter($systems, fn ($s) => ($s['match_quality'] ?? '') === 'demo alias');
+        if ($demo) $add('info', 'Relies on the demo identity mapping', count($demo) . ' of ' . count($systems) . ' access facts exist only because of an alias in the identity_mapping settings; see Correlation Evidence.');
 
         return self::riskBlock($factors, $hosts, $findings, $acr) + [
             'questions' => [
@@ -241,9 +243,9 @@ final class Assets
         $systems = Db::all(
             "SELECT a.identity_key, a.identity_name, a.identity_kind, a.scope, a.tier, a.tier0_like, a.privileged_hint, a.access_type, a.access_class,
                     a.via_group_key, g.name AS via_group, a.evidence, a.confidence, a.last_seen, o.id AS ad_object_id, o.object_type,
-                    a.host_asset_id, " . self::EVIDENCE_COLUMNS . ",
+                    a.host_asset_id, a.host_name, a.ip, " . self::EVIDENCE_COLUMNS . ",
                     (SELECT count(DISTINCT b.host_asset_id) FROM identity_host_access b WHERE b.identity_key = a.identity_key AND b.host_asset_id <> a.host_asset_id AND b.access_class <> 'scan') AS other_hosts
-             FROM v_risk_access a LEFT JOIN v_ad_objects o ON o.object_key = a.ad_object_key LEFT JOIN v_ad_objects g ON g.object_key = a.via_group_key
+             FROM v_risk_access a LEFT JOIN v_ad_objects o ON o.object_key = a.ad_object_key LEFT JOIN LATERAL (SELECT o2.name, o2.sam_account_name, d2.netbios_name AS domain FROM v_ad_objects o2 LEFT JOIN ad_domains d2 ON d2.directory_id = o2.directory_id WHERE o2.object_key = a.via_group_key LIMIT 1) g ON true
              " . self::EVIDENCE_JOINS . "
              WHERE a.host_asset_id = ? AND a.access_class <> 'scan'
              ORDER BY a.tier0_like DESC, a.tier NULLS LAST, a.access_class, a.identity_name LIMIT " . self::MAX_SYSTEMS,
@@ -269,6 +271,8 @@ final class Assets
         if ($svc) $add('high', 'Domain accounts run services here', implode(', ', array_unique(array_column($svc, 'identity_name'))) . '.');
         if ($host['credentialed'] === false || $host['credentialed'] === 'f') $add('info', 'Not scanned with credentials', 'Sessions, local groups and services are unknown.');
         if (!$host['domain_joined']) $add('info', 'Not domain joined', 'Identity correlation relies on local accounts only.');
+        $demo = array_filter($systems, fn ($s) => ($s['match_quality'] ?? '') === 'demo alias');
+        if ($demo) $add('info', 'Relies on the demo identity mapping', count($demo) . ' of ' . count($systems) . ' access facts exist only because of an alias in the identity_mapping settings; see Correlation Evidence.');
 
         $risk = self::riskBlock($factors, $hosts, $findings, $acr) + [
             'by_access_type' => self::countBy($systems, 'access_type'),
@@ -289,9 +293,22 @@ final class Assets
     // ---- shared --------------------------------------------------------------------------------
 
     /** The plugin and the raw account name behind each access fact (identity_host_access.principal_id). */
-    private const EVIDENCE_COLUMNS = "a.evidence_plugin_id, pc.name AS plugin_name, pr.name AS principal_name, pr.domain AS principal_domain,
-                    g.sam_account_name AS via_group_sam";
+    /**
+     * The correlation behind each access fact. For a right that comes through an AD group the
+     * fact itself has no principal; the group's own fact on the same host carries it (gh/gpr).
+     */
+    private const EVIDENCE_COLUMNS = "a.evidence_plugin_id, pc.name AS plugin_name, a.ad_object_key AS subject_key,
+                    COALESCE(pr.name, gpr.name) AS principal_name, COALESCE(pr.domain, gpr.domain) AS principal_domain,
+                    COALESCE(pr.kind, gpr.kind) AS principal_kind, COALESCE(pr.resolved_by, gpr.resolved_by) AS resolved_by,
+                    mo.name AS matched_name, mo.object_type AS matched_type, mo.domain AS matched_domain,
+                    g.sam_account_name AS via_group_sam, g.domain AS via_group_domain";
     private const EVIDENCE_JOINS = "LEFT JOIN identity_host_access ih ON ih.id = a.id LEFT JOIN principals pr ON pr.id = ih.principal_id
+             LEFT JOIN identity_host_access gh ON a.via_group_key IS NOT NULL AND gh.identity_key = a.via_group_key
+                                               AND gh.host_asset_id = a.host_asset_id AND gh.access_type = a.access_type
+             LEFT JOIN principals gpr ON gpr.id = gh.principal_id
+             LEFT JOIN LATERAL (SELECT o3.name, o3.object_type, d3.netbios_name AS domain FROM v_ad_objects o3
+                                LEFT JOIN ad_domains d3 ON d3.directory_id = o3.directory_id
+                                WHERE o3.object_key = COALESCE(pr.ad_object_key, gpr.ad_object_key) LIMIT 1) mo ON true
              LEFT JOIN plugin_catalog pc ON pc.plugin_id = a.evidence_plugin_id";
     private const EXCERPT_MAX = 900;
 
@@ -300,7 +317,7 @@ final class Assets
      * plugin output that name the account (or the group the right comes through), with the
      * section header above them. The full output is fetched on demand (plugin_output action).
      */
-    private static function attachEvidence(array &$systems): void
+    private static function attachEvidence(array &$systems, ?string $subject = null): void
     {
         $hosts = $plugins = [];
         foreach ($systems as $s) {
@@ -330,6 +347,144 @@ final class Assets
             }
             $s['output_excerpt'] = $o ? self::excerpt((string) $o['output'], $needles) : null;
         }
+        unset($s);
+        self::attachCorrelation($systems, $subject);
+    }
+
+    private const ACCESS_PHRASE = [
+        'local_admin' => 'is a member of the local Administrators group', 'rdp_right' => 'is a member of the local Remote Desktop Users group',
+        'psremote_right' => 'is a member of the local Remote Management Users group', 'session' => 'had an interactive session',
+        'last_logon' => 'was the last account to log on', 'smb_session' => 'had an SMB session', 'service_account' => 'runs a Windows service',
+    ];
+    private const ACCESS_RESULT = [
+        'local_admin' => 'has local administrator rights on', 'rdp_right' => 'can log on over Remote Desktop to',
+        'psremote_right' => 'can use PowerShell remoting on', 'session' => 'had a session on', 'last_logon' => 'last logged on to',
+        'smb_session' => 'had an SMB session on', 'service_account' => 'runs a service on',
+    ];
+
+    /**
+     * Writes, for each access fact, how the correlation reached it: what the plugin output
+     * shows, how that name was matched to AD (and whether a demo alias did it), the AD
+     * membership path for a right held through a group, a one-paragraph explanation and a
+     * match quality. $subject names the identity when the snapshot is about one.
+     */
+    private static function attachCorrelation(array &$systems, ?string $subject): void
+    {
+        $mapping = Db::setting('identity_mapping');
+        $domainAliases = array_change_key_case((array) ($mapping['domain_aliases'] ?? []), CASE_LOWER);
+
+        // AD membership paths subject -> via group, one recursive query for the whole snapshot
+        $pairs = [];
+        foreach ($systems as $s) {
+            if (!empty($s['via_group_key']) && !empty($s['subject_key'])) {
+                $pairs[$s['subject_key']][$s['via_group_key']] = true;
+            }
+        }
+        $paths = [];
+        if ($pairs) {
+            $members = array_keys($pairs);
+            $groups = array_keys(array_merge(...array_values($pairs)));
+            $rows = Db::all(
+                "WITH RECURSIVE up(member_key, group_key, path, depth) AS (
+                    SELECT gm.member_key, gm.group_key, ARRAY[gm.member_key, gm.group_key]::text[], 1
+                    FROM ad_group_members gm WHERE gm.member_key = ANY(CAST(? AS text[]))
+                    UNION ALL
+                    SELECT up.member_key, gm.group_key, up.path || gm.group_key::text, up.depth + 1
+                    FROM up JOIN ad_group_members gm ON gm.member_key = up.group_key
+                    WHERE up.depth < 10 AND NOT gm.group_key = ANY(up.path))
+                 SELECT DISTINCT ON (member_key, group_key) member_key, group_key, array_to_string(path, chr(31)) AS path
+                 FROM up WHERE group_key = ANY(CAST(? AS text[])) ORDER BY member_key, group_key, depth",
+                [self::pgTextArray($members), self::pgTextArray($groups)]
+            );
+            $keys = [];
+            foreach ($rows as $r) {
+                $paths[$r['member_key'] . '|' . $r['group_key']] = explode("\x1f", $r['path']);
+                foreach (explode("\x1f", $r['path']) as $k) $keys[$k] = true;
+            }
+            $names = [];
+            if ($keys) {
+                foreach (Db::all('SELECT DISTINCT ON (object_key) object_key, name FROM v_ad_objects WHERE object_key = ANY(CAST(? AS text[]))', [self::pgTextArray(array_keys($keys))]) as $n) {
+                    $names[$n['object_key']] = $n['name'];
+                }
+            }
+            foreach ($paths as $k => $p) {
+                $paths[$k] = array_map(fn ($key) => $names[$key] ?? $key, $p);
+            }
+        }
+
+        foreach ($systems as &$s) {
+            $who = $subject ?? (string) $s['identity_name'];
+            $host = (string) ($s['host_name'] ?? '');
+            $type = (string) $s['access_type'];
+            $observed = $s['principal_name'] !== null ? (($s['principal_domain'] ? $s['principal_domain'] . '\\' : '') . $s['principal_name']) : null;
+            $matched = $s['matched_name'] !== null ? (($s['matched_domain'] ? $s['matched_domain'] . '\\' : '') . $s['matched_name']) : null;
+            $phrase = self::ACCESS_PHRASE[$type] ?? str_replace('_', ' ', $type);
+            $plugin = $s['evidence_plugin_id'] ? 'Nessus plugin ' . $s['evidence_plugin_id'] . ($s['plugin_name'] ? ' (' . $s['plugin_name'] . ')' : '') : 'the host telemetry';
+            $steps = [];
+
+            // 1. what the scan saw
+            $steps[] = ['kind' => 'observed', 'title' => 'Seen on the host',
+                        'text' => "$plugin on $host reports " . ($observed ?? 'the account') . " — it $phrase."];
+
+            // 2. how that name became an AD object
+            $method = $s['resolved_by'];
+            $pdom = strtolower(explode('.', (string) $s['principal_domain'])[0]);
+            $viaDomainAlias = $method === 'domain_name' && $pdom !== '' && isset($domainAliases[$pdom])
+                && strtolower((string) $s['matched_domain']) === strtolower((string) $domainAliases[$pdom]);
+            if ($method === 'alias') {
+                $quality = 'demo alias';
+                $how = "$observed is mapped to $matched by an identity alias in the identity_mapping settings (demo data; the names differ on purpose).";
+            } elseif ($viaDomainAlias) {
+                $quality = 'demo alias';
+                $how = "$observed was matched to $matched by account name, after the domain alias " . strtoupper($pdom) . ' → ' . strtoupper((string) $domainAliases[$pdom])
+                     . ' in the identity_mapping settings (demo data; without the alias there would be no match).';
+            } elseif ($method === 'sid') {
+                $quality = 'exact';
+                $how = "$observed was matched to $matched by SID, an exact match.";
+            } elseif ($method === 'domain_name') {
+                $quality = 'name';
+                $how = "$observed was matched to $matched by domain and account name.";
+            } elseif ($method === 'upn') {
+                $quality = 'name';
+                $how = "$observed was matched to $matched by user principal name.";
+            } elseif ($method === 'host_domain') {
+                $quality = 'inferred';
+                $how = "The output gives the bare name $observed; it was matched to $matched in the domain the host belongs to.";
+            } else {
+                $quality = 'telemetry only';
+                $how = ($observed ?? 'This identity') . ' has no match in the synced Active Directory; it is known only from host telemetry.';
+            }
+            $steps[] = ['kind' => 'matched', 'title' => 'Matched to Active Directory', 'text' => $how, 'method' => $method];
+
+            // 3. a right held through a group: the AD membership that links the subject to it
+            $group = $s['via_group'] ?? null;
+            $groupFull = $group ? (($s['via_group_domain'] ? $s['via_group_domain'] . '\\' : '') . $group) : null;
+            $path = $group ? ($paths[($s['subject_key'] ?? '') . '|' . $s['via_group_key']] ?? null) : null;
+            if ($group) {
+                $nested = $path && count($path) > 2;
+                $steps[] = ['kind' => 'membership', 'title' => 'Group membership in Active Directory',
+                            'text' => "$who is " . ($nested ? 'a nested' : 'a direct') . " member of $groupFull, from the Identity Exposure membership data"
+                                    . ($path ? ': ' . implode(' → ', $path) . '.' : '.'),
+                            'path' => $path];
+                $s['explanation'] = "$who is a member of $groupFull" . ($nested ? ' (nested, through ' . implode(' → ', array_slice($path, 1, -1)) . ')' : '')
+                    . "; $groupFull $phrase on $host. $who's name is not in the plugin output: the link comes from Active Directory group membership"
+                    . ($quality === 'demo alias' ? ', and the group in the output was tied to this directory by a demo alias.' : '.');
+            } elseif ($quality === 'demo alias') {
+                $s['explanation'] = "$host reports $observed, which $phrase there. $observed is mapped to $who by the demo identity mapping, so the name in the output differs from the AD account.";
+            } elseif ($quality === 'telemetry only') {
+                $s['explanation'] = "$host reports $who, which $phrase there. The identity is not in the synced Active Directory.";
+            } else {
+                $s['explanation'] = "$host reports $observed, which $phrase there; $observed is $who in Active Directory ($quality match).";
+            }
+            $steps[] = ['kind' => 'result', 'title' => 'Result', 'text' => "$who " . (self::ACCESS_RESULT[$type] ?? $type . ' on') . " $host" . ($group ? " through $groupFull." : '.')];
+            $s['correlation'] = $steps;
+            $s['match_quality'] = $quality;
+        }
+    }
+
+    private static function pgTextArray(array $values): string
+    {
+        return '{' . implode(',', array_map(fn ($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], (string) $v) . '"', $values)) . '}';
     }
 
     private static function excerpt(string $output, array $needles): string

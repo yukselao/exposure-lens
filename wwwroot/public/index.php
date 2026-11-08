@@ -48,6 +48,20 @@ if ($route === null) {
 [$page, $title, $section] = $route;
 
 $context = ['page' => $page, 'title' => $title, 'section' => $section];
+
+/** Breadcrumb trail: [label, href|null] from Home to the current page (the last item is not a link). */
+$crumbs = [['Home', '/']];
+if ($section === 'explore') {
+    $crumbs[] = ['Explore', null];
+    if ($page === 'asset-view') {
+        $crumbs[] = ['Assets', '/explore/assets'];
+    }
+} elseif ($section === 'settings') {
+    $crumbs[] = ['Settings', '/settings'];
+    if ($page === 'settings-catalog') {
+        $crumbs[] = ['CTEM Pipeline', '/settings/ctem'];
+    }
+}
 try {
     if ($page === 'settings-sc') {
         $context['sc'] = Api::scPublicSettings();
@@ -68,6 +82,11 @@ try {
 } catch (Throwable $e) {
     error_log('page ' . $page . ': ' . get_class($e) . ': ' . $e->getMessage());
     $context['db_error'] = true;
+}
+
+if ($page !== 'dashboard' && $page !== 'not-found') {
+    $crumbs[] = [$context['title'], null];
+    $context['crumbs'] = $crumbs;
 }
 
 header('Content-Type: text/html; charset=utf-8');
