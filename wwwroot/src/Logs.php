@@ -8,6 +8,7 @@ final class Logs
         'sc' => 'Security Center connector',
         'tie_postgres' => 'TIE to PostgreSQL connector',
         'tie' => 'TIE API connector',
+        'ctem' => 'CTEM worker',
     ];
     private const LEVELS = ['debug' => 0, 'info' => 1, 'warning' => 2, 'error' => 3, 'critical' => 4];
     private const TAIL_BYTES = 4 * 1024 * 1024;

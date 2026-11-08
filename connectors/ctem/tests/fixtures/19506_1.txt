@@ -1,0 +1,37 @@
+Information about this scan : 
+
+Nessus version : 10.7.2
+Nessus build : 20029
+Plugin feed version : 202404241831
+Scanner edition used : Nessus
+Scanner OS : LINUX
+Scanner distribution : es8-x86-64
+Scan type : Normal
+Scan name : DataCenters Scan - Dec 2023
+Scan policy used : Advanced Network Scan
+Scanner IP : 192.168.68.188
+Port scanner(s) : nessus_syn_scanner 
+Port range : default
+Ping RTT : 649.729 ms
+Thorough tests : yes
+Experimental tests : no
+Plugin debugging enabled : no
+Paranoia level : 1
+Report verbosity : 2
+Safe checks : yes
+Optimize the test : yes
+Credentialed checks : no
+Patch management checks : None
+Display superseded patches : yes (supersedence plugin did not launch)
+CGI scanning : disabled
+Web application tests : disabled
+Max hosts : 120
+Max checks : 7
+Recv timeout : 5
+Backports : Detected
+Allow post-scan editing : Yes
+Nessus Plugin Signature Checking : Enabled
+Audit File Signature Checking : Disabled
+Scan Start Date : 2024/4/25 16:01 EDT
+Scan duration : 551 sec
+Scan for malware : no

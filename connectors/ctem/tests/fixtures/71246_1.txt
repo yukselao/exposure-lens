@@ -1,0 +1,143 @@
+Group Name : Access Control Assistance Operators
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-579
+Members    : 
+
+Group Name : Administrators
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-544
+Members    : 
+  Name : Administrator
+    Domain : AL-WIN10-DEV
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-1968802327-2839139944-3538951653-500
+  Name : empire-admin
+    Domain : AL-WIN10-DEV
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-1968802327-2839139944-3538951653-1001
+  Name : Domain Admins
+    Domain : LABNET
+    Class  : Win32_Group
+    SID    : 
+  Name : uleth
+    Domain : LABNET
+    Class  : Win32_UserAccount
+    SID    : 
+
+Group Name : Backup Operators
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-551
+Members    : 
+
+Group Name : Cryptographic Operators
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-569
+Members    : 
+
+Group Name : Device Owners
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-583
+Members    : 
+
+Group Name : Distributed COM Users
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-562
+Members    : 
+
+Group Name : Event Log Readers
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-573
+Members    : 
+
+Group Name : Guests
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-546
+Members    : 
+  Name : Guest
+    Domain : AL-WIN10-DEV
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-1968802327-2839139944-3538951653-501
+
+Group Name : Hyper-V Administrators
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-578
+Members    : 
+
+Group Name : IIS_IUSRS
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-568
+Members    : 
+  Name : IUSR
+    Domain : AL-WIN10-DEV
+    Class  : Win32_SystemAccount
+    SID    : S-1-5-17
+
+Group Name : Network Configuration Operators
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-556
+Members    : 
+
+Group Name : Performance Log Users
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-559
+Members    : 
+
+Group Name : Performance Monitor Users
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-558
+Members    : 
+
+Group Name : Power Users
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-547
+Members    : 
+
+Group Name : Remote Desktop Users
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-555
+Members    : 
+
+Group Name : Remote Management Users
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-580
+Members    : 
+
+Group Name : Replicator
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-552
+Members    : 
+
+Group Name : System Managed Accounts Group
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-581
+Members    : 
+  Name : DefaultAccount
+    Domain : AL-WIN10-DEV
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-1968802327-2839139944-3538951653-503
+
+Group Name : Users
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-32-545
+Members    : 
+  Name : INTERACTIVE
+    Domain : AL-WIN10-DEV
+    Class  : Win32_SystemAccount
+    SID    : S-1-5-4
+  Name : Authenticated Users
+    Domain : AL-WIN10-DEV
+    Class  : Win32_SystemAccount
+    SID    : S-1-5-11
+  Name : Domain Users
+    Domain : LABNET
+    Class  : Win32_Group
+    SID    : 
+
+Group Name : docker-users
+Host Name  : AL-WIN10-DEV
+Group SID  : S-1-5-21-1968802327-2839139944-3538951653-1002
+Members    : 
+  Name : uleth
+    Domain : LABNET
+    Class  : Win32_UserAccount
+    SID    : 

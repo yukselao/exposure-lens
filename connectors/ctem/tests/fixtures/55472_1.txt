@@ -1,0 +1,2 @@
+  Hostname : fedora37
+    fedora37 (hostname command)

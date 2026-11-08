@@ -1,5 +1,10 @@
-<div class="card"><div class="card-body empty-state">
-  <h2>Software inventory is not available yet</h2>
-  <p>Installed software will be read from Security Center plugin output into its own table. That connector step is planned and not built yet.</p>
-  <p>Hosts and their vulnerabilities are already in <a href="/explore/assets">Asset Inventory</a>.</p>
-</div></div>
+{% import 'partials/icons.twig' as icons %}
+<section class="card" id="software">
+  <div class="toolbar">
+    <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="swSearch" placeholder="Search software" aria-label="Search software"></div>
+    <div class="form-check form-switch ms-auto mb-0"><input class="form-check-input" type="checkbox" role="switch" id="swRare"><label class="form-check-label" for="swRare">On fewer than 5 hosts</label></div>
+    <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" id="swRecent"><label class="form-check-label" for="swRecent">Installed in the last 30 days</label></div>
+  </div>
+  <div class="table-wrap"><table class="table table-hover"><thead id="swHead"></thead><tbody id="swBody"></tbody></table></div>
+  <div class="pager" id="swPager"></div>
+</section>

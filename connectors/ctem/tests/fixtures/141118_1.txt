@@ -1,0 +1,6 @@
+Nessus was able to log in to the remote host via the following :
+
+User:       'admin'
+Port:       22
+Proto:      SSH
+Method:     keyboard-interactive

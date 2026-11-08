@@ -1,0 +1,11 @@
+administrator
+Administrator
+Administrator
+Administrator
+Administrator
+Administrator
+Administrator
+administrator
+administrator
+
+Extended SMB session information attached.

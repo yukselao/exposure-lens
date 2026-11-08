@@ -1,0 +1,15 @@
+Nessus was able to log in to the remote host via the following :
+
+User:       '10.100.30.35\Administrator'
+Port:       445
+Proto:      SMB
+Method:     password
+
+
+
+Nessus was able to log in to the remote host via the following :
+
+User:       '10.100.30.92\Administrator'
+Port:       445
+Proto:      SMB
+Method:     password

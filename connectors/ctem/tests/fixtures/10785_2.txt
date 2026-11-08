@@ -1,0 +1,8 @@
+The remote Operating System is : Windows Server 2008 R2 Standard 7601 Service Pack 1
+The remote native LAN manager is : Windows Server 2008 R2 Standard 6.1
+The remote SMB Domain Name is : STEP7
+
+
+The remote Operating System is : Windows Server 2012 R2 Standard 9600
+The remote native LAN manager is : Windows Server 2012 R2 Standard 6.3
+The remote SMB Domain Name is : WIN-UEUPT5DGA0H

@@ -1,0 +1,93 @@
+{% import 'partials/icons.twig' as icons %}
+<div class="row g-3" id="aiSettings">
+  <div class="col-xl-5">
+    <section class="card h-100">
+      <div class="card-header"><span class="icon i-robot icon-accent"></span> Model server <span class="sub">local LLM, OpenAI/Ollama compatible</span></div>
+      <div class="card-body">
+        <form id="aiForm" autocomplete="off" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="ai_url">Server URL</label>
+            <div class="input-group">
+              <input type="url" class="form-control mono" id="ai_url" name="url" value="{{ ai.url }}" placeholder="http://192.168.1.105:11434">
+              <button type="button" class="btn btn-outline-primary" id="aiProbe">Test and list models</button>
+            </div>
+            <div class="form-text" id="aiProbeStatus">{% if ai.meta.tested_at %}{% if ai.meta.ok %}Reached Ollama {{ ai.meta.version }}{% else %}Last test failed: {{ ai.meta.error }}{% endif %}{% else %}Not tested yet.{% endif %}</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="ai_model">Model</label>
+            <input class="form-control mono" id="ai_model" name="model" list="aiModels" value="{{ ai.model }}" placeholder="gemma4:31b">
+            <datalist id="aiModels">{% for m in ai.meta.models %}<option value="{{ m.name }}">{{ m.parameter_size }} {{ m.capabilities|join(', ') }}</option>{% endfor %}</datalist>
+            <div class="form-text">The model must support tools. Models seen on the server appear as suggestions after a test.</div>
+          </div>
+          <div class="row g-3">
+            <div class="col-6"><label class="form-label" for="ai_ctx">Context window (tokens)</label>
+              <input type="number" class="form-control" id="ai_ctx" name="num_ctx" min="2048" max="262144" step="1024" value="{{ ai.num_ctx }}">
+              <div class="form-text">32K–64K is the sweet spot for a 31B model.</div></div>
+            <div class="col-6"><label class="form-label" for="ai_predict">Longest answer (tokens)</label>
+              <input type="number" class="form-control" id="ai_predict" name="num_predict" min="256" max="32768" step="256" value="{{ ai.num_predict }}"></div>
+            <div class="col-6"><label class="form-label" for="ai_temp">Temperature</label>
+              <input type="number" class="form-control" id="ai_temp" name="temperature" min="0" max="2" step="0.1" value="{{ ai.temperature }}">
+              <div class="form-text">0.3–0.6 keeps tool calls and formatting steady.</div></div>
+            <div class="col-6"><label class="form-label" for="ai_timeout">Timeout (seconds)</label>
+              <input type="number" class="form-control" id="ai_timeout" name="timeout_seconds" min="30" max="1800" value="{{ ai.timeout_seconds }}"></div>
+            <div class="col-6"><label class="form-label" for="ai_rounds">Tool rounds per answer</label>
+              <input type="number" class="form-control" id="ai_rounds" name="max_tool_rounds" min="1" max="12" value="{{ ai.max_tool_rounds }}">
+              <div class="form-text">How many times the model may call tools before it must answer.</div></div>
+            <div class="col-6 d-flex align-items-end"><div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" role="switch" id="ai_think" name="think" value="1" {{ ai.think ? 'checked' }}>
+              <label class="form-check-label" for="ai_think">Thinking mode</label>
+              <div class="form-text">Slower; helps on hard questions, costs context.</div></div></div>
+          </div>
+          <div class="d-flex gap-2 align-items-center mt-3">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-outline-primary" id="aiOpenChat">Open Agent Tenable</button>
+          </div>
+          <div class="status-line mt-3" id="aiStatus" role="status"></div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-7">
+    <section class="card h-100">
+      <div class="card-header">Knowledge <span class="sub">agents, skills, tools and prompts the assistant is built from · read-only</span>
+        <span class="ms-auto"><a class="btn btn-sm btn-outline-primary" href="/api.php?action=ai_knowledge_download">{{ icons.ic('download', 14) }} Download zip</a></span></div>
+      <div class="knowledge">
+        <nav class="knowledge-tree" id="aiTree" aria-label="Knowledge files"></nav>
+        <div class="knowledge-view">
+          <div class="knowledge-view-head" id="aiFileHead"><span class="muted">Pick a file on the left.</span></div>
+          <div class="knowledge-view-body md" id="aiFileBody"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-7">
+    <section class="card">
+      <div class="card-header">Knowledge packs <span class="sub">zip files with agents/, skills/, tools/ and prompts/ folders; only active packs are loaded</span></div>
+      <div class="card-body">
+        <form id="aiPackForm" class="d-flex flex-wrap gap-2 align-items-center" enctype="multipart/form-data" novalidate>
+          <input type="file" class="form-control" id="aiPackFile" name="pack" accept=".zip,application/zip" style="max-width:380px" aria-label="Knowledge pack zip">
+          <button type="submit" class="btn btn-primary" id="aiPackUpload">Upload</button>
+          <span class="muted" id="aiPackStatus"></span>
+        </form>
+        <div class="form-text mt-2">A pack's file with the same name as a built-in replaces it while the pack is active. Tools in a pack only add documentation; the database tools are the built-in ones.</div>
+      </div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Pack</th><th>Contents</th><th>Uploaded</th><th>Size</th><th>Active</th><th></th></tr></thead><tbody id="aiPacks"></tbody></table></div>
+    </section>
+  </div>
+
+  <div class="col-xl-5">
+    <section class="card">
+      <div class="card-header">Try a tool <span class="sub">runs the database tool directly, without the model</span></div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-5"><select class="form-select" id="aiToolName" aria-label="Tool"></select></div>
+          <div class="col-7"><input class="form-control mono" id="aiToolArgs" value='{"query": "admin"}' aria-label="Arguments as JSON"></div>
+        </div>
+        <div class="d-flex gap-2 align-items-center mt-2"><button type="button" class="btn btn-sm btn-primary" id="aiToolRun">Run</button><span class="muted" id="aiToolStatus"></span></div>
+        <pre class="tool-output mt-2" id="aiToolOut" hidden></pre>
+      </div>
+    </section>
+  </div>
+</div>

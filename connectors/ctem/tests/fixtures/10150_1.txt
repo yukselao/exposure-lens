@@ -1,0 +1,9 @@
+The following 3 NetBIOS names have been gathered :
+
+ AL-WIN10-RG1     = Computer name
+ LABNET           = Workgroup / Domain name
+ AL-WIN10-RG1     = File Server Service
+
+The remote host has the following MAC address on its adapter :
+
+   00:50:56:ab:47:e2

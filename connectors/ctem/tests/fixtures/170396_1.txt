@@ -1,0 +1,4 @@
+  SamAccountName : macos14$
+  Domain         : labnet.local
+  Forest         : labnet.local
+  DNS Name       : macos14.labnet.local

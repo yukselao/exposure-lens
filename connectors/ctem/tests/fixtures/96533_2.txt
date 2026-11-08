@@ -1,0 +1,176 @@
+User : Administrator
+|- Browser : Chrome
+  |- Add-on information :
+
+    Name        : Slides
+    Description : Create and edit presentations 
+    Version     : 0.10
+    Update Date : Aug. 10, 2018 at 17:10:08 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\aapocclcgogkmnckokdopfmhonfmgoek\0.10_0
+
+    Name        : Docs
+    Description : Create and edit documents 
+    Version     : 0.10
+    Update Date : Aug. 10, 2018 at 17:10:09 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\aohghmighlieiainnegkcijnfilokake\0.10_0
+
+    Name        : Google Drive
+    Description : Google Drive: create, share and keep all your stuff in one place.
+    Version     : 14.1
+    Update Date : Aug. 10, 2018 at 17:10:09 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\apdfllckaahabafndbhieahigkjlhalf\14.1_0
+
+    Name        : YouTube
+    Version     : 4.2.8
+    Update Date : Aug. 10, 2018 at 17:10:09 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\blpcfgokakmgnkcojhhkbfbldkacnbeo\4.2.8_0
+
+    Name        : Sheets
+    Description : Create and edit spreadsheets
+    Version     : 1.2
+    Update Date : Aug. 10, 2018 at 17:10:10 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\felcaaldnbdncclmgdcncolpebgiejap\1.2_0
+
+    Name        : Google Docs Offline
+    Description : Get things done offline with the Google Docs family of products.
+    Version     : 1.7
+    Update Date : Aug. 10, 2018 at 17:13:28 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\ghbmnnjooekpmoecnnnilnnbdlolhkhi\1.7_1
+
+    Name        : AdBlock — best ad blocker
+    Description : Block ads and pop-ups on YouTube, Facebook, Twitch, and your favorite websites.
+    Version     : 4.1.0
+    Update Date : Dec. 24, 2019 at 04:38:53 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\gighmmpiobklfepjocnamgkkbiglidom\4.1.0_0
+
+    Name        : Chrome Web Store Payments
+    Description : Chrome Web Store Payments
+    Version     : 1.0.0.5
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\nmmhkkegccagdldgiimedpiccmgmieda\1.0.0.5_0
+
+    Name        : Gmail
+    Description : Fast, searchable email with less spam.
+    Version     : 8.2
+    Update Date : Dec. 24, 2019 at 04:39:00 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\pjkljhegncpnkpknbcohdijeoejaedia\8.2_0
+
+    Name        : Chrome Media Router
+    Description : Provider for discovery and services for mirroring of Chrome Media Router
+    Version     : 7118.1015.0.0
+    Update Date : Feb. 12, 2019 at 19:21:07 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\pkedcjkdefgpdelpbcmbmeomcjbeemfm\7118.1015.0.0_0
+
+    Name        : Chrome Media Router
+    Description : Provider for discovery and services for mirroring of Chrome Media Router
+    Version     : 7919.1028.0.0
+    Update Date : Dec. 24, 2019 at 04:39:43 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\pkedcjkdefgpdelpbcmbmeomcjbeemfm\7919.1028.0.0_0
+
+User : administrator.LABNET
+|- Browser : Chrome
+  |- Add-on information :
+
+    Name        : Google Docs Offline
+    Description : Edit, create, and view your documents, spreadsheets, and presentations — all without internet access.
+    Version     : 1.31.0
+    Update Date : Jul. 16, 2021 at 14:06:10 GMT
+    Path        : C:\Users\administrator.LABNET\AppData\Local\Google\Chrome\User Data\Default\Extensions\ghbmnnjooekpmoecnnnilnnbdlolhkhi\1.31.0_0
+
+    Name        : Google Docs Offline
+    Description : Edit, create, and view your documents, spreadsheets, and presentations — all without internet access.
+    Version     : 1.50.1
+    Update Date : Jan.  7, 2023 at 14:57:02 GMT
+    Path        : C:\Users\administrator.LABNET\AppData\Local\Google\Chrome\User Data\Default\Extensions\ghbmnnjooekpmoecnnnilnnbdlolhkhi\1.50.1_0
+
+    Name        : Chrome Web Store Payments
+    Description : Chrome Web Store Payments
+    Version     : 1.0.0.6
+    Update Date : Mar.  5, 2021 at 16:54:38 GMT
+    Path        : C:\Users\administrator.LABNET\AppData\Local\Google\Chrome\User Data\Default\Extensions\nmmhkkegccagdldgiimedpiccmgmieda\1.0.0.6_0
+
+User : administrator.TEHGEEK
+|- Browser : Chrome
+  |- Add-on information :
+
+    Name        : Slides
+    Description : Create and edit presentations 
+    Version     : 0.10
+    Update Date : Jun. 13, 2019 at 13:38:47 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\aapocclcgogkmnckokdopfmhonfmgoek\0.10_1
+
+    Name        : Docs
+    Description : Create and edit documents 
+    Version     : 0.10
+    Update Date : Jun. 13, 2019 at 13:39:04 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\aohghmighlieiainnegkcijnfilokake\0.10_1
+
+    Name        : Google Drive
+    Description : Google Drive: create, share and keep all your stuff in one place.
+    Version     : 14.2
+    Update Date : Jun. 13, 2019 at 13:38:49 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\apdfllckaahabafndbhieahigkjlhalf\14.2_1
+
+    Name        : YouTube
+    Version     : 4.2.8
+    Update Date : Jun. 13, 2019 at 13:39:02 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\blpcfgokakmgnkcojhhkbfbldkacnbeo\4.2.8_1
+
+    Name        : Sheets
+    Description : Create and edit spreadsheets
+    Version     : 1.2
+    Update Date : Jun. 13, 2019 at 13:38:49 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\felcaaldnbdncclmgdcncolpebgiejap\1.2_1
+
+    Name        : Google Docs Offline
+    Description : Edit, create, and view your documents, spreadsheets, and presentations — all without internet access.
+    Version     : 1.10.0
+    Update Date : May.  4, 2020 at 14:10:37 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\ghbmnnjooekpmoecnnnilnnbdlolhkhi\1.10.0_0
+
+    Name        : Google Docs Offline
+    Description : Edit, create, and view your documents, spreadsheets, and presentations — all without internet access.
+    Version     : 1.14.0
+    Update Date : Sep. 18, 2020 at 13:56:07 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\ghbmnnjooekpmoecnnnilnnbdlolhkhi\1.14.0_0
+
+    Name        : AdBlock — best ad blocker
+    Description : Block ads and pop-ups on YouTube, Facebook, Twitch, and your favorite websites.
+    Version     : 4.10.0
+    Update Date : Apr. 15, 2020 at 13:19:31 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\gighmmpiobklfepjocnamgkkbiglidom\4.10.0_0
+
+    Name        : AdBlock — best ad blocker
+    Description : Block ads and pop-ups on YouTube, Facebook, Twitch, and your favorite websites.
+    Version     : 4.21.0
+    Update Date : Sep. 18, 2020 at 13:56:09 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\gighmmpiobklfepjocnamgkkbiglidom\4.21.0_0
+
+    Name        : Chrome Web Store Payments
+    Description : Chrome Web Store Payments
+    Version     : 1.0.0.5
+    Update Date : Apr. 15, 2020 at 13:19:48 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\nmmhkkegccagdldgiimedpiccmgmieda\1.0.0.5_0
+
+    Name        : Gmail
+    Description : Fast, searchable email with less spam.
+    Version     : 8.2
+    Update Date : Jun. 13, 2019 at 13:38:55 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\pjkljhegncpnkpknbcohdijeoejaedia\8.2_1
+
+    Name        : Chrome Media Router
+    Description : Provider for discovery and services for mirroring of Chrome Media Router
+    Version     : 8220.313.1.2
+    Update Date : Apr. 15, 2020 at 13:19:48 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\pkedcjkdefgpdelpbcmbmeomcjbeemfm\8220.313.1.2_0
+
+    Name        : Chrome Media Router
+    Description : Provider for discovery and services for mirroring of Chrome Media Router
+    Version     : 8220.319.1.2
+    Update Date : May.  4, 2020 at 14:11:25 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\pkedcjkdefgpdelpbcmbmeomcjbeemfm\8220.319.1.2_0
+
+    Name        : Chrome Media Router
+    Description : Provider for discovery and services for mirroring of Chrome Media Router
+    Version     : 8520.615.0.5
+    Update Date : Sep. 18, 2020 at 13:56:21 GMT
+    Path        : C:\Users\administrator.TEHGEEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\pkedcjkdefgpdelpbcmbmeomcjbeemfm\8520.615.0.5_0

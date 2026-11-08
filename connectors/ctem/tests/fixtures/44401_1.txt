@@ -1,0 +1,220 @@
+The following services are set to start automatically :
+
+  BESClient startup parameters :
+    Display name : BES Client
+    Service name : BESClient
+    Log on as : LocalSystem
+    Executable path : "C:\Program Files (x86)\BigFix Enterprise\BES Client\BESClient.exe"
+
+  BESRootServer startup parameters :
+    Display name : BES Root Server
+    Service name : BESRootServer
+    Log on as : DEMO\Administrator
+    Executable path : "C:\Program Files (x86)\BigFix Enterprise\BES Server\BESRootServer.exe"
+
+  BESWebReportsServer startup parameters :
+    Display name : BES Web Reports Server
+    Service name : BESWebReportsServer
+    Log on as : DEMO\Administrator
+    Executable path : "C:\Program Files (x86)\BigFix Enterprise\BES Server\BESWebReportsServer.exe"
+
+  BESWebUI startup parameters :
+    Display name : BES WebUI
+    Service name : BESWebUI
+    Log on as : LocalSystem
+    Executable path : "C:\Program Files (x86)\BigFix Enterprise\BES WebUI\WebUIService.exe"
+
+  BFE startup parameters :
+    Display name : Base Filtering Engine
+    Service name : BFE
+    Log on as : NT AUTHORITY\LocalService
+    Executable path : C:\Windows\system32\svchost.exe -k LocalServiceNoNetworkFirewall -p
+    Dependencies : RpcSs/
+
+  BrokerInfrastructure startup parameters :
+    Display name : Background Tasks Infrastructure Service
+    Service name : BrokerInfrastructure
+    Log on as : LocalSystem
+    Executable path : C:\Windows\system32\svchost.exe -k DcomLaunch -p
+    Dependencies : RpcEptMapper/DcomLaunch/RpcSs/
+
+  CDPSvc startup parameters :
+    Display name : Connected Devices Platform Service
+    Service name : CDPSvc
+    Log on as : NT AUTHORITY\LocalService
+    Executable path : C:\Windows\system32\svchost.exe -k LocalService -p
+    Dependencies : ncbservice/RpcSS/Tcpip/
+
+  CDPUserSvc_65fac startup parameters :
+    Display name : Connected Devices Platform User Service_65fac
+    Service name : CDPUserSvc_65fac
+    Executable path : C:\Windows\system32\svchost.exe -k UnistackSvcGroup
+
+  CoreMessagingRegistrar startup parameters :
+    Display name : CoreMessaging
+    Service name : CoreMessagingRegistrar
+    Log on as : NT AUTHORITY\LocalService
+    Executable path : C:\Windows\system32\svchost.exe -k LocalServiceNoNetwork -p
+    Dependencies : rpcss/
+
+  CryptSvc startup parameters :
+    Display name : Cryptographic Services
+    Service name : CryptSvc
+    Log on as : NT Authority\NetworkService
+    Executable path : C:\Windows\system32\svchost.exe -k NetworkService -p
+    Dependencies : RpcSs/
+
+  DPS startup parameters :
+    Display name : Diagnostic Policy Service
+    Service name : DPS
+    Log on as : NT AUTHORITY\LocalService
+    Executable path : C:\Windows\System32\svchost.exe -k LocalServiceNoNetwork -p
+
+  DcomLaunch startup parameters :
+    Display name : DCOM Server Process Launcher
+    Service name : DcomLaunch
+    Log on as : LocalSystem
+    Executable path : C:\Windows\system32\svchost.exe -k DcomLaunch -p
+
+  Dhcp startup parameters :
+    Display name : DHCP Client
+    Service name : Dhcp
+    Log on as : NT Authority\LocalService
+    Executable path : C:\Windows\system32\svchost.exe -k LocalServiceNetworkRestricted -p
+    Dependencies : NSI/Afd/
+
+  DiagTrack startup parameters :
+    Display name : Connected User Experiences and Telemetry
+    Service name : DiagTrack
+    Log on as : LocalSystem
+    Executable path : C:\Windows\System32\svchost.exe -k utcsvc -p
+    Dependencies : RpcSs/
+
+  Dnscache startup parameters :
+    Display name : DNS Client
+    Service name : Dnscache
+    Log on as : NT AUTHORITY\NetworkService
+    Executable path : C:\Windows\system32\svchost.exe -k NetworkService -p
+    Dependencies : nsi/
+
+  EventLog startup parameters :
+    Display name : Windows Event Log
+    Service name : EventLog
+    Log on as : NT AUTHORITY\LocalService
+    Executable path : C:\Windows\System32\svchost.exe -k LocalServiceNetworkRestricted -p
+
+  EventSystem startup parameters :
+    Display name : COM+ Event System
+    Service name : EventSystem
+    Log on as : NT AUTHORITY\LocalService
+    Executable path : C:\Windows\system32\svchost.exe -k LocalService -p
+    Dependencies : rpcss/
+
+  FillDB startup parameters :
+    Display name : BES FillDB
+    Service name : FillDB
+    Log on as : DEMO\Administrator
+    Executable path : "C:\Program Files (x86)\BigFix Enterprise\BES Server\FillDB.exe"
+
+  FontCache startup parameters :
+    Display name : Windows Font Cache Service
+    Service name : FontCache
+    Log on as : NT AUTHORITY\LocalService
+    Executable path : C:\Windows\system32\svchost.exe -k LocalService -p
+
+  GatherDB startup parameters :
+    Display name : BES GatherDB
+    Service name : GatherDB
+    Log on as : DEMO\Administrator
+    Executable path : "C:\Program Files (x86)\BigFix Enterprise\BES Server\GatherDB.exe"
+
+  IKEEXT startup parameters :
+    Display name : IKE and AuthIP IPsec Keying Modules
+    Service name : IKEEXT
+    Log on as : LocalSystem
+    Executable path : C:\Windows\system32\svchost.exe -k netsvcs -p
+    Dependencies : BFE/nsi/
+
+  LSM startup parameters :
+    Display name : Local Session Manager
+    Service name : LSM
+    Log on as : LocalSystem
+    Executable path : C:\Windows\system32\svchost.exe -k DcomLaunch -p
+    Dependencies : RpcEptMapper/DcomLaunch/RpcSs/
+
+  LanmanServer startup parameters :
+    Display name : Server
+    Service name : LanmanServer
+    Log on as : LocalSystem
+    Executable path : C:\Windows\System32\svchost.exe -k smbsvcs
+    Dependencies : SamSS/Srv2/
+
+  LanmanWorkstation startup parameters :
+    Display name : Workstation
+    Service name : LanmanWorkstation
+    Log on as : NT AUTHORITY\NetworkService
+    Executable path : C:\Windows\System32\svchost.exe -k NetworkService -p
+    Dependencies : Bowser/MRxSmb20/NSI/
+
+  MSDTC startup parameters :
+    Display name : Distributed Transaction Coordinator
+    Service name : MSDTC
+    Log on as : NT AUTHORITY\NetworkService
+    Executable path : C:\Windows\System32\msdtc.exe
+    Dependencies : RPCSS/SamSS/
+
+  Netlogon startup parameters :
+    Display name : Netlogon
+    Service name : Netlogon
+    Log on as : LocalSystem
+    Executable path : C:\Windows\system32\lsass.exe
+    Dependencies : LanmanWorkstation/
+
+  NlaSvc startup parameters :
+    Display name : Network Location Awareness
+    Service name : NlaSvc
+    Log on as : NT AUTHORITY\NetworkService
+    Executable path : C:\Windows\System32\svchost.exe -k NetworkService -p
+    Dependencies : NSI/RpcSs/TcpIp/Dhcp/Eventlog/
+
+  Power startup parameters :
+    Display name : Power
+    Service name : Power
+    Log on as : LocalSystem
+    Executable path : C:\Windows\system32\svchost.exe -k DcomLaunch -p
+
+  ProfSvc startup parameters :
+    Display name : User Profile Service
+    Service name : ProfSvc
+    Log on as : LocalSystem
+    Executable path : C:\Windows\system32\svchost.exe -k netsvcs -p
+    Dependencies : RpcSs/
+
+  RasMan startup parameters :
+    Display name : Remote Access Connection Manager
+    Service name : RasMan
+    Log on as : localSystem
+    Executable path : C:\Windows\System32\svchost.exe -k netsvcs
+    Dependencies : SstpSvc/DnsCache/
+
+  RpcEptMapper startup parameters :
+    Display name : RPC Endpoint Mapper
+    Service name : RpcEptMapper
+    Log on as : NT AUTHORITY\NetworkService
+    Executable path : C:\Windows\system32\svchost.exe -k RPCSS -p
+
+  RpcSs startup parameters :
+    Display name : Remote Procedure Call (RPC)
+    Service name : RpcSs
+    Log on as : NT AUTHORITY\NetworkService
+    Executable path : C:\Windows\system32\svchost.exe -k rpcss -p
+    Dependencies : RpcEptMapper/DcomLaunch/
+
+  SENS startup parameters :
+    Display name : System Event Notification Service
+    Service name : SENS
+    Log on as : LocalSystem
+    Executable path : C:\Windows\system32\svchost.exe -k netsvcs -p
+    Dependencies : EventSystem/
+
+  SamSs startup parameters :

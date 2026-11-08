@@ -31,6 +31,22 @@ services:
 
   postgres:
     image: postgres:17-alpine
+    command:
+      - postgres
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=2GB
+      - -c
+      - work_mem=32MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - jit=off
     ports:
       - "127.0.0.1:5432:5432"
     environment:
@@ -113,6 +129,26 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # plugin_outputs -> scenario tables, identity matching, attack path data.
+  ctem:
+    <<: *python
+    command: ["python", "/app/main.py"]
+    environment:
+      <<: *pg-env
+      PYTHONPATH: /app:/common:/db
+      LOG_FILE: /var/log/connector/connector.log
+      LOG_LEVEL: ${ctem_log_level:-INFO}
+      POLL_INTERVAL_SECONDS: ${ctem_poll_interval_seconds:-30}
+    volumes:
+      - ./connectors/ctem:/app:ro
+      - ./connectors/common:/common:ro
+      - ./db:/db:ro
+      - ./logs/ctem:/var/log/connector
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   # Web UI: php-fpm runs the application in ./wwwroot, nginx serves it.
   php:
     build: ./docker/php
@@ -124,8 +160,13 @@ services:
       TZ: ${tz:-Europe/Istanbul}
     volumes:
       - ./wwwroot:/var/www/html:ro
+      - ./docker/php/zz-tuning.conf:/usr/local/etc/php-fpm.d/zz-tuning.conf:ro
+      - ./docker/php/zz-tuning.ini:/usr/local/etc/php/conf.d/zz-tuning.ini:ro
       - ./logs:/var/log/exposure-lens:ro
       - tie_logs:/var/log/exposure-lens/tie:ro
+      # Agent Tenable: built-in knowledge (read-only) and uploaded knowledge packs.
+      - ./ai:/var/lib/exposure-lens/ai:ro
+      - ./data/ai-packs:/var/lib/exposure-lens/ai-packs
     secrets:
       - app_secret_key
     depends_on:

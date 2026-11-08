@@ -10,30 +10,54 @@ Exposure Lens pulls data from Tenable Security Center and Tenable Identity Expos
 | `migrate` | Applies the Alembic revisions in `db/` and exits. The other services wait for it. |
 | `tie` | [TIE connector](connectors/tie/README.md): serves Identity Exposure data as JSON over HTTP. |
 | `tie_postgres` | [TIE to PostgreSQL connector](connectors/tie_postgres/README.md): mirrors AD objects from `tie` into PostgreSQL. |
-| `sc` | [Security Center connector](connectors/sc/README.md): pulls cumulative vulnerabilities into PostgreSQL. |
-| `php`, `web` | The web UI in `wwwroot/` (php-fpm behind nginx), on `http://127.0.0.1:8085`. |
+| `sc` | [Security Center connector](connectors/sc/README.md): pulls cumulative vulnerabilities and plugin output into PostgreSQL. |
+| `ctem` | [CTEM worker](connectors/ctem/README.md): parses plugin output, matches identities to AD and builds the Risk data. |
+| `php`, `web` | The web UI in `wwwroot/` (php-fpm behind nginx), on `http://127.0.0.1:8085`. Includes **Agent Tenable**, the chat assistant (see below). |
 
 Application code is bind-mounted into the containers. The images hold only runtimes and libraries, so a code change needs no rebuild. A Python connector reads its code at start; restart it after a change (`docker compose restart sc`).
+
+## Requirements
+
+- Docker Engine 24+ with Compose v2 (Docker Desktop on macOS works). No local PHP, Python or PostgreSQL is needed; everything runs in containers.
+- Network access from the Docker host to: Security Center (HTTPS), Identity Exposure (HTTPS) and, for Agent Tenable, an Ollama server with a tool-capable model (`gemma4:31b` tested). The Ollama server can be another machine on the LAN.
+- About 2 GB of RAM for PostgreSQL (`shared_buffers=512MB`) plus the workers; the LLM runs on its own server.
+- Docker networks must not overlap the LAN. If a container cannot reach a 192.168.x address, check `docker network ls` and `docker network inspect <name>` for a bridge whose subnet covers it; this project pins itself to `10.98.0.0/24`.
 
 ## First run
 
 ```sh
-cp .env.example .env                      # then set tie_host, tie_apikey and pg_password
-mkdir -p secrets
+git clone <this repository> exposure-lens && cd exposure-lens
+cp .env.example .env                      # set pg_password; tie_host and tie_apikey for Identity Exposure
+mkdir -p secrets data/ai-packs logs
 openssl rand -hex 32 > secrets/tie_connector_token
 openssl rand -hex 32 > secrets/app_secret_key
 chmod 600 secrets/*
-docker compose up -d --build
+docker compose up -d --build              # builds the images, runs the Alembic migrations, starts everything
+docker compose ps                         # all services "Up", migrate "Exited (0)"
 ```
 
-Open `http://127.0.0.1:8085`, then:
+Open `http://127.0.0.1:8085` (change `web_port` in `.env` to use another port), then:
 
-1. **Settings > Security Center:** enter the URL and API keys, run **Test connection**, add a pool, add a query to it, and press **Sync now**.
+1. **Settings > Security Center:** enter the URL and API keys, run **Test connection**, add a pool, add a query to it, and press **Sync now**. The `sc` connector picks the job up within 30 seconds.
 2. **Settings > Identity Exposure:** run **Test connection**, then **Sync now**.
+3. **Settings > CTEM Pipeline:** run **plugin_collect** once (it needs SC credentials from step 1); `extract` and `correlate` follow by themselves. Risk, Local Users, Software and the dashboard read models fill after `correlate` finishes.
+4. **Settings > Agent Tenable:** enter the Ollama URL (`http://host:11434`), press **Test and list models**, pick a model that lists `tools` among its capabilities, save. The robot icon at the top right opens the chat.
 
 `secrets/app_secret_key` encrypts the Security Center keys and the TIE token stored in PostgreSQL. If you replace it, enter those values again in Settings.
 
 The UI has no login yet. It is published on `127.0.0.1` only; do not expose the port.
+
+### Day-to-day
+
+```sh
+docker compose up -d                      # start after a reboot (migrations run again, harmlessly)
+docker compose restart sc ctem            # a Python connector reads its code at start
+docker compose build php && docker compose up -d php   # only when docker/php/Dockerfile changes
+docker compose logs -f ctem               # connector log; the same lines are under logs/<connector>/
+docker compose exec postgres psql -U exposure_lens -d exposure_lens
+```
+
+After pulling a new version: `docker compose up -d --build` (migrations apply on start). PostgreSQL data lives in the `postgres_data` volume; `docker compose down -v` deletes it.
 
 ## How a sync runs
 
@@ -66,16 +90,39 @@ docker compose up migrate
 | `ad_tier_assignments` | Tier of an AD object, from TIE (`tie`) or set by hand (`manual`). |
 | `v_ad_objects`, `v_ad_object_tier` | All AD objects in one relation; the tier that applies to each. |
 | `v_host_assets`, `v_asset_correlation` | Hosts with their class (`device` or `iot`) and the AD computer they match by name. |
+| `plugin_catalog` | Every local informational plugin, with its scenario and review status. Rebuild the source file with `tools/import_plugin_catalog.py`. |
+| `plugin_outputs`, `plugin_attachments` | Raw plugin output and attached files. |
+| `principals`, `host_iocs` | Every identity seen in plugin output, and every extracted indicator by `ioc_type`. |
+| `host_software`, `host_group_members`, `host_local_accounts`, `host_sessions`, `host_services`, `host_scan_coverage`, `host_identities`, `host_browser_extensions` | One table per scenario. |
+| `identity_host_access`, `attack_edges` | Who touches which host and on what evidence, and the same as graph edges. |
+| `host_risk`, `v_risk_access` | Findings, ACR and tier per host, and the access facts joined to them for the Risk screen. |
+| `host_ad_match`, `local_accounts`, `software_summary`, `dashboard_summary` | Read models (materialized views). `ctem_correlate` refreshes them after every sync, so screens read precomputed rows. |
+| `ai_packs` | Knowledge packs uploaded for Agent Tenable; the files are under `data/ai-packs/<id>/`. |
+
+## Agent Tenable
+
+The robot icon at the top right opens a chat assistant backed by a local LLM (Ollama, OpenAI-compatible; tested with `gemma4:31b`). Set the server address and model in **Settings > Agent Tenable**; nothing about the model is hardcoded.
+
+- **Tools.** The model answers by calling read-only database tools (`find_identity`, `identity_access`, `identity_vulnerabilities`, `find_host`, `host_vulnerabilities`, `host_identities`, `vulnerability_lookup`, `group_members`, `search_software`, `risk_overview`, `render_chart`). Each runs in a read-only transaction with a statement timeout against the indexed tables and read models; results appear in the chat as tables and the model writes the analysis. Vulnerability tools group by host, class-C block, port, plugin or CVE and sort by severity, CVSS or VPR.
+- **Skills.** A dropdown picks the point of view: Exposure Analyst (default), Vulnerability Analyst, AD Administrator, Offensive Security. The skill text is appended to the system prompt.
+- **Prompts.** Ready-made questions with `{placeholders}`; clicking one fills the input.
+- **AI Analyze.** The detail panel of an AD object, host, risk row, local account, software or extension has an *AI Analyze* button: the visible record is attached to the next question.
+- **Evidence links.** Every value in a tool result points at the screen that shows it: hosts and AD objects open their detail panel (`/explore/assets?host=ID`, `/explore/ad-objects?type=…&open=ID`), grouped vulnerability rows open **Explore > Findings** with the same filters (`plugin`, `cve`, `port`, `cidr`, `account`, `target`, `severity`), identities seen only in telemetry open their access evidence on the Risk screen, software and local accounts open their inventories. Names the model repeats in its text are linked the same way. Links open in a new tab.
+- **Knowledge.** Everything the assistant is built from lives in `ai/` as Markdown with front matter: `agents/` (persona), `skills/`, `tools/` (name, description and the JSON-schema parameters the model sees; PHP implements them by name in `wwwroot/src/ai/Tools.php`), `prompts/`. Settings shows the files read-only and downloads them as a zip. **Knowledge packs** are zips with the same folder layout, uploaded in Settings and stored under `data/ai-packs/<id>/`; only *active* packs are loaded, and a pack file with the same name as a built-in replaces it. Pack tool files only add documentation; database tools stay the built-in ones.
+- **Settings** hold the context window, temperature, longest answer, timeout, tool rounds and the thinking switch. For a 31B model keep the context at 32K–64K and thinking off unless the question is hard.
 
 ## Tests
 
 ```sh
 docker compose run --rm --no-deps sc python -m pytest -q -p no:cacheprovider /app/tests
 docker compose run --rm --no-deps tie_postgres python -m pytest -q -p no:cacheprovider /app/tests
+docker compose run --rm --no-deps ctem python -m pytest -q -p no:cacheprovider /app/tests
+# Agent Tenable: every tool against the live database, with timings (no model needed)
+docker compose exec php php /var/www/html/tests/ai_tools_test.php
 ```
 
 ## Not built yet
 
-- Software inventory and local user discovery, which will be read from Security Center plugin output.
-- The Risk and Reports sections (the menu entries exist).
+- CTEM scenarios S6–S10, S13, S14 and S16. Their plugins are in the catalog as candidates.
+- The Reports section (the menu entry exists).
 - Login for the web UI.

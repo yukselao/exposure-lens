@@ -12,10 +12,16 @@ $routes = [
     '/explore/assets' => ['explore-assets', 'Asset Inventory', 'explore'],
     '/explore/ad-objects' => ['explore-ad', 'AD Objects', 'explore'],
     '/explore/software' => ['explore-software', 'Software Inventory', 'explore'],
+    '/explore/local-users' => ['explore-local-users', 'Local Users', 'explore'],
+    '/explore/browser-extensions' => ['explore-extensions', 'Browser Extensions', 'explore'],
+    '/explore/findings' => ['explore-findings', 'Findings', 'explore'],
     '/risk' => ['risk', 'Risk', 'risk'],
     '/reports' => ['reports', 'Reports', 'reports'],
     '/settings/security-center' => ['settings-sc', 'Security Center', 'settings'],
     '/settings/identity-exposure' => ['settings-tie', 'Identity Exposure', 'settings'],
+    '/settings/ctem' => ['settings-ctem', 'CTEM', 'settings'],
+    '/settings/ctem/plugins' => ['settings-catalog', 'Plugin Catalog', 'settings'],
+    '/settings/agent' => ['settings-ai', 'Agent Tenable', 'settings'],
     '/logs' => ['logs', 'Connector Logs', 'logs'],
 ];
 
@@ -41,6 +47,10 @@ try {
         $context['sc'] = Api::scPublicSettings();
     } elseif ($page === 'settings-tie') {
         $context['tie'] = Api::tiePublicSettings();
+    } elseif ($page === 'settings-ctem') {
+        $context['ctem'] = Api::ctemPublicSettings();
+    } elseif ($page === 'settings-ai') {
+        $context['ai'] = Api::aiPublicSettings();
     } elseif ($page === 'logs') {
         $context['connectors'] = Logs::CONNECTORS;
     }

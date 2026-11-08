@@ -9,6 +9,9 @@
   <link rel="icon" type="image/svg+xml" href="{{ asset('/assets/favicon.svg') }}">
   <link rel="stylesheet" href="{{ asset('/assets/vendor/bootstrap-5.3.3.min.css') }}">
   <link rel="stylesheet" href="{{ asset('/assets/app.css') }}">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/vendor/fonts/barlow-latin-600-normal.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/vendor/fonts/barlow-latin-500-normal.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/vendor/fonts/barlow-condensed-latin-400-normal.woff2">
 </head>
 <body data-page="{{ page }}">
 
@@ -17,6 +20,7 @@
   <a class="brand" href="/">Exposure <span class="product">Lens</span></a>
   <nav class="topbar-actions" aria-label="Tools">
     <a class="header-link {{ page == 'logs' ? 'active' }}" href="/logs" title="Connector logs">{{ icons.ic('logs', 18) }}<span>Logs</span></a>
+    <button type="button" class="header-btn agent-toggle" id="agentToggle" aria-label="Agent Tenable" aria-expanded="false" title="Agent Tenable"><span class="icon i-robot"></span></button>
     <button type="button" class="header-btn" data-flyout="settings" aria-label="Settings" aria-expanded="false" title="Settings"><span class="icon i-settings"></span></button>
   </nav>
 </header>
@@ -29,15 +33,19 @@
 </nav>
 
 <aside class="flyout" id="flyout-explore" aria-label="Explore" hidden>
-  <div class="flyout-title">Explore</div>
-  <a class="flyout-link {{ page == 'explore-assets' ? 'active' }}" href="/explore/assets">{{ icons.ic('box', 18) }}Asset Inventory</a>
-  <a class="flyout-link {{ page == 'explore-ad' ? 'active' }}" href="/explore/ad-objects">{{ icons.ic('people', 18) }}AD Objects</a>
-  <a class="flyout-link {{ page == 'explore-software' ? 'active' }}" href="/explore/software">{{ icons.ic('disc', 18) }}Software Inventory</a>
+  <a class="flyout-link {{ page == 'explore-assets' ? 'active' }}" href="/explore/assets">Asset Inventory</a>
+  <a class="flyout-link {{ page == 'explore-ad' ? 'active' }}" href="/explore/ad-objects">AD Objects</a>
+  <a class="flyout-link {{ page == 'explore-local-users' ? 'active' }}" href="/explore/local-users">Local Users</a>
+  <a class="flyout-link {{ page == 'explore-software' ? 'active' }}" href="/explore/software">Software Inventory</a>
+  <a class="flyout-link {{ page == 'explore-extensions' ? 'active' }}" href="/explore/browser-extensions">Browser Extensions</a>
+  <a class="flyout-link {{ page == 'explore-findings' ? 'active' }}" href="/explore/findings">Findings</a>
 </aside>
 <aside class="flyout flyout-right" id="flyout-settings" aria-label="Settings" hidden>
-  <div class="flyout-title">Settings</div>
-  <a class="flyout-link {{ page == 'settings-sc' ? 'active' }}" href="/settings/security-center">{{ icons.ic('shield', 18) }}Security Center</a>
-  <a class="flyout-link {{ page == 'settings-tie' ? 'active' }}" href="/settings/identity-exposure">{{ icons.ic('id', 18) }}Identity Exposure</a>
+  <a class="flyout-link {{ page == 'settings-sc' ? 'active' }}" href="/settings/security-center">Security Center</a>
+  <a class="flyout-link {{ page == 'settings-tie' ? 'active' }}" href="/settings/identity-exposure">Identity Exposure</a>
+  <a class="flyout-link {{ page == 'settings-ctem' ? 'active' }}" href="/settings/ctem">CTEM Pipeline</a>
+  <a class="flyout-link {{ page == 'settings-catalog' ? 'active' }}" href="/settings/ctem/plugins">Plugin Catalog</a>
+  <a class="flyout-link {{ page == 'settings-ai' ? 'active' }}" href="/settings/agent">Agent Tenable</a>
 </aside>
 
 <main id="main">
@@ -49,9 +57,16 @@
   {% elseif page == 'explore-assets' %}{% include 'pages/explore_assets.html.twig' %}
   {% elseif page == 'explore-ad' %}{% include 'pages/explore_ad.html.twig' %}
   {% elseif page == 'explore-software' %}{% include 'pages/explore_software.html.twig' %}
-  {% elseif page == 'risk' or page == 'reports' %}{% include 'pages/placeholder.html.twig' %}
+  {% elseif page == 'explore-local-users' %}{% include 'pages/explore_local_users.html.twig' %}
+  {% elseif page == 'explore-extensions' %}{% include 'pages/explore_extensions.html.twig' %}
+  {% elseif page == 'explore-findings' %}{% include 'pages/explore_findings.html.twig' %}
+  {% elseif page == 'risk' %}{% include 'pages/risk.html.twig' %}
+  {% elseif page == 'reports' %}{% include 'pages/placeholder.html.twig' %}
   {% elseif page == 'settings-sc' %}{% include 'pages/settings_sc.html.twig' %}
   {% elseif page == 'settings-tie' %}{% include 'pages/settings_tie.html.twig' %}
+  {% elseif page == 'settings-ctem' %}{% include 'pages/settings_ctem.html.twig' %}
+  {% elseif page == 'settings-catalog' %}{% include 'pages/settings_catalog.html.twig' %}
+  {% elseif page == 'settings-ai' %}{% include 'pages/settings_ai.html.twig' %}
   {% elseif page == 'logs' %}{% include 'pages/logs.html.twig' %}
   {% else %}
     <div class="card"><div class="card-body empty-state"><p>This address does not exist. <a href="/">Go to the dashboard</a>.</p></div></div>
@@ -59,11 +74,12 @@
 </main>
 
 {% include 'modals/modals.html.twig' %}
+{% include 'partials/agent.html.twig' %}
 <div id="toastBox" aria-live="polite" aria-atomic="true"></div>
 
 <script src="{{ asset('/assets/vendor/jquery-3.7.1.min.js') }}"></script>
 <script src="{{ asset('/assets/vendor/bootstrap-5.3.3.bundle.min.js') }}"></script>
-{% if page == 'dashboard' %}<script src="{{ asset('/assets/vendor/chart-4.4.7.umd.min.js') }}"></script>{% endif %}
-<script src="{{ asset('/assets/app.js') }}"></script>
+{% if page == 'dashboard' or page == 'risk' %}<script src="{{ asset('/assets/vendor/chart-4.4.7.umd.min.js') }}"></script>{% endif %}
+<script src="{{ asset('/assets/app.js') }}" data-chart="{{ asset('/assets/vendor/chart-4.4.7.umd.min.js') }}"></script>
 </body>
 </html>

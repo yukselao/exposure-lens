@@ -5,8 +5,8 @@ FROM php:8.3.36-fpm
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends libpq-dev tini unzip; \
-    docker-php-ext-install -j"$(nproc)" pdo_pgsql; \
+    apt-get install -y --no-install-recommends libpq-dev libzip-dev tini unzip; \
+    docker-php-ext-install -j"$(nproc)" pdo_pgsql zip; \
     rm -rf /var/lib/apt/lists/*; \
     usermod -u 1000 www-data; groupmod -g 1000 www-data
 

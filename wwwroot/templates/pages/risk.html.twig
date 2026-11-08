@@ -1,0 +1,31 @@
+{% import 'partials/icons.twig' as icons %}
+<div id="risk">
+  <p class="muted" id="riskUpdated" style="margin-top:-12px">&nbsp;</p>
+  <div class="coverage" id="riskCoverage"></div>
+  <div class="tiles risk-tiles" id="riskTiles">
+    <button type="button" class="tile" data-view="critical_users"><div class="title">Users Reaching Hosts with Critical Vulnerabilities</div><div class="data"><span class="icon i-vuln"></span><span data-v="critical_users">&ndash;</span></div></button>
+    <button type="button" class="tile" data-view="acr_users"><div class="title">Users Reaching High-ACR Hosts</div><div class="data"><span class="icon b-hdd"></span><span data-v="acr_users">&ndash;</span></div><div class="hint" id="acrHint"></div></button>
+    <button type="button" class="tile" data-view="tier0_hosts"><div class="title">Hosts Where Tier 0 Accounts Are Used</div><div class="data"><span class="icon b-pc"></span><span data-v="tier0_hosts">&ndash;</span></div><div class="hint" id="tier0Hint"></div></button>
+    <button type="button" class="tile" data-view="service_accounts"><div class="title">Service Accounts on Hosts with Critical Vulnerabilities</div><div class="data"><span class="icon b-person-gear"></span><span data-v="service_accounts">&ndash;</span></div></button>
+  </div>
+
+  <section class="card mt-3">
+    <div class="toolbar">
+      <h3 class="me-2" id="riskTitle"></h3>
+      <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="riskSearch" placeholder="Search" aria-label="Search"></div>
+      <div class="btn-group btn-group-sm ms-auto" role="group" aria-label="Evidence" id="riskClass">
+        <button type="button" class="btn btn-outline-primary active" data-class="">All access</button>
+        <button type="button" class="btn btn-outline-primary" data-class="usage">Used</button>
+        <button type="button" class="btn btn-outline-primary" data-class="right">Has the right</button>
+      </div>
+      <a class="btn btn-sm btn-outline-primary" id="riskExport" href="#">Export CSV</a>
+    </div>
+    <div class="table-wrap"><table class="table table-hover"><thead id="riskHead"></thead><tbody id="riskBody"></tbody></table></div>
+    <div class="pager" id="riskPager"></div>
+  </section>
+
+  <div class="risk-charts">
+    <section class="card"><div class="card-header">Hosts Exposing the Most Privileged Identities</div><div class="card-body"><div class="chart-box" style="height:280px"><canvas id="chartRiskHosts" aria-label="Hosts by privileged identities"></canvas></div></div></section>
+    <section class="card"><div class="card-header">Access by Type</div><div class="card-body"><div class="chart-box" style="height:280px"><canvas id="chartRiskTypes" aria-label="Access facts by type"></canvas></div></div></section>
+  </div>
+</div>

@@ -1,0 +1,44 @@
+<div class="row g-3" id="ctem">
+  <div class="col-xl-4">
+    <section class="card h-100">
+      <div class="card-header">Settings</div>
+      <div class="card-body">
+        <form id="ctemForm" autocomplete="off" novalidate>
+          <div class="mb-3"><label class="form-label" for="ctem_interval">Collect plugin output every (minutes)</label>
+            <input type="number" class="form-control" id="ctem_interval" name="collect_interval_minutes" min="0" value="{{ ctem.collect_interval_minutes }}" style="max-width:160px">
+            <div class="form-text">0 means manual only. Keep it shorter than the time Security Center keeps scan results, or their attachments are lost.</div></div>
+          <div class="mb-3"><label class="form-label" for="ctem_acr">High ACR starts at</label>
+            <input type="number" class="form-control" id="ctem_acr" name="acr_threshold" min="1" max="10" step="1" value="{{ ctem.acr_threshold }}" style="max-width:160px"></div>
+          <div class="mb-3"><label class="form-label" for="ctem_scans">Scan results to check for attachments</label>
+            <input type="number" class="form-control" id="ctem_scans" name="scan_results_checked" min="0" max="100" value="{{ ctem.scan_results_checked }}" style="max-width:160px"></div>
+          <div class="mb-3"><label class="form-label" for="ctem_size">Largest attachment to store (MB)</label>
+            <input type="number" class="form-control" id="ctem_size" name="max_attachment_mb" min="1" max="500" value="{{ ctem.max_attachment_mb }}" style="max-width:160px"></div>
+          <button type="submit" class="btn btn-primary">Save</button>
+          <div class="status-line mt-3" id="ctemStatus" role="status"></div>
+        </form>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-8">
+    <section class="card h-100">
+      <div class="card-header">Jobs</div>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Job</th><th>What it does</th><th>Status</th><th>Last run</th><th>Duration</th><th></th></tr></thead>
+        <tbody id="ctemJobs"></tbody></table></div>
+    </section>
+  </div>
+  <div class="col-12">
+    <section class="card">
+      <div class="card-header">Plugins in the pipeline <span class="ms-auto"><a class="btn btn-sm btn-outline-primary" href="/settings/ctem/plugins">Plugin catalog</a></span></div>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Plugin</th><th>Scenario</th><th class="text-end">In SC</th><th class="text-end">Collected</th><th class="text-end">Pending</th><th class="text-end">Parsed</th><th class="text-end">Failed</th><th class="text-end">Cut off</th><th class="text-end">Points to file</th><th class="text-end">Files</th><th class="text-end">Records</th></tr></thead>
+        <tbody id="ctemPipeline"></tbody></table></div>
+    </section>
+  </div>
+  <div class="col-12" id="ctemFailedBox" hidden>
+    <section class="card">
+      <div class="card-header">Outputs that failed to parse</div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Output</th><th>Plugin</th><th>Host</th><th>Error</th></tr></thead><tbody id="ctemFailed"></tbody></table></div>
+    </section>
+  </div>
+</div>
