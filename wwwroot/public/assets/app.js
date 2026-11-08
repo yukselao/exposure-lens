@@ -638,10 +638,35 @@
     api('ad_directories').done(function (d) {
       $('#sfDomain').append(d.rows.filter(function (r) { return r.domain_id; }).map(function (r) { return '<option value="' + esc(r.domain_id) + '">' + esc(r.netbios_name) + ' (' + num(r.users) + ')</option>'; }).join(''));
     });
+    // -- the correlation behind every snapshot: show its age, run it now, or run it before a sync
+    function showCorrelation(at) {
+      $('#scCorrAt').text(at ? fmtLong(parseDate(at)) + ' (' + ago(at) + ')' : 'never');
+    }
+    function recalc() {
+      var d = $.Deferred();
+      $('#scRecalc').prop('disabled', true);
+      $('#scCorrStatus').text('Queued…');
+      post('ctem_run', { kind: 'correlate' }).done(function (r) {
+        watchJob(r.id, function (job) {
+          $('#scCorrStatus').text(job.status === 'running' ? 'Correlating identities and rebuilding the risk data…' : 'Waiting for the CTEM worker (it checks every 30 seconds)…');
+        }, function (job) {
+          $('#scRecalc').prop('disabled', false);
+          if (job.status === 'succeeded') {
+            var st = job.stats || {};
+            $('#scCorrStatus').text('Done: ' + num(st.access) + ' access facts, ' + num(st.access_via_groups) + ' through groups.');
+            showCorrelation(job.finished_at); d.resolve(job);
+          } else { $('#scCorrStatus').html('<span class="text-danger">Failed: ' + esc(job.error || job.status) + '</span>'); d.reject(job.error || job.status); }
+        });
+      }).fail(function (xhr) { $('#scRecalc').prop('disabled', false); $('#scCorrStatus').html('<span class="text-danger">' + esc(errText(xhr)) + '</span>'); d.reject(errText(xhr)); });
+      return d.promise();
+    }
+    $('#scRecalc').on('click', function () { recalc().done(function () { toast('Risk data recalculated.'); load(); }); });
+
     function load() {
       $('#scBody').html(loadingRow(8));
       api('asset_sync_candidates', $.extend(filters(), { page: state.page, size: state.size })).done(function (d) {
         var c = d.counts; total = c.total;
+        showCorrelation(d.correlated_at);
         $('#scTotal').text(num(c.total)); $('#scAccess').text(num(c.with_access)); $('#scSynced').text(num(c.synced)); $('#scTime').text('≈ ' + secs(c.estimate_seconds));
         $('#scRunLabel').text(c.total ? 'Sync ' + num(c.total) + ' user' + (c.total === 1 ? '' : 's') : 'No user matches');
         $('#scRun').prop('disabled', !c.total || !!running);
@@ -670,10 +695,17 @@
       function start() {
         running = { cancelled: false, done: 0, ok: 0, failed: 0, t0: Date.now(), after: 0, runId: 0 };
         $('#scRun').prop('disabled', true); $('#scCancel').prop('hidden', false); $('#scProgress').prop('hidden', false);
-        $form.find('input, select, button').prop('disabled', true);
+        $form.find('input, select, button').prop('disabled', true); $('#scRecalc, #scRecalcFirst').prop('disabled', true);
         $('#scBar').css('width', '0%').text(''); $('#scStatus').text('Starting…');
-        post('asset_sync_run_start', $.extend({}, f, { label: filterLabel(f), planned: planned })).done(function (r) { running.runId = r.id; step(); })
-          .fail(function (xhr) { finish('Stopped: ' + errText(xhr)); });
+        function begin() {
+          post('asset_sync_run_start', $.extend({}, f, { label: filterLabel(f) + (recalcFirst ? ' · after recalculation' : ''), planned: planned })).done(function (r) { running.runId = r.id; step(); })
+            .fail(function (xhr) { finish('Stopped: ' + errText(xhr)); });
+        }
+        var recalcFirst = $('#scRecalcFirst').is(':checked');
+        if (recalcFirst) {
+          $('#scStatus').text('Recalculating the correlation first, so the snapshots use the latest access data…');
+          recalc().done(begin).fail(function (e) { finish('Stopped: the correlation failed (' + e + ')'); });
+        } else begin();
       }
       function step() {
         if (running.cancelled) return finish('Cancelled');
@@ -690,7 +722,7 @@
       function finish(word) {
         var r = running; running = null;
         if (r.runId) post('asset_sync_run_finish', { run_id: r.runId, status: word === 'Done' ? 'done' : word === 'Cancelled' ? 'cancelled' : 'stopped' });
-        $('#scCancel').prop('hidden', true); $form.find('input, select, button').prop('disabled', false);
+        $('#scCancel').prop('hidden', true); $form.find('input, select, button').prop('disabled', false); $('#scRecalc, #scRecalcFirst').prop('disabled', false);
         $('#scStatus').text(word + ' · ' + num(r.ok) + ' synced' + (r.failed ? ', ' + num(r.failed) + ' failed (see the browser console)' : '') + ' in ' + secs(Math.round((Date.now() - r.t0) / 1000)) + '.');
         if (word === 'Done') $('#scBar').css('width', '100%').text('100%');
         toast(word + ': ' + num(r.ok) + ' asset' + (r.ok === 1 ? '' : 's') + ' synced.');
@@ -1611,30 +1643,14 @@
       if (e.type === 'keydown' && e.key !== 'Enter') return;
       openEvidence(this.dataset.name, this.dataset.key, this.dataset.shape);
     });
-    $('#riskRecalc').on('click', function () {
-      var $b = $(this).prop('disabled', true);
-      $('#riskRecalcStatus').text('Queued…');
-      post('ctem_run', { kind: 'correlate' }).done(function (r) {
-        watchJob(r.id, function (job) {
-          $('#riskRecalcStatus').text(job.status === 'running' ? 'Correlating identities and rebuilding the risk data…' : 'Waiting for the CTEM worker (it checks every 30 seconds)…');
-        }, function (job) {
-          $b.prop('disabled', false);
-          if (job.status === 'succeeded') {
-            var st = job.stats || {};
-            toast('Risk data recalculated.');
-            $('#riskRecalcStatus').text('Done: ' + num(st.access) + ' access facts, ' + num(st.access_via_groups) + ' through groups. Reloading…');
-            setTimeout(function () { window.location.reload(); }, 900);
-          } else $('#riskRecalcStatus').html('<span class="text-danger">Failed: ' + esc(job.error || job.status) + '</span>');
-        });
-      }).fail(function (xhr) { $b.prop('disabled', false); $('#riskRecalcStatus').html('<span class="text-danger">' + esc(errText(xhr)) + '</span>'); });
-    });
     if (query().get('evidence')) openEvidence(query().get('name') || query().get('evidence'), query().get('evidence'), query().get('shape') === 'host' ? 'host' : 'identity');   // deep link from Agent Tenable
     api('risk_summary').done(function (d) {
       var c = d.counts || {}, v = d.coverage || {}, m = d.matched || {};
       Object.keys(c).forEach(function (k) { $('#risk [data-v="' + k + '"]').text(num(c[k])); });
       $('#acrHint').text('ACR ' + d.acr_threshold + ' or higher');
       $('#tier0Hint').text(num(c.tier0_hosts_outside) + ' outside Tier 0');
-      $('#riskUpdated').text(d.correlated_at ? 'Last correlation: ' + fmtLong(parseDate(d.correlated_at)) : 'Correlation has not run yet.');
+      $('#riskUpdated').html((d.correlated_at ? 'Last correlation: ' + esc(fmtLong(parseDate(d.correlated_at))) : 'Correlation has not run yet.') +
+        ' · recalculated automatically after every Security Center or Identity Exposure sync and at least hourly; run it now from <a href="/explore/assets/sync">Asset Sync</a>.');
       $('#riskCoverage').html('<span><b>' + num(v.credentialed) + '</b> of ' + num(v.hosts) + ' hosts scanned with credentials</span>' +
         '<span><b>' + num(v.critical_no_credentials) + '</b> of ' + num(v.critical) + ' critical hosts have no credentialed data</span>' +
         '<span><b>' + num(v.high_acr_no_credentials) + '</b> of ' + num(v.high_acr) + ' high-ACR hosts have no credentialed data</span>' +
