@@ -74,7 +74,11 @@
 {# Detail panel for an AD object or a device #}
 <div class="offcanvas offcanvas-end" tabindex="-1" id="detailPanel" aria-labelledby="detailTitle">
   <div class="offcanvas-header border-bottom"><h2 class="offcanvas-title fs-6" id="detailTitle"></h2>
-    <button type="button" class="btn btn-sm btn-outline-primary ms-auto me-3 ai-analyze" id="detailAnalyze" hidden title="Open Agent Tenable with this record attached"><span class="icon icon-16 i-sparkle"></span> AI Analyze</button>
+    <div class="ms-auto me-3 d-flex gap-2 align-items-center">
+      <a class="btn btn-sm btn-link px-1" id="detailAssetOpen" href="#" target="_blank" rel="noopener" hidden title="Open the last synced Asset Details page">Asset details ↗</a>
+      <button type="button" class="btn btn-sm btn-primary" id="detailAssetSync" hidden title="Analyse this asset, store the result in the asset table and open its Asset Details page"><span class="icon icon-16 i-scan"></span> Sync asset details</button>
+      <button type="button" class="btn btn-sm btn-outline-primary ai-analyze" id="detailAnalyze" hidden title="Open Agent Tenable with this record attached"><span class="icon icon-16 i-sparkle"></span> AI Analyze</button>
+    </div>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button></div>
   <div class="offcanvas-body" id="detailBody"></div>
 </div>

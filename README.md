@@ -98,6 +98,8 @@ docker compose up migrate
 | `host_risk`, `v_risk_access` | Findings, ACR and tier per host, and the access facts joined to them for the Risk screen. |
 | `host_ad_match`, `local_accounts`, `software_summary`, `dashboard_summary` | Read models (materialized views). `ctem_correlate` refreshes them after every sync, so screens read precomputed rows. |
 | `ai_packs` | Knowledge packs uploaded for Agent Tenable; the files are under `data/ai-packs/<id>/`. |
+| `ai_conversations` | Saved Agent Tenable conversations (History tab). |
+| `asset_profiles` | The central asset table: analysed identity and host snapshots behind Explore > Assets. |
 
 ## Agent Tenable
 
@@ -107,9 +109,19 @@ The robot icon at the top right opens a chat assistant backed by a local LLM (Ol
 - **Skills.** A dropdown picks the point of view: Exposure Analyst (default), Vulnerability Analyst, AD Administrator, Offensive Security. The skill text is appended to the system prompt.
 - **Prompts.** Ready-made questions with `{placeholders}`; clicking one fills the input.
 - **AI Analyze.** The detail panel of an AD object, host, risk row, local account, software or extension has an *AI Analyze* button: the visible record is attached to the next question.
-- **Evidence links.** Every value in a tool result points at the screen that shows it: hosts and AD objects open their detail panel (`/explore/assets?host=ID`, `/explore/ad-objects?type=…&open=ID`), grouped vulnerability rows open **Explore > Findings** with the same filters (`plugin`, `cve`, `port`, `cidr`, `account`, `target`, `severity`), identities seen only in telemetry open their access evidence on the Risk screen, software and local accounts open their inventories. Names the model repeats in its text are linked the same way. Links open in a new tab.
+- **Evidence links.** Every value in a tool result points at the screen that shows it: hosts and AD objects open their detail panel (`/explore/hosts?host=ID`, `/explore/ad-objects?type=…&open=ID`), grouped vulnerability rows open **Explore > Findings** with the same filters (`plugin`, `cve`, `port`, `cidr`, `account`, `target`, `severity`), identities seen only in telemetry open their access evidence on the Risk screen, software and local accounts open their inventories. Names the model repeats in its text are linked the same way. Links open in a new tab.
 - **Knowledge.** Everything the assistant is built from lives in `ai/` as Markdown with front matter: `agents/` (persona), `skills/`, `tools/` (name, description and the JSON-schema parameters the model sees; PHP implements them by name in `wwwroot/src/ai/Tools.php`), `prompts/`. Settings shows the files read-only and downloads them as a zip. **Knowledge packs** are zips with the same folder layout, uploaded in Settings and stored under `data/ai-packs/<id>/`; only *active* packs are loaded, and a pack file with the same name as a built-in replaces it. Pack tool files only add documentation; database tools stay the built-in ones.
+- **History.** Every answer saves the conversation on the server (`ai_conversations`). The *History* tab lists, searches, reopens (the reopened conversation becomes the active one and the next question continues it) and deletes conversations, one at a time or all at once.
+- **Asset Details.** When the assistant investigates one account or host (`identity_profile`, `identity_access`, `identity_vulnerabilities`, `host_identities`, or `host_vulnerabilities` on a single host), the server syncs that asset into the asset table, the chat shows an *Asset details* card, and the page opens in a new tab (if the browser allows pop-ups).
 - **Settings** hold the context window, temperature, longest answer, timeout, tool rounds and the thinking switch. For a 31B model keep the context at 32K–64K and thinking off unless the question is hard.
+
+## Explore: Assets, Hosts and AD Objects
+
+- **Hosts** (`/explore/hosts`) shows Security Center hosts as SC reports them (devices and IoT); **AD Objects** shows what Identity Exposure reports.
+- **Assets** (`/explore/assets`) is the central asset table, `asset_profiles`: one analysed snapshot per identity or host, filterable by type (users, service accounts, hosts). Rows are created **on demand only**: the *Sync asset details* button in the detail panel of an AD user, service account, computer or host (AD Objects, Hosts, Findings, Risk evidence), or Agent Tenable during an investigation. Nothing is synced in bulk.
+- **Asset Details** (`/explore/assets/view?id=…`) opens in its own tab with *Overview* (user or host information, account security, path to Tier 0), *Connected Systems* / *Identities*, *Vulnerabilities* (filter by severity and exploit, group by plugin, host or CVE), *Risk* (score, the four risk questions, risk factors, breakdowns by severity, tier, access type, plugin family, network, top plugins and CVEs), *Correlation Evidence* (every access fact with the Nessus plugin, the matching lines of its output and the full output on demand), and *Groups* or *Local Accounts & Services*. *Re-sync* recomputes it, *Ask Agent Tenable* attaches it to the chat.
+- A sync is plain SQL over the current tables: the same data always gives the same snapshot, whoever triggers it. The risk score adds the weight of each factor (Critical 25, High 12, Medium 5), capped at 100.
+- Department, title and manager are not collected by Identity Exposure (its API returns only security-relevant attributes); the organizational unit from the DN is shown instead.
 
 ## Tests
 
@@ -119,6 +131,8 @@ docker compose run --rm --no-deps tie_postgres python -m pytest -q -p no:cachepr
 docker compose run --rm --no-deps ctem python -m pytest -q -p no:cacheprovider /app/tests
 # Agent Tenable: every tool against the live database, with timings (no model needed)
 docker compose exec php php /var/www/html/tests/ai_tools_test.php
+# Asset table and saved conversations, in a rolled-back transaction
+docker compose exec php php /var/www/html/tests/assets_test.php
 ```
 
 ## Not built yet

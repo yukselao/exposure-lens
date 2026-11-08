@@ -60,6 +60,18 @@ final class Api
         'ai_pack_set' => ['POST', 'aiPackSet'],
         'ai_pack_delete' => ['POST', 'aiPackDelete'],
         'ai_tool_run' => ['POST', 'aiToolRun'],
+        'ai_conversations' => ['GET', 'aiConversations'],
+        'ai_conversation' => ['GET', 'aiConversation'],
+        'ai_conversation_save' => ['POST', 'aiConversationSave'],
+        'ai_conversation_delete' => ['POST', 'aiConversationDelete'],
+        'ai_conversations_clear' => ['POST', 'aiConversationsClear'],
+        // Central asset table (asset_profiles), filled on demand only
+        'asset_sync' => ['POST', 'assetSync'],
+        'asset_profile' => ['GET', 'assetProfile'],
+        'asset_profiles' => ['GET', 'assetProfiles'],
+        'asset_lookup' => ['GET', 'assetLookup'],
+        'asset_delete' => ['POST', 'assetDelete'],
+        'plugin_output' => ['GET', 'pluginOutput'],
     ];
 
     private const SEVERITY = [4 => 'Critical', 3 => 'High', 2 => 'Medium', 1 => 'Low', 0 => 'Info'];
@@ -1299,5 +1311,150 @@ final class Api
         $t0 = microtime(true);
         $result = Tools::run($name, $args);
         return ['ok' => true, 'ms' => (int) round((microtime(true) - $t0) * 1000), 'result' => $result];
+    }
+
+    // ---- Agent Tenable: saved conversations ------------------------------------------------------
+    private const CONVERSATION_MAX_BYTES = 6_000_000;
+
+    public static function aiConversations(array $in): array
+    {
+        $q = self::str($in, 'q', 200);
+        $rows = Db::all(
+            "SELECT id, title, skill, message_count, created_at, updated_at FROM ai_conversations
+             WHERE (? = '' OR title ILIKE ?) ORDER BY updated_at DESC, id DESC LIMIT 200",
+            [$q, self::like($q)]
+        );
+        return ['rows' => $rows];
+    }
+
+    public static function aiConversation(array $in): array
+    {
+        $row = Db::one('SELECT id, title, skill, messages, message_count, created_at, updated_at FROM ai_conversations WHERE id = ?', [self::int($in, 'id')]);
+        if (!$row) {
+            throw new ApiError('This conversation was deleted.', 404);
+        }
+        $row['messages'] = json_decode((string) $row['messages'], true) ?: [];
+        return $row;
+    }
+
+    /** Creates (no id) or replaces a conversation; the panel calls it after every answer. */
+    public static function aiConversationSave(array $in): array
+    {
+        $raw = (string) ($in['messages'] ?? '');
+        if (strlen($raw) > self::CONVERSATION_MAX_BYTES) {
+            throw new ApiError('This conversation is too large to save. Start a new one.', 413);
+        }
+        $messages = json_decode($raw, true);
+        if (!is_array($messages) || !array_is_list($messages)) {
+            throw new ApiError('The messages are not a JSON list.');
+        }
+        $messages = array_values(array_filter($messages, fn ($m) => is_array($m) && in_array($m['role'] ?? '', ['user', 'assistant', 'system', 'error'], true)));
+        if (!$messages) {
+            throw new ApiError('There is nothing to save yet.');
+        }
+        $title = self::str($in, 'title', 200);
+        if ($title === '') {
+            foreach ($messages as $m) {
+                if (($m['role'] ?? '') === 'user') {
+                    $title = mb_substr(preg_replace('/\s+/', ' ', trim((string) $m['content'])), 0, 120);
+                    break;
+                }
+            }
+        }
+        $title = $title !== '' ? $title : 'Conversation';
+        $skill = self::str($in, 'skill', 64);
+        $json = json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR);
+        $count = count(array_filter($messages, fn ($m) => in_array($m['role'], ['user', 'assistant'], true)));
+        $id = self::int($in, 'id');
+        if ($id > 0 && Db::run('UPDATE ai_conversations SET title = ?, skill = ?, messages = CAST(? AS jsonb), message_count = ?, updated_at = now() WHERE id = ?',
+                [$title, $skill, $json, $count, $id]) > 0) {
+            return ['id' => $id, 'title' => $title];
+        }
+        $id = (int) Db::value('INSERT INTO ai_conversations (title, skill, messages, message_count) VALUES (?, ?, CAST(? AS jsonb), ?) RETURNING id',
+            [$title, $skill, $json, $count]);
+        return ['id' => $id, 'title' => $title];
+    }
+
+    public static function aiConversationDelete(array $in): array
+    {
+        return ['ok' => true, 'deleted' => Db::run('DELETE FROM ai_conversations WHERE id = ?', [self::int($in, 'id')])];
+    }
+
+    public static function aiConversationsClear(array $in): array
+    {
+        return ['ok' => true, 'deleted' => Db::run('DELETE FROM ai_conversations', [])];
+    }
+
+    // ---- Asset details ------------------------------------------------------------------------------
+    public static function assetSync(array $in): array
+    {
+        $kind = self::str($in, 'kind', 16);
+        if (!in_array($kind, Assets::KINDS, true)) {
+            throw new ApiError('Kind must be identity or host.');
+        }
+        $ref = array_filter([
+            'ad_user_id' => self::int($in, 'ad_user_id') ?: null,
+            'identity_key' => self::str($in, 'identity_key', 600) ?: null,
+            'account' => self::str($in, 'account', 300) ?: null,
+            'host_asset_id' => self::int($in, 'host_asset_id') ?: null,
+            'target' => self::str($in, 'target', 300) ?: null,
+        ]);
+        if ($kind === 'host' && empty($ref['host_asset_id']) && self::int($in, 'ad_computer_id') > 0) {
+            // An AD computer opens the Security Center host it is correlated with.
+            $ref['host_asset_id'] = (int) Db::value('SELECT host_asset_id FROM v_asset_correlation WHERE ad_computer_id = ? LIMIT 1', [self::int($in, 'ad_computer_id')]);
+            if (!$ref['host_asset_id']) {
+                throw new ApiError('This computer is not matched to a Security Center host, so it has no findings to analyse.', 404);
+            }
+        }
+        if (!$ref) {
+            throw new ApiError('Name the asset to sync.');
+        }
+        return Assets::sync($kind, $ref, 'manual');
+    }
+
+    public static function assetProfile(array $in): array
+    {
+        return Assets::get(self::int($in, 'id'));
+    }
+
+    public static function assetProfiles(array $in): array
+    {
+        $size = self::int($in, 'size', 50, 1, 200);
+        $page = self::int($in, 'page', 1, 1);
+        return Assets::list(self::str($in, 'type', 16), self::str($in, 'q', 200), $size, ($page - 1) * $size, self::str($in, 'sort', 16));
+    }
+
+    /** Whether a panel's object already has a snapshot (for the "Synced 5 min ago" hint). */
+    public static function assetLookup(array $in): array
+    {
+        $kind = self::str($in, 'kind', 16);
+        if ($kind === 'host') {
+            $key = (string) (self::int($in, 'host_asset_id') ?: (int) Db::value('SELECT host_asset_id FROM v_asset_correlation WHERE ad_computer_id = ? LIMIT 1', [self::int($in, 'ad_computer_id')]));
+        } else {
+            $key = (string) (Db::value('SELECT object_key FROM ad_users WHERE id = ?', [self::int($in, 'ad_user_id')]) ?: self::str($in, 'identity_key', 600));
+        }
+        return ['profile' => $key !== '' && $key !== '0' ? Assets::find($kind, $key) : null];
+    }
+
+    /** One raw Nessus plugin output (the evidence behind an access fact), capped for the browser. */
+    public static function pluginOutput(array $in): array
+    {
+        $row = Db::one(
+            "SELECT o.id, o.host_asset_id, h.host_name, h.ip, o.plugin_id, COALESCE(c.name, '') AS plugin_name, o.port, o.protocol,
+                    o.first_seen, o.last_seen, o.truncated, length(o.output) AS length, left(o.output, 300000) AS output
+             FROM plugin_outputs o LEFT JOIN host_risk h ON h.host_asset_id = o.host_asset_id LEFT JOIN plugin_catalog c ON c.plugin_id = o.plugin_id
+             WHERE o.id = ?",
+            [self::int($in, 'id')]
+        );
+        if (!$row) {
+            throw new ApiError('This plugin output is no longer stored; run plugin_collect again.', 404);
+        }
+        $row['clipped'] = (int) $row['length'] > 300000;
+        return $row;
+    }
+
+    public static function assetDelete(array $in): array
+    {
+        return ['ok' => true, 'deleted' => Assets::delete(self::int($in, 'id'))];
     }
 }

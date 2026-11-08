@@ -1,0 +1,41 @@
+{# Asset Details: one stored snapshot from asset_profiles, rendered by initAssetView in app.js. #}
+<div id="assetView" class="asset-view">
+  <div class="asset-syncing card" id="avSyncing" hidden>
+    <div class="card-body">
+      <div class="spinner-border spinner-border-sm text-primary me-2" aria-hidden="true"></div>
+      <b>Analysing the asset…</b>
+      <ol class="asset-steps muted mb-0 mt-2">
+        <li>Resolving the identity or host</li>
+        <li>Collecting access facts and correlation evidence</li>
+        <li>Collecting vulnerabilities on the connected systems</li>
+        <li>Computing the risk breakdown and storing the snapshot</li>
+      </ol>
+    </div>
+  </div>
+  <div class="alert alert-danger" id="avError" hidden></div>
+
+  <div id="avContent" hidden>
+    <header class="asset-head card">
+      <div class="asset-icon" id="avIcon"><span class="icon b-person"></span></div>
+      <div class="asset-title">
+        <h1 id="avName"></h1>
+        <div class="muted" id="avSubtitle"></div>
+        <div class="asset-badges" id="avBadges"></div>
+      </div>
+      <div class="asset-score" id="avScore"></div>
+      <div class="asset-actions">
+        <button type="button" class="btn btn-sm btn-primary" id="avResync"><span class="icon icon-16 i-scan"></span> Re-sync</button>
+        <button type="button" class="btn btn-sm btn-outline-primary ai-analyze" id="avAsk"><span class="icon icon-16 i-sparkle"></span> Ask Agent Tenable</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="avDelete">Delete</button>
+        <div class="muted small-text w-100 text-end" id="avSynced"></div>
+      </div>
+    </header>
+
+    <div class="asset-kpis" id="avKpis"></div>
+
+    <div class="card asset-pane-card">
+      <ul class="nav asset-tabs" id="avTabs" role="tablist"></ul>
+      <div class="card-body" id="avPane"></div>
+    </div>
+  </div>
+</div>

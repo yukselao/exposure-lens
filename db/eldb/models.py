@@ -45,6 +45,49 @@ class AiPack(Base):
     uploaded_at = _now()
 
 
+class AiConversation(Base):
+    """A saved Agent Tenable conversation. `messages` is the panel's own message
+    list (user and assistant turns with their tool cards and charts), so a
+    conversation reopens exactly as it was left."""
+    __tablename__ = "ai_conversations"
+    id = Column(BigInteger, Identity(), primary_key=True)
+    title = Column(String(200), nullable=False)
+    skill = Column(String(64))
+    messages = _jsonb("[]")
+    message_count = Column(Integer, nullable=False, server_default=text("0"))
+    created_at = _now()
+    updated_at = _now()
+    __table_args__ = (Index("ix_ai_conversations_updated_at", "updated_at"),)
+
+
+class AssetProfile(Base):
+    """The central asset table: one analysed snapshot per identity or host,
+    built on demand (the Sync button in a detail panel, or Agent Tenable while it
+    investigates) and never fed in bulk. `asset_key` is the AD object key or the
+    telemetry identity key for an identity, the host_assets id for a host."""
+    __tablename__ = "asset_profiles"
+    id = Column(BigInteger, Identity(), primary_key=True)
+    asset_kind = Column(String(16), nullable=False)
+    asset_key = Column(String(600), nullable=False)
+    name = Column(Text, nullable=False)
+    subtitle = Column(Text)
+    ad_object_key = Column(String(255))
+    host_asset_id = Column(BigInteger)
+    tier = Column(SmallInteger)
+    risk_score = Column(Float)
+    profile = _jsonb()
+    systems = _jsonb("[]")
+    vulnerabilities = _jsonb("[]")
+    risk = _jsonb()
+    summary = _jsonb()
+    source = Column(String(16), nullable=False, server_default=text("'manual'"))
+    sync_ms = Column(Integer)
+    synced_at = _now()
+    created_at = _now()
+    __table_args__ = (UniqueConstraint("asset_kind", "asset_key"),
+                      Index("ix_asset_profiles_synced_at", "synced_at"))
+
+
 class SyncJob(Base):
     """Work queue between the web UI and the connectors. The UI (or the
     connector's own scheduler) inserts a `queued` row; the connector claims it."""

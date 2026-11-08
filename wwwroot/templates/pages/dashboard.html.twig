@@ -5,7 +5,7 @@
 
   <aside class="dash-side" id="dashSide" aria-label="Summary">
     <section class="side-section">
-      <div class="side-head"><button type="button" class="acc-toggle" data-bs-toggle="collapse" data-bs-target="#sideKnow" aria-expanded="true"><h2>Did You Know</h2><span class="icon icon-16 i-chevron"></span></button></div>
+      <div class="side-head" data-info="did_you_know"><button type="button" class="acc-toggle" data-bs-toggle="collapse" data-bs-target="#sideKnow" aria-expanded="true"><h2>Did You Know</h2><span class="icon icon-16 i-chevron"></span></button></div>
       <div class="collapse show" id="sideKnow">
         <div class="snapple">
           <span class="icon icon-40 icon-accent i-lightbulb"></span>
@@ -17,14 +17,14 @@
     </section>
 
     <section class="side-section">
-      <div class="side-head"><button type="button" class="acc-toggle" data-bs-toggle="collapse" data-bs-target="#sideConnectors" aria-expanded="true"><h2>Connectors</h2><span class="icon icon-16 i-chevron"></span></button>
+      <div class="side-head" data-info="connectors"><button type="button" class="acc-toggle" data-bs-toggle="collapse" data-bs-target="#sideConnectors" aria-expanded="true"><h2>Connectors</h2><span class="icon icon-16 i-chevron"></span></button>
         <span class="tools"><a class="header-btn" href="/logs" title="Connector logs" aria-label="Connector logs"><span class="icon i-info"></span></a></span></div>
       <div class="collapse show" id="sideConnectors"></div>
     </section>
 
     <section class="side-section">
-      <div class="side-head"><button type="button" class="acc-toggle" data-bs-toggle="collapse" data-bs-target="#sidePools" aria-expanded="true"><h2>Pools</h2><span class="icon icon-16 i-chevron"></span></button>
-        <span class="tools"><a class="header-btn" href="/explore/assets" title="Asset inventory" aria-label="Asset inventory"><span class="icon i-scan"></span></a>
+      <div class="side-head" data-info="pools"><button type="button" class="acc-toggle" data-bs-toggle="collapse" data-bs-target="#sidePools" aria-expanded="true"><h2>Pools</h2><span class="icon icon-16 i-chevron"></span></button>
+        <span class="tools"><a class="header-btn" href="/explore/hosts" title="Hosts" aria-label="Hosts"><span class="icon i-scan"></span></a>
           <a class="header-btn" href="/settings/security-center" title="Add a pool or query" aria-label="Add a pool or query"><span class="icon i-circle-add"></span></a></span></div>
       <div class="collapse show" id="sidePools"></div>
     </section>
@@ -49,7 +49,7 @@
       <div class="collapse show" id="secScore">
         <p class="section-note">Arc size shows the share of each severity in all cumulative Security Center findings.</p>
         <div class="score">
-          <div class="donut-wrap">
+          <div class="donut-wrap info-host" data-info="severity">
             <div class="donut-box">
               <canvas id="chartSeverity" width="348" height="348" aria-label="Findings by severity"></canvas>
               <div class="donut-core" id="donutCore"><span class="grade" id="donutGrade">&nbsp;</span><span class="value" id="donutValue"></span><span class="label">Open Findings</span></div>
@@ -57,9 +57,9 @@
             <div class="legend-box" id="sevLegend"><h4>Severity</h4></div>
           </div>
           <div class="score-right">
-            <h3>Vulnerabilities by Asset Tag</h3>
+            <h3 class="info-host" data-info="by_query">Vulnerabilities by Asset Tag</h3>
             <div class="chart-box"><canvas id="chartByQuery" aria-label="Findings per pool and query by severity"></canvas></div>
-            <h3>Top Contributing Factors</h3>
+            <h3 class="info-host" data-info="factors">Top Contributing Factors</h3>
             <div class="factors" id="dashFactors"></div>
           </div>
         </div>
@@ -71,43 +71,43 @@
       <div class="collapse show" id="secManage">
         <div class="group-head"><h3>Correlated Risk</h3><a href="/risk">Show the risk analysis</a></div>
         <div class="tiles">
-          <a class="tile" href="/risk?view=critical_users"><div class="title">Users Reaching Critical Hosts</div><div class="data"><span class="icon i-vuln"></span><span data-v="risk_critical_users">&ndash;</span></div></a>
-          <a class="tile" href="/risk?view=acr_users"><div class="title">Users Reaching High-ACR Hosts</div><div class="data"><span class="icon b-hdd"></span><span data-v="risk_acr_users">&ndash;</span></div></a>
-          <a class="tile" href="/risk?view=tier0_hosts"><div class="title">Hosts Using Tier 0 Accounts</div><div class="data"><span class="icon b-pc"></span><span data-v="risk_tier0_hosts">&ndash;</span></div></a>
-          <a class="tile" href="/risk?view=service_accounts"><div class="title">Service Accounts on Critical Hosts</div><div class="data"><span class="icon b-person-gear"></span><span data-v="risk_service_accounts">&ndash;</span></div></a>
+          <a class="tile" data-info="risk_critical_users" href="/risk?view=critical_users"><div class="title">Users Reaching Critical Hosts</div><div class="data"><span class="icon i-vuln"></span><span data-v="risk_critical_users">&ndash;</span></div></a>
+          <a class="tile" data-info="risk_acr_users" href="/risk?view=acr_users"><div class="title">Users Reaching High-ACR Hosts</div><div class="data"><span class="icon b-hdd"></span><span data-v="risk_acr_users">&ndash;</span></div></a>
+          <a class="tile" data-info="risk_tier0_hosts" href="/risk?view=tier0_hosts"><div class="title">Hosts Using Tier 0 Accounts</div><div class="data"><span class="icon b-pc"></span><span data-v="risk_tier0_hosts">&ndash;</span></div></a>
+          <a class="tile" data-info="risk_service_accounts" href="/risk?view=service_accounts"><div class="title">Service Accounts on Critical Hosts</div><div class="data"><span class="icon b-person-gear"></span><span data-v="risk_service_accounts">&ndash;</span></div></a>
         </div>
 
         <div class="group-head"><h3>Identities</h3><a href="/explore/ad-objects">Show all AD objects</a></div>
         <div class="tiles" id="tilesIdentities">
-          <a class="tile" href="/explore/ad-objects?type=users"><div class="title">Users</div><div class="data"><span class="icon b-person"></span><span data-v="users">&ndash;</span></div></a>
-          <a class="tile" href="/explore/ad-objects?type=groups"><div class="title">Groups</div><div class="data"><span class="icon b-people"></span><span data-v="groups">&ndash;</span></div></a>
-          <a class="tile" href="/explore/ad-objects?type=service_accounts"><div class="title">Service Accounts</div><div class="data"><span class="icon b-person-gear"></span><span data-v="service_accounts">&ndash;</span></div></a>
-          <a class="tile" href="/explore/ad-objects?type=group_policies"><div class="title">Group Policies</div><div class="data"><span class="icon b-file"></span><span data-v="group_policies">&ndash;</span></div></a>
+          <a class="tile" data-info="users" href="/explore/ad-objects?type=users"><div class="title">Users</div><div class="data"><span class="icon b-person"></span><span data-v="users">&ndash;</span></div></a>
+          <a class="tile" data-info="groups" href="/explore/ad-objects?type=groups"><div class="title">Groups</div><div class="data"><span class="icon b-people"></span><span data-v="groups">&ndash;</span></div></a>
+          <a class="tile" data-info="service_accounts" href="/explore/ad-objects?type=service_accounts"><div class="title">Service Accounts</div><div class="data"><span class="icon b-person-gear"></span><span data-v="service_accounts">&ndash;</span></div></a>
+          <a class="tile" data-info="group_policies" href="/explore/ad-objects?type=group_policies"><div class="title">Group Policies</div><div class="data"><span class="icon b-file"></span><span data-v="group_policies">&ndash;</span></div></a>
         </div>
 
         <div class="group-head"><h3>Privilege Tiers</h3><a href="/explore/ad-objects?type=users&amp;tier=0">Review and assign tiers</a></div>
         <div class="tiles" id="tilesTiers">
-          <a class="tile" href="/explore/ad-objects?type=users&amp;tier=0"><div class="title">Tier 0 Objects</div><div class="data"><span class="icon i-vuln"></span><span data-v="tier0">&ndash;</span></div></a>
-          <a class="tile" href="/explore/ad-objects?type=users&amp;tier=1"><div class="title">Tier 1 Objects</div><div class="data"><span class="icon i-vuln"></span><span data-v="tier1">&ndash;</span></div></a>
-          <a class="tile" href="/explore/ad-objects?type=users&amp;tier=2"><div class="title">Tier 2 Objects</div><div class="data"><span class="icon i-vuln"></span><span data-v="tier2">&ndash;</span></div></a>
-          <a class="tile" href="/explore/ad-objects?type=users&amp;enabled=0"><div class="title">Disabled Users</div><div class="data"><span class="icon b-person-x"></span><span data-v="users_disabled">&ndash;</span></div></a>
+          <a class="tile" data-info="tier0" href="/explore/ad-objects?type=users&amp;tier=0"><div class="title">Tier 0 Objects</div><div class="data"><span class="icon i-vuln"></span><span data-v="tier0">&ndash;</span></div></a>
+          <a class="tile" data-info="tier1" href="/explore/ad-objects?type=users&amp;tier=1"><div class="title">Tier 1 Objects</div><div class="data"><span class="icon i-vuln"></span><span data-v="tier1">&ndash;</span></div></a>
+          <a class="tile" data-info="tier2" href="/explore/ad-objects?type=users&amp;tier=2"><div class="title">Tier 2 Objects</div><div class="data"><span class="icon i-vuln"></span><span data-v="tier2">&ndash;</span></div></a>
+          <a class="tile" data-info="users_disabled" href="/explore/ad-objects?type=users&amp;enabled=0"><div class="title">Disabled Users</div><div class="data"><span class="icon b-person-x"></span><span data-v="users_disabled">&ndash;</span></div></a>
         </div>
 
-        <div class="group-head"><h3>Asset Summary</h3><a href="/explore/assets">Show the asset inventory</a></div>
+        <div class="group-head"><h3>Asset Summary</h3><a href="/explore/hosts">Show the hosts</a></div>
         <div class="tiles" id="tilesAssets">
-          <a class="tile" href="/explore/ad-objects?type=computers"><div class="title">Computers Joined to the Domain</div><div class="data"><span class="icon b-pc"></span><span data-v="ad_computers">&ndash;</span></div></a>
-          <a class="tile" href="/explore/assets?type=devices"><div class="title">Computers Not Joined</div><div class="data"><span class="icon b-pc-off"></span><span data-v="not_joined">&ndash;</span></div></a>
-          <a class="tile" href="/explore/assets?type=iot"><div class="title">IOT Devices</div><div class="data"><span class="icon b-router"></span><span data-v="iot">&ndash;</span></div></a>
-          <a class="tile" href="/explore/assets?type=devices"><div class="title">Security Center Hosts</div><div class="data"><span class="icon b-hdd"></span><span data-v="sc_hosts">&ndash;</span></div></a>
+          <a class="tile" data-info="ad_computers" href="/explore/ad-objects?type=computers"><div class="title">Computers Joined to the Domain</div><div class="data"><span class="icon b-pc"></span><span data-v="ad_computers">&ndash;</span></div></a>
+          <a class="tile" data-info="not_joined" href="/explore/hosts?type=devices"><div class="title">Computers Not Joined</div><div class="data"><span class="icon b-pc-off"></span><span data-v="not_joined">&ndash;</span></div></a>
+          <a class="tile" data-info="iot" href="/explore/hosts?type=iot"><div class="title">IOT Devices</div><div class="data"><span class="icon b-router"></span><span data-v="iot">&ndash;</span></div></a>
+          <a class="tile" data-info="sc_hosts" href="/explore/hosts"><div class="title">Security Center Hosts</div><div class="data"><span class="icon b-hdd"></span><span data-v="sc_hosts">&ndash;</span></div></a>
         </div>
 
         <div class="group-head"><h3>Local User Discovery</h3></div>
         <div class="tiles" id="tilesLocal">
-          <a class="tile" href="/explore/local-users?privileged=1"><div class="title">Privileged Local Users</div><div class="data"><span class="icon b-person-lock"></span><span data-v="local_privileged">&ndash;</span></div></a>
-          <a class="tile" href="/explore/local-users?privileged=0"><div class="title">Normal Local Users</div><div class="data"><span class="icon b-person-check"></span><span data-v="local_normal">&ndash;</span></div></a>
+          <a class="tile" data-info="local_privileged" href="/explore/local-users?privileged=1"><div class="title">Privileged Local Users</div><div class="data"><span class="icon b-person-lock"></span><span data-v="local_privileged">&ndash;</span></div></a>
+          <a class="tile" data-info="local_normal" href="/explore/local-users?privileged=0"><div class="title">Normal Local Users</div><div class="data"><span class="icon b-person-check"></span><span data-v="local_normal">&ndash;</span></div></a>
         </div>
 
-        <div class="group-head"><h3>Top Vulnerabilities, VPR 9 to 10</h3><a href="/explore/assets">Show affected hosts</a></div>
+        <div class="group-head"><h3 class="info-host" data-info="top_vpr">Top Vulnerabilities, VPR 9 to 10</h3><a href="/explore/findings?severity_min=3">Show the findings</a></div>
         <div id="dashTopVpr"></div>
       </div>
     </div>
