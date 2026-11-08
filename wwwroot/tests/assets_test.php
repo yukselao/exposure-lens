@@ -40,6 +40,11 @@ try {
         ok(!empty($p['profile']['display_name']) || !empty($p['profile']['account']), 'identity card has a name');
         ok(count($p['systems']) > 0 && isset($p['systems'][0]['host_asset_id'], $p['systems'][0]['access_type']), 'connected systems stored');
         ok(array_key_exists('evidence_plugin_id', $p['systems'][0]) && array_key_exists('output_excerpt', $p['systems'][0]), 'correlation evidence carries plugin and output excerpt');
+        $f = $p['systems'][0];
+        ok(!empty($f['explanation']) && count($f['correlation'] ?? []) >= 3 && in_array($f['match_quality'] ?? '', ['exact', 'name', 'inferred', 'demo alias', 'telemetry only'], true),
+            'each access fact carries an explanation, a correlation chain and a match quality');
+        $via = array_values(array_filter($p['systems'], fn ($s) => !empty($s['via_group'])));
+        ok(!$via || in_array('membership', array_column($via[0]['correlation'], 'kind'), true), 'a right held through a group explains the AD membership');
         ok(isset($p['risk']['score'], $p['risk']['level'], $p['risk']['factors'], $p['risk']['questions']), 'risk block has score, level, factors, questions');
         ok($p['risk']['score'] >= 0 && $p['risk']['score'] <= 100, 'risk score within 0..100');
         ok($ms < 2000, sprintf('identity sync took %.0f ms', $ms));

@@ -657,6 +657,7 @@
     function render() {
       var p = current, s = p.summary || {}, r = p.risk || {}, isHost = p.asset_kind === 'host', pr = p.profile || {};
       document.title = p.name + ' · Asset Details · Exposure Lens';
+      $('.crumbs [aria-current]').text(p.name);
       $('#avContent').prop('hidden', false);
       $('#avIcon').html('<span class="icon ' + (isHost ? 'b-pc' : pr.kind && pr.kind !== 'user' ? 'b-person-gear' : 'b-person') + '"></span>');
       $('#avName').text(p.name);
@@ -805,19 +806,29 @@
     $pane.on('click', '[data-sync-ref]', function () { syncAssetInNewTab(JSON.parse(this.dataset.syncRef)); });
 
     // -- Correlation evidence: the raw access facts
+    var MATCH_LABEL = { exact: ['ok', 'Exact (SID)'], name: ['run', 'By name'], inferred: ['wait', 'Inferred'], 'demo alias': ['bad', 'Demo alias'], 'telemetry only': ['', 'Not in AD'] };
     function evidenceTab() {
       var isHost = current.asset_kind === 'host';
-      return '<p class="muted">Every access fact behind this asset, as the CTEM correlation built it: the Nessus plugin whose output proves it, the lines of that output that name the account (or the AD group the right comes through), and how confident the match is.</p>' +
-        tbl([isHost ? 'Identity' : 'Host', 'Access', 'Via group', 'Plugin', 'Plugin output (matching lines)', 'Confidence', 'Last seen'], current.systems.map(function (s) {
+      var q = {};
+      current.systems.forEach(function (s) { q[s.match_quality] = (q[s.match_quality] || 0) + 1; });
+      var legend = Object.keys(q).map(function (k) { var m = MATCH_LABEL[k] || ['', k]; return '<span class="badge-soft ' + m[0] + '">' + esc(m[1]) + ' · ' + num(q[k]) + '</span>'; }).join(' ');
+      return '<p class="muted">How the CTEM correlation reached every access fact: what the Nessus plugin output shows, how that name was matched to Active Directory, and, for a right held through a group, the AD membership that links the account to it.</p>' +
+        (current.systems.length && !current.systems[0].correlation ? '<div class="alert alert-info py-2">This snapshot was taken before correlation chains were recorded. Press <b>Re-sync</b> to see how each fact was correlated.</div>' : '') +
+        (legend ? '<div class="match-legend">' + legend + '</div>' : '') +
+        (q['demo alias'] ? '<div class="alert alert-warning py-2">' + num(q['demo alias']) + ' of these facts exist only because of an alias in the <code>identity_mapping</code> settings (demo data). Without it the plugin output would not be tied to this directory.</div>' : '') +
+        tbl([isHost ? 'Identity' : 'Host', 'Access', 'How it was correlated', 'Plugin output (matching lines)', 'Match', 'Last seen'], current.systems.map(function (s) {
           var who = isHost ? '<b>' + esc(s.identity_name) + '</b>' : hostLink(s.host_asset_id, s.host_name) + '<div class="muted mono small-text">' + esc(s.ip) + '</div>';
-          if (s.principal_name && String(s.identity_name).toLowerCase().indexOf(String(s.principal_name).toLowerCase()) < 0) who += '<div class="muted small-text">seen as <span class="mono">' + esc((s.principal_domain ? s.principal_domain + '\\' : '') + s.principal_name) + '</span></div>';
+          var m = MATCH_LABEL[s.match_quality] || ['', s.match_quality || ''];
+          var chain = (s.correlation || []).map(function (st) {
+            return '<li class="step-' + esc(st.kind) + '"><span class="step-title">' + esc(st.title) + '</span><span class="step-text">' + esc(st.text) + '</span></li>';
+          }).join('');
           return '<tr>' + td(who) +
-            td('<span class="chip">' + esc(accessLabel(s.access_type)) + '</span><div><span class="badge-soft ' + (s.access_class === 'usage' ? 'bad' : 'run') + '">' + esc(s.access_class === 'usage' ? 'used' : 'has the right') + '</span></div>') +
-            td(esc(s.via_group || '') || '<span class="muted">direct</span>') +
-            td(s.evidence_plugin_id ? '<span class="mono">' + esc(s.evidence_plugin_id) + '</span><div class="muted small-text" style="max-width:220px">' + esc(s.plugin_name || '') + '</div>' : '<span class="muted">–</span>') +
+            td('<span class="chip">' + esc(accessLabel(s.access_type)) + '</span><div><span class="badge-soft ' + (s.access_class === 'usage' ? 'bad' : 'run') + '">' + esc(s.access_class === 'usage' ? 'used' : 'has the right') + '</span></div>' +
+              (s.via_group ? '<div class="muted small-text mt-1">via ' + esc(s.via_group) + '</div>' : '')) +
+            td('<div class="corr-expl">' + esc(s.explanation || '') + '</div>' + (chain ? '<ol class="corr-steps">' + chain + '</ol>' : ''), 'corr-cell') +
             td(s.output_excerpt ? '<pre class="evidence-out">' + esc(s.output_excerpt) + '</pre>' + (s.plugin_output_id ? '<button type="button" class="btn btn-sm btn-link px-0" data-output="' + esc(s.plugin_output_id) + '">View full output</button>' : '')
               : '<span class="muted">' + esc(s.evidence || '–') + '</span>') +
-            td(esc(s.confidence)) + td(esc(fmtDay(s.last_seen)), 'text-nowrap') + '</tr>';
+            td('<span class="badge-soft ' + m[0] + '">' + esc(m[1]) + '</span>') + td(esc(fmtDay(s.last_seen)), 'text-nowrap') + '</tr>';
         }), 'No correlation evidence.');
     }
     $pane.on('click', '[data-output]', function () {
