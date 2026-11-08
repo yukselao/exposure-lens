@@ -1,0 +1,12 @@
+User : Administrator
+|- Browser : Microsoft Edge
+  |- Add-on information :
+
+    Name    : unknown
+    Version : 1.66.0
+    Path    : C:\Users\Administrator\AppData\Local\Microsoft\Edge\User Data\Default\Extensions\ghbmnnjooekpmoecnnnilnnbdlolhkhi\1.66.0_0
+
+    Name        : Edge relevant text changes
+    Description : Edge relevant text changes on select websites to improve user experience and precisely surfaces the action they want to take.
+    Version     : 1.2.0
+    Path        : C:\Users\Administrator\AppData\Local\Microsoft\Edge\User Data\Default\Extensions\jmjflgjpcpepeafmmgdpfkogkghcpiha\1.2.0_0

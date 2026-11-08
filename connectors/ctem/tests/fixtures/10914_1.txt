@@ -1,0 +1,9 @@
+The following local user has never changed his/her password :\n
+  - Guest
+
+
+Note that, in addition to the Administrator and Guest accounts, Nessus
+has only checked for local users with UIDs between 1000 and 1200.
+To use a different range, edit the scan policy and change the 'Start
+UID' and/or 'End UID' preferences for 'SMB use host SID to enumerate
+local users' setting, and then re-run the scan.

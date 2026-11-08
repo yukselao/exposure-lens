@@ -1,0 +1,220 @@
+Group Name : Server Operators
+Host Name  : DC1
+Group SID  : S-1-5-32-549
+Members    : 
+  Name : SQLServiceAccount
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1362
+
+Group Name : Account Operators
+Host Name  : DC1
+Group SID  : S-1-5-32-548
+Members    : 
+
+Group Name : Pre-Windows 2000 Compatible Access
+Host Name  : DC1
+Group SID  : S-1-5-32-554
+Members    : 
+  Name : Authenticated Users
+    Domain : DC1
+    Class  : Win32_SystemAccount
+    SID    : S-1-5-11
+  Name : DC1$
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : 
+
+Group Name : Incoming Forest Trust Builders
+Host Name  : DC1
+Group SID  : S-1-5-32-557
+Members    : 
+
+Group Name : Windows Authorization Access Group
+Host Name  : DC1
+Group SID  : S-1-5-32-560
+Members    : 
+  Name : ENTERPRISE DOMAIN CONTROLLERS
+    Domain : DC1
+    Class  : Win32_SystemAccount
+    SID    : S-1-5-9
+
+Group Name : Terminal Server License Servers
+Host Name  : DC1
+Group SID  : S-1-5-32-561
+Members    : 
+
+Group Name : Administrators
+Host Name  : DC1
+Group SID  : S-1-5-32-544
+Members    : 
+  Name : Administrator
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-500
+  Name : Enterprise Admins
+    Domain : TARGET
+    Class  : Win32_Group
+    SID    : S-1-5-21-191238254-2938527833-2875760312-519
+  Name : Domain Admins
+    Domain : TARGET
+    Class  : Win32_Group
+    SID    : S-1-5-21-191238254-2938527833-2875760312-512
+  Name : tenable
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1103
+  Name : jburgoon
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1160
+  Name : ChrisA$
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1171
+  Name : _nessus
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1177
+  Name : bknott
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1179
+  Name : nessusscan
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1185
+  Name : Nessus Local Access (test)
+    Domain : TARGET
+    Class  : Win32_Group
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1199
+  Name : thycotictest
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1219
+  Name : cleedc
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1272
+  Name : tjs
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1301
+  Name : amudhanr
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1371
+  Name : SAccountLab
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1381
+  Name : ifrank
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1402
+
+Group Name : Users
+Host Name  : DC1
+Group SID  : S-1-5-32-545
+Members    : 
+  Name : INTERACTIVE
+    Domain : DC1
+    Class  : Win32_SystemAccount
+    SID    : S-1-5-4
+  Name : Authenticated Users
+    Domain : DC1
+    Class  : Win32_SystemAccount
+    SID    : S-1-5-11
+  Name : Domain Users
+    Domain : TARGET
+    Class  : Win32_Group
+    SID    : S-1-5-21-191238254-2938527833-2875760312-513
+
+Group Name : Guests
+Host Name  : DC1
+Group SID  : S-1-5-32-546
+Members    : 
+  Name : Guest
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-501
+  Name : Domain Guests
+    Domain : TARGET
+    Class  : Win32_Group
+    SID    : S-1-5-21-191238254-2938527833-2875760312-514
+  Name : tester1
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1129
+
+Group Name : Print Operators
+Host Name  : DC1
+Group SID  : S-1-5-32-550
+Members    : 
+
+Group Name : Backup Operators
+Host Name  : DC1
+Group SID  : S-1-5-32-551
+Members    : 
+  Name : tester1
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1129
+
+Group Name : Replicator
+Host Name  : DC1
+Group SID  : S-1-5-32-552
+Members    : 
+
+Group Name : Remote Desktop Users
+Host Name  : DC1
+Group SID  : S-1-5-32-555
+Members    : 
+  Name : jburgoon
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1160
+  Name : nessusscan
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1185
+  Name : sqladmin
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1196
+  Name : cleedc
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1272
+  Name : cleedc2
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1277
+  Name : ifrank
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1402
+  Name : vmdteam
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-1403
+
+Group Name : Network Configuration Operators
+Host Name  : DC1
+Group SID  : S-1-5-32-556
+Members    : 
+
+Group Name : Performance Monitor Users
+Host Name  : DC1
+Group SID  : S-1-5-32-558
+Members    : 
+
+Group Name : Performance Log Users
+Host Name  : DC1
+Group SID  : S-1-5-32-559
+Members    : 
+  Name : Administrator
+    Domain : TARGET
+    Class  : Win32_UserAccount
+    SID    : S-1-5-21-191238254-2938527833-2875760312-500
+  Name : amudhanr

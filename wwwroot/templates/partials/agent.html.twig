@@ -1,0 +1,56 @@
+{# Agent Tenable: the chat panel, opened from the robot icon in the header. #}
+<aside class="agent" id="agent" aria-label="Agent Tenable" hidden>
+  <header class="agent-head">
+    <span class="agent-avatar"><span class="icon i-robot"></span></span>
+    <div class="agent-title">
+      <h2>Agent Tenable</h2>
+      <div class="agent-sub" id="agentModel">&nbsp;</div>
+    </div>
+    <div class="agent-tools">
+      <button type="button" class="header-btn" id="agentNew" title="New conversation" aria-label="New conversation"><span class="icon icon-16 i-circle-add"></span></button>
+      <button type="button" class="header-btn" id="agentSize" title="Larger" aria-label="Larger or smaller"><span class="icon icon-16 i-expand"></span></button>
+      <button type="button" class="header-btn" id="agentClose" title="Close" aria-label="Close"><span class="icon icon-16 i-close"></span></button>
+    </div>
+  </header>
+
+  <nav class="agent-tabs" role="tablist" aria-label="Agent sections">
+    <button type="button" class="active" role="tab" data-tab="chat" aria-selected="true">Chat</button>
+    <button type="button" role="tab" data-tab="prompts" aria-selected="false">Prompts</button>
+    <button type="button" role="tab" data-tab="skills" aria-selected="false">Skills</button>
+    <button type="button" role="tab" data-tab="tools" aria-selected="false">Tools</button>
+  </nav>
+
+  <section class="agent-pane" data-pane="chat">
+    <div class="agent-log" id="agentLog" aria-live="polite"></div>
+    <div class="agent-compose">
+      <div class="agent-context" id="agentContext" hidden>
+        <div class="agent-context-head">
+          <span class="icon icon-16 i-info"></span>
+          <button type="button" class="label" id="agentContextLabel" title="Show or edit the attached record"></button>
+          <button type="button" class="btn-close btn-close-sm" id="agentContextClear" aria-label="Remove the attached record"></button>
+        </div>
+        <textarea class="agent-context-text" id="agentContextText" rows="6" aria-label="Attached record" hidden></textarea>
+      </div>
+      <div class="agent-skill-row">
+        <label for="agentSkill" class="muted">Skill</label>
+        <select class="form-select form-select-sm" id="agentSkill" aria-label="Skill"></select>
+      </div>
+      <div class="agent-input">
+        <textarea id="agentInput" rows="1" placeholder="Ask about an account, a host, a subnet, a CVE…" aria-label="Your question"></textarea>
+        <button type="button" class="agent-send" id="agentSend" aria-label="Send"><span class="icon icon-16 i-send"></span></button>
+      </div>
+      <div class="agent-status" id="agentStatus"></div>
+    </div>
+  </section>
+
+  <section class="agent-pane" data-pane="prompts" hidden>
+    <div class="agent-pane-body" id="agentPrompts"></div>
+  </section>
+  <section class="agent-pane" data-pane="skills" hidden>
+    <div class="agent-pane-body" id="agentSkills"></div>
+  </section>
+  <section class="agent-pane" data-pane="tools" hidden>
+    <div class="agent-pane-body" id="agentToolList"></div>
+  </section>
+  <div class="agent-resize" id="agentResize" title="Drag to resize"></div>
+</aside>

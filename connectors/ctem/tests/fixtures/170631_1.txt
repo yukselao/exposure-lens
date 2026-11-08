@@ -1,0 +1,8 @@
+  Common Name        : CN=BIGFIX-CLUS-APP
+  SamAccountName     : BIGFIX-CLUS-APP$
+  Domain Role        : MemberServer
+  Domain             : demo.io
+  Lowest Subdomain   : DEMO
+  DNS Name           : BIGFIX-CLUS-APP
+  Distinguished Name : CN=BIGFIX-CLUS-APP,OU=Servers,OU=SE Demo Environment Assets,DC=demo,DC=io
+  Record Name        : BIGFIX-CLUS-APP

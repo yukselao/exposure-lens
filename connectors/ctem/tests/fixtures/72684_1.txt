@@ -1,0 +1,36 @@
+  Name            : Administrator
+  SID             : S-1-5-21-1920744232-3167986978-2559837622-500
+  Disabled        : False
+  Lockout         : False
+  Change password : True
+  Source          : Local
+
+  Name            : cymptom
+  SID             : S-1-5-21-1920744232-3167986978-2559837622-1002
+  Disabled        : True
+  Lockout         : False
+  Change password : True
+  Source          : Local
+
+  Name            : DefaultAccount
+  SID             : S-1-5-21-1920744232-3167986978-2559837622-503
+  Disabled        : True
+  Lockout         : False
+  Change password : True
+  Source          : Local
+
+  Name            : Guest
+  SID             : S-1-5-21-1920744232-3167986978-2559837622-501
+  Disabled        : True
+  Lockout         : False
+  Change password : False
+  Source          : Local
+
+  Name            : qa
+  SID             : S-1-5-21-1920744232-3167986978-2559837622-1003
+  Disabled        : False
+  Lockout         : False
+  Change password : True
+  Source          : Local
+
+  No. Of Users : 5

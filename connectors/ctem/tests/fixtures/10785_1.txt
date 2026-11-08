@@ -1,0 +1,10 @@
+Nessus was able to obtain the following information about the host, by 
+parsing the SMB2 Protocol's NTLM SSP message:
+
+	Target Name: TADH
+	NetBIOS Domain Name: TADH
+	NetBIOS Computer Name: DC01-H
+	DNS Domain Name: TADH.local
+	DNS Computer Name: DC01-H.TADH.local
+	DNS Tree Name: TADH.local
+	Product Version: 10.0.17763

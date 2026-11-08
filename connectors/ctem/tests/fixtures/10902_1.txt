@@ -1,0 +1,5 @@
+The following users are members of the 'Administrators' group :
+
+  - AL-WIN10-CO\Administrator (User)
+  - AL-WIN10-CO\admin (User)
+  - LABNET\Domain Admins (Group)

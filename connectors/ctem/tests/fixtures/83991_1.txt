@@ -1,0 +1,220 @@
+System Profiler managed applications:
+
+50onPaletteServer [version 1.1.0]
+  Location: /System/Library/Input Methods/50onPaletteServer.app
+
+ABAssistantService [version 11.0]
+  Location: /System/Library/Frameworks/AddressBook.framework/Versions/A/Helpers/ABAssistantService.app
+
+About This Mac [version 1.0]
+  Location: /System/Library/CoreServices/Applications/About This Mac.app
+
+AccessibilityVisualsAgent [version 1.0]
+  Location: /System/Library/PrivateFrameworks/AccessibilitySupport.framework/Versions/A/Resources/AccessibilityVisualsAgent.app
+
+Activity Monitor [version 10.14]
+  Location: /System/Applications/Utilities/Activity Monitor.app
+
+AddPrinter [version 15]
+  Location: /System/Library/CoreServices/AddPrinter.app
+
+AddressBookManager [version 11.0]
+  Location: /System/Library/Frameworks/AddressBook.framework/Versions/A/Helpers/AddressBookManager.app
+
+AddressBookSourceSync [version 11.0]
+  Location: /System/Library/Frameworks/AddressBook.framework/Versions/A/Helpers/AddressBookSourceSync.app
+
+AddressBookSync [version 11.0]
+  Location: /System/Library/Frameworks/AddressBook.framework/Helpers/AddressBookSync.app
+
+AddressBookUrlForwarder [version 11.0]
+  Location: /System/Library/CoreServices/AddressBookUrlForwarder.app
+
+AinuIM [version 1.0]
+  Location: /System/Library/Input Methods/AinuIM.app
+
+AirDrop [version 1.0]
+  Location: /System/Library/CoreServices/Finder.app/Contents/Applications/AirDrop.app
+
+AirPlayUIAgent [version 2.0]
+  Location: /System/Library/CoreServices/AirPlayUIAgent.app
+
+AirPort Base Station Agent [version 2.2.1]
+  Location: /System/Library/CoreServices/AirPort Base Station Agent.app
+
+AirPort Utility [version 6.3.9]
+  Location: /System/Applications/Utilities/AirPort Utility.app
+
+AirScanLegacyDiscovery [version 15]
+  Location: /Library/Image Capture/Support/LegacyDeviceDiscoveryHelpers/AirScanLegacyDiscovery.app
+
+AirScanScanner [version 15]
+  Location: /System/Library/Image Capture/Devices/AirScanScanner.app
+
+AOSAlertManager [version 1.07]
+  Location: /System/Library/PrivateFrameworks/AOSKit.framework/Versions/A/Helpers/AOSAlertManager.app
+
+AOSHeartbeat [version 1.07]
+  Location: /System/Library/PrivateFrameworks/AOSKit.framework/Versions/A/Helpers/AOSHeartbeat.app
+
+AOSPushRelay [version 1.07]
+  Location: /System/Library/PrivateFrameworks/AOSKit.framework/Versions/A/Helpers/AOSPushRelay.app
+
+App Store [version 3.0]
+  Location: /System/Applications/App Store.app
+
+AppleFileServer [version 2.1]
+  Location: /System/Library/CoreServices/AppleFileServer.app
+
+AppleMobileDeviceHelper [version 5.0]
+  Location: /Library/Apple/System/Library/PrivateFrameworks/MobileDevice.framework/Versions/A/AppleMobileDeviceHelper.app
+
+AppleMobileSync [version 5.0]
+  Location: /Library/Apple/System/Library/PrivateFrameworks/MobileDevice.framework/Versions/A/AppleMobileSync.app
+
+AppleScript Utility [version 1.1.2]
+  Location: /System/Library/CoreServices/AppleScript Utility.app
+
+AppSSOAgent [version 1.0]
+  Location: /System/Library/PrivateFrameworks/AppSSO.framework/Support/AppSSOAgent.app
+
+AquaAppearanceHelper [version 1.0]
+  Location: /System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/AquaAppearanceHelper.app
+
+Archive Utility [version 10.15]
+  Location: /System/Library/CoreServices/Applications/Archive Utility.app
+
+ARDAgent [version 3.9.8]
+  Location: /System/Library/CoreServices/RemoteManagement/ARDAgent.app
+
+AskPermissionUI [version 1.0]
+  Location: /System/Library/PrivateFrameworks/AskPermission.framework/Versions/A/Resources/AskPermissionUI.app
+
+Assistive Control [version 2.0]
+  Location: /System/Library/Input Methods/Assistive Control.app
+
+Audio MIDI Setup [version 3.5]
+  Location: /System/Applications/Utilities/Audio MIDI Setup.app
+
+AutoImporter [version 6.7]
+  Location: /System/Library/Image Capture/Support/Application/AutoImporter.app
+
+Automator [version 2.10]
+  Location: /System/Applications/Automator.app
+
+Automator Installer [version 2.10]
+  Location: /System/Library/CoreServices/Automator Installer.app
+
+AVB Audio Configuration [version 850.1]
+  Location: /System/Library/CoreServices/AVB Audio Configuration.app
+
+AXVisualSupportAgent [version 1.0]
+  Location: /System/Library/PrivateFrameworks/UniversalAccess.framework/Versions/A/Resources/AXVisualSupportAgent.app
+
+Bluetooth File Exchange [version 7.0.5]
+  Location: /System/Applications/Utilities/Bluetooth File Exchange.app
+
+Bluetooth Setup Assistant [version 7.0.5]
+  Location: /System/Library/CoreServices/Bluetooth Setup Assistant.app
+
+BluetoothUIServer [version 7.0.5]
+  Location: /System/Library/CoreServices/BluetoothUIServer.app
+
+Books [version 2.4]
+  Location: /System/Applications/Books.app
+
+Boot Camp Assistant [version 6.1.0]
+  Location: /System/Applications/Utilities/Boot Camp Assistant.app
+
+Build Web Page [version 10.1]
+  Location: /System/Library/Image Capture/Automatic Tasks/Build Web Page.app
+
+Calculator [version 10.15.4]
+  Location: /System/Applications/Calculator.app
+
+Calendar [version 11.0]
+  Location: /System/Applications/Calendar.app
+
+CalendarFileHandler [version 8.0]
+  Location: /System/Library/CoreServices/CalendarFileHandler.app
+
+Calibration Assistant [version 1.0]
+  Location: /System/Library/PrivateFrameworks/AmbientDisplay.framework/Versions/A/Resources/Calibration Assistant.app
+
+Canon IJScanner2 [version 4.0.0]
+  Location: /Library/Image Capture/Devices/Canon IJScanner2.app
+
+Canon IJScanner4 [version 4.0.0]
+  Location: /Library/Image Capture/Devices/Canon IJScanner4.app
+
+Canon IJScanner6 [version 4.0.0]
+  Location: /Library/Image Capture/Devices/Canon IJScanner6.app
+
+Captive Network Assistant [version 5.0]
+  Location: /System/Library/CoreServices/Captive Network Assistant.app
+
+Certificate Assistant [version 5.0]
+  Location: /System/Library/CoreServices/Certificate Assistant.app
+
+CharacterPalette [version 2.0.1]
+  Location: /System/Library/Input Methods/CharacterPalette.app
+
+Chess [version 3.17]
+  Location: /System/Applications/Chess.app
+
+ChineseTextConverterService [version 2.1]
+  Location: /System/Library/Services/ChineseTextConverterService.app
+
+CIMFindInputCodeTool [version 104]
+  Location: /System/Library/PrivateFrameworks/CoreChineseEngine.framework/Versions/A/SharedSupport/CIMFindInputCodeTool.app
+
+Cocoa-AppleScript Applet [version 1.0]
+  Location: /Library/Application Support/Script Editor/Templates/Cocoa-AppleScript Applet.app
+
+ColorSync Utility [version 4.14.0]
+  Location: /System/Applications/Utilities/ColorSync Utility.app
+
+commandFilter [version 1.71]
+  Location: /Library/Printers/EPSON/Fax/Filter/commandFilter.app
+
+Computer [version 1.0]
+  Location: /System/Library/CoreServices/Finder.app/Contents/Applications/Computer.app
+
+Conflict Resolver [version 8.1]
+  Location: /System/Library/PrivateFrameworks/SyncServicesUI.framework/Versions/A/Resources/Conflict Resolver.app
+
+Console [version 1.1]
+  Location: /System/Applications/Utilities/Console.app
+
+Contacts [version 12.0]
+  Location: /System/Applications/Contacts.app
+
+ControlStrip [version 1.0]
+  Location: /System/Library/CoreServices/ControlStrip.app
+
+CoreLocationAgent [version 2394.0.22]
+  Location: /System/Library/CoreServices/CoreLocationAgent.app
+
+CoreServicesUIAgent [version 340.3]
+  Location: /System/Library/CoreServices/CoreServicesUIAgent.app
+
+Database Events [version 1.0.6]
+  Location: /System/Library/CoreServices/Database Events.app
+
+DFRHUD [version 1.0]
+  Location: /System/Library/PrivateFrameworks/UniversalAccess.framework/Versions/A/Resources/DFRHUD.app
+
+Dictation [version 6.0.60.1]
+  Location: /System/Library/Input Methods/DictationIM.app
+
+Dictionary [version 2.3.0]
+  Location: /System/Applications/Dictionary.app
+
+Digital Color Meter [version 5.15]
+  Location: /System/Applications/Utilities/Digital Color Meter.app
+
+Directory Utility [version 6.0]
+  Location: /System/Library/CoreServices/Applications/Directory Utility.app
+
+DiscHelper [version 1.0]
+  Location: /System/Library/CoreServices/DiscHelper.app

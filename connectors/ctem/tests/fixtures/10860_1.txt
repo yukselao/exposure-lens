@@ -1,0 +1,9 @@
+  - Administrator (id 500, Administrator account)
+  - Guest (id 501, Guest account)
+
+Note that, in addition to the Administrator, Guest, and Kerberos
+accounts, Nessus has enumerated local users with IDs between
+1000 and 1200. To use a different range, edit the scan policy
+and change the 'Enumerate Local Users: Start UID' and/or 'End UID'
+preferences under 'Assessment->Windows' and re-run the scan. Only
+UIDs between 1 and 2147483647 are allowed for this range.

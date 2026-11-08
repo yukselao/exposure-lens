@@ -1,0 +1,40 @@
+{% import 'partials/icons.twig' as icons %}
+<div class="explore" id="localUsers">
+  <aside class="card">
+    <div class="filter-group">
+      <div class="filter-title">Group by</div>
+      <button type="button" class="filter-option" data-f="group_by" data-v="account">Account name</button>
+      <button type="button" class="filter-option" data-f="group_by" data-v="host">Host</button>
+      <button type="button" class="filter-option" data-f="group_by" data-v="group">Local group</button>
+      <button type="button" class="filter-option" data-f="group_by" data-v="os">Operating system</button>
+      <button type="button" class="filter-option" data-f="group_by" data-v="flag">Account finding</button>
+      <button type="button" class="filter-option" data-f="group_by" data-v="none">No grouping</button>
+    </div>
+    <div class="filter-group">
+      <div class="filter-title">Account type</div>
+      <button type="button" class="filter-option" data-f="type" data-v="user">User accounts</button>
+      <button type="button" class="filter-option" data-f="type" data-v="system">System accounts</button>
+      <button type="button" class="filter-option" data-f="type" data-v="">All</button>
+    </div>
+    <div class="filter-group">
+      <div class="filter-title">Privilege</div>
+      <button type="button" class="filter-option" data-f="privileged" data-v="">Any</button>
+      <button type="button" class="filter-option" data-f="privileged" data-v="1">Privileged</button>
+      <button type="button" class="filter-option" data-f="privileged" data-v="0">Not privileged</button>
+    </div>
+    <div class="filter-group">
+      <div class="filter-title">Status</div>
+      <button type="button" class="filter-option" data-f="status" data-v="">Any</button>
+      <button type="button" class="filter-option" data-f="status" data-v="enabled">Enabled</button>
+      <button type="button" class="filter-option" data-f="status" data-v="disabled">Disabled</button>
+    </div>
+  </aside>
+  <section class="card">
+    <div class="toolbar">
+      <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="luSearch" placeholder="Search account, host or IP" aria-label="Search local users"></div>
+      <span class="muted ms-auto" id="luSummary"></span>
+    </div>
+    <div class="table-wrap"><table class="table table-hover"><thead id="luHead"></thead><tbody id="luBody"></tbody></table></div>
+    <div class="pager" id="luPager"></div>
+  </section>
+</div>

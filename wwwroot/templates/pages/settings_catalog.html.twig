@@ -1,0 +1,27 @@
+{% import 'partials/icons.twig' as icons %}
+<div class="explore" id="catalog">
+  <aside class="card">
+    <div class="filter-group"><div class="filter-title">Status</div>
+      <button type="button" class="filter-option active" data-f="status" data-v="">All</button>
+      <button type="button" class="filter-option" data-f="status" data-v="selected">Selected</button>
+      <button type="button" class="filter-option" data-f="status" data-v="candidate">Candidate</button>
+      <button type="button" class="filter-option" data-f="status" data-v="ignored">Ignored</button></div>
+    <div class="filter-group"><div class="filter-title">Class</div>
+      <button type="button" class="filter-option active" data-f="class" data-v="">All</button>
+      <button type="button" class="filter-option" data-f="class" data-v="inventory">Inventory and state</button>
+      <button type="button" class="filter-option" data-f="class" data-v="product">Single product check</button></div>
+    <div class="filter-group"><div class="filter-title">Source</div>
+      <button type="button" class="filter-option active" data-f="source" data-v="">All</button>
+      <button type="button" class="filter-option" data-f="source" data-v="handbook">In the handbook</button>
+      <button type="button" class="filter-option" data-f="source" data-v="other">Not in the handbook</button>
+      <button type="button" class="filter-option" data-f="source" data-v="scenario">In a scenario</button></div>
+  </aside>
+  <section class="card">
+    <div class="toolbar">
+      <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="catSearch" placeholder="Search name, ID or family" aria-label="Search plugins"></div>
+      <span class="muted ms-auto">Only selected plugins with an extractor are collected.</span>
+    </div>
+    <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Name</th><th>Family</th><th>Scenario</th><th>Extractor</th><th class="text-end">In SC</th><th>Status</th></tr></thead><tbody id="catBody"></tbody></table></div>
+    <div class="pager" id="catPager"></div>
+  </section>
+</div>

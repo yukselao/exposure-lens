@@ -1,0 +1,113 @@
+User : admin
+|- Browser : Firefox
+  |- Extension information :
+
+    Name         : DoH Roll-Out
+    Description  : This used to be a Mozilla add-on that supported the roll-out of DoH, but now only exists as a stub to enable migrations.
+    Version      : 2.0.0
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Mar. 22, 2022 at 16:23:12 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\doh-rollout@mozilla.org.xpi
+    ID           : doh-rollout@mozilla.org
+    Status       : Enabled
+
+    Name         : Form Autofill
+    Version      : 1.0.1
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Mar. 22, 2022 at 16:23:12 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\formautofill@mozilla.org.xpi
+    ID           : formautofill@mozilla.org
+    Status       : Enabled
+
+    Name         : Picture-In-Picture
+    Description  : Fixes for web compatibility with Picture-in-Picture
+    Version      : 1.0.0
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Mar. 22, 2022 at 16:23:12 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\pictureinpicture@mozilla.org.xpi
+    ID           : pictureinpicture@mozilla.org
+    Status       : Enabled
+
+    Name         : Firefox Screenshots
+    Description  : Take clips and screenshots from the Web and save them temporarily or permanently.
+    Version      : 39.0.1
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Mar. 22, 2022 at 16:23:12 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\screenshots@mozilla.org.xpi
+    ID           : screenshots@mozilla.org
+    Status       : Enabled
+
+    Name         : WebCompat Reporter
+    Description  : Report site compatibility issues on webcompat.com
+    Version      : 1.4.2
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Mar. 22, 2022 at 16:23:12 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\webcompat-reporter@mozilla.org.xpi
+    ID           : webcompat-reporter@mozilla.org
+    Status       : Disabled
+
+    Name         : Web Compatibility Interventions
+    Description  : Urgent post-release fixes for web compatibility.
+    Version      : 30.0.0
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Mar. 22, 2022 at 16:23:12 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\webcompat@mozilla.org.xpi
+    ID           : webcompat@mozilla.org
+    Status       : Enabled
+
+User : administrator
+|- Browser : Firefox
+  |- Extension information :
+
+    Name         : DoH Roll-Out
+    Description  : This used to be a Mozilla add-on that supported the roll-out of DoH, but now only exists as a stub to enable migrations.
+    Version      : 2.0.0
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Mar. 22, 2022 at 16:23:12 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\doh-rollout@mozilla.org.xpi
+    ID           : doh-rollout@mozilla.org
+    Status       : Enabled
+
+    Name         : Form Autofill
+    Version      : 1.0.1
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Apr.  6, 2022 at 01:59:36 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\formautofill@mozilla.org.xpi
+    ID           : formautofill@mozilla.org
+    Status       : Enabled
+
+    Name         : Picture-In-Picture
+    Description  : Fixes for web compatibility with Picture-in-Picture
+    Version      : 1.0.0
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Apr.  6, 2022 at 01:59:36 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\pictureinpicture@mozilla.org.xpi
+    ID           : pictureinpicture@mozilla.org
+    Status       : Enabled
+
+    Name         : Firefox Screenshots
+    Description  : Take clips and screenshots from the Web and save them temporarily or permanently.
+    Version      : 39.0.1
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Mar. 22, 2022 at 16:23:12 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\screenshots@mozilla.org.xpi
+    ID           : screenshots@mozilla.org
+    Status       : Enabled
+
+    Name         : WebCompat Reporter
+    Description  : Report site compatibility issues on webcompat.com
+    Version      : 1.4.2
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Apr.  6, 2022 at 01:59:36 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\webcompat-reporter@mozilla.org.xpi
+    ID           : webcompat-reporter@mozilla.org
+    Status       : Disabled
+
+    Name         : Web Compatibility Interventions
+    Description  : Urgent post-release fixes for web compatibility.
+    Version      : 31.0.0
+    Install Date : Mar. 22, 2022 at 16:23:12 GMT
+    Update Date  : Apr.  6, 2022 at 01:59:36 GMT
+    Path         : C:\Program Files\Mozilla Firefox\browser\features\webcompat@mozilla.org.xpi
+    ID           : webcompat@mozilla.org
+    Status       : Enabled

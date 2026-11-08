@@ -69,6 +69,14 @@
 
       <div class="section-head" style="margin-top:32px"><button type="button" class="acc-toggle" data-bs-toggle="collapse" data-bs-target="#secManage" aria-expanded="true"><h2>Manage Your Exposure</h2><span class="icon icon-16 i-chevron"></span></button></div>
       <div class="collapse show" id="secManage">
+        <div class="group-head"><h3>Correlated Risk</h3><a href="/risk">Show the risk analysis</a></div>
+        <div class="tiles">
+          <a class="tile" href="/risk?view=critical_users"><div class="title">Users Reaching Critical Hosts</div><div class="data"><span class="icon i-vuln"></span><span data-v="risk_critical_users">&ndash;</span></div></a>
+          <a class="tile" href="/risk?view=acr_users"><div class="title">Users Reaching High-ACR Hosts</div><div class="data"><span class="icon b-hdd"></span><span data-v="risk_acr_users">&ndash;</span></div></a>
+          <a class="tile" href="/risk?view=tier0_hosts"><div class="title">Hosts Using Tier 0 Accounts</div><div class="data"><span class="icon b-pc"></span><span data-v="risk_tier0_hosts">&ndash;</span></div></a>
+          <a class="tile" href="/risk?view=service_accounts"><div class="title">Service Accounts on Critical Hosts</div><div class="data"><span class="icon b-person-gear"></span><span data-v="risk_service_accounts">&ndash;</span></div></a>
+        </div>
+
         <div class="group-head"><h3>Identities</h3><a href="/explore/ad-objects">Show all AD objects</a></div>
         <div class="tiles" id="tilesIdentities">
           <a class="tile" href="/explore/ad-objects?type=users"><div class="title">Users</div><div class="data"><span class="icon b-person"></span><span data-v="users">&ndash;</span></div></a>
@@ -93,10 +101,10 @@
           <a class="tile" href="/explore/assets?type=devices"><div class="title">Security Center Hosts</div><div class="data"><span class="icon b-hdd"></span><span data-v="sc_hosts">&ndash;</span></div></a>
         </div>
 
-        <div class="group-head"><h3>Local User Discovery</h3><span class="note muted">Read from Security Center plugin output; that connector step is not built yet.</span></div>
+        <div class="group-head"><h3>Local User Discovery</h3></div>
         <div class="tiles" id="tilesLocal">
-          <div class="tile"><div class="title">Privileged Local Users</div><div class="data"><span class="icon b-person-lock"></span><span data-v="local_privileged">&ndash;</span></div><div class="hint">No data yet</div></div>
-          <div class="tile"><div class="title">Normal Local Users</div><div class="data"><span class="icon b-person-check"></span><span data-v="local_normal">&ndash;</span></div><div class="hint">No data yet</div></div>
+          <a class="tile" href="/explore/local-users?privileged=1"><div class="title">Privileged Local Users</div><div class="data"><span class="icon b-person-lock"></span><span data-v="local_privileged">&ndash;</span></div></a>
+          <a class="tile" href="/explore/local-users?privileged=0"><div class="title">Normal Local Users</div><div class="data"><span class="icon b-person-check"></span><span data-v="local_normal">&ndash;</span></div></a>
         </div>
 
         <div class="group-head"><h3>Top Vulnerabilities, VPR 9 to 10</h3><a href="/explore/assets">Show affected hosts</a></div>

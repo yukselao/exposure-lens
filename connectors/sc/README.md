@@ -10,6 +10,7 @@ The Security Center URL and API keys, the pools and their queries are all entere
 | --- | --- |
 | `test_connection` | Calls `GET /rest/currentUser`, then caches the repository and plugin family lists for the query editor (`settings` section `seccenter_meta`). |
 | `sync` | Runs every enabled query of one pool (`target_id` is the pool id). |
+| `plugin_collect` | Pulls the output of the plugins selected in `plugin_catalog` into `plugin_outputs`. See the [CTEM worker](../ctem/README.md). |
 
 A pool with **Sync every** above 0 is queued by the connector when that many minutes have passed since its last job ended.
 
@@ -49,7 +50,9 @@ The connector only reads. Reference: <https://docs.tenable.com/security-center/a
 | `GET /rest/currentUser` | Connection test. |
 | `GET /rest/repository` | Repository list for the query editor. |
 | `GET /rest/pluginFamily` | Plugin family list for the query editor. |
-| `POST /rest/analysis` | Cumulative vulnerability details. |
+| `POST /rest/analysis` | Cumulative vulnerability details, and single scan results (`sourceType: individual`) for full text and attachments. |
+| `GET /rest/scanResult` | Finished scan results. |
+| `GET /rest/scanResult/{id}/attachment/{attachmentID}` | One attached file. |
 
 A reply counts as failed when the HTTP status is not 200 or `error_code` in the body is not 0. Connection errors and HTTP 429 and 5xx are retried after 2, 5 and 15 seconds.
 

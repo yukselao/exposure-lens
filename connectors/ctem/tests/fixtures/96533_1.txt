@@ -1,0 +1,31 @@
+User : Administrator
+|- Browser : Chrome
+  |- Add-on information :
+
+    Name        : Google Docs Offline
+    Description : Edit, create, and view your documents, spreadsheets, and presentations — all without internet access.
+    Version     : 1.42.0
+    Update Date : Mar. 14, 2024 at 17:22:15 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\ghbmnnjooekpmoecnnnilnnbdlolhkhi\1.42.0_0
+
+    Name        : Zoom Scheduler
+    Description : Schedule Zoom meetings directly from Google Calendar
+    Version     : 1.7.5
+    Update Date : Mar. 14, 2024 at 17:22:15 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\kgjfgplpablkjnlkjmjdecgdpfankdle\1.7.5_0
+
+    Name        : Chrome Web Store Payments
+    Description : Chrome Web Store Payments
+    Version     : 1.0.0.6
+    Update Date : Mar. 14, 2024 at 17:22:16 GMT
+    Path        : C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Extensions\nmmhkkegccagdldgiimedpiccmgmieda\1.0.0.6_0
+
+User : spalpatine
+|- Browser : Chrome
+  |- Add-on information :
+
+    Name        : Chrome Web Store Payments
+    Description : Chrome Web Store Payments
+    Version     : 1.0.0.6
+    Update Date : Mar. 14, 2024 at 17:22:11 GMT
+    Path        : C:\Users\spalpatine\AppData\Local\Google\Chrome\User Data\Default\Extensions\nmmhkkegccagdldgiimedpiccmgmieda\1.0.0.6_0

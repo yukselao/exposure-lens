@@ -1,0 +1,220 @@
+The following software information is available on the remote host :
+
+ - Java Auto Updater
+     Best Confidence Version  : 9.0.1.0
+     Version Confidence Level : 2
+     All Possible Versions    :  9.0.1.0
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 9
+       [Version] : 
+           Raw Value           : 150994945
+       [DisplayName] : 
+           Raw Value           : Java Auto Updater
+       [InstallDate] : 
+           Raw Value           : 2020/01/06
+       [DisplayVersion] : 
+           Raw Value           : 9.0.1.0
+       [VersionMinor] : 
+           Raw Value           : 0
+
+ - Java 9.0.1 (64-bit)
+     Best Confidence Version  : 9.0.1.0
+     Version Confidence Level : 2
+     All Possible Versions    :  9.0.1.0
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 9
+       [Version] : 
+           Raw Value           : 150994945
+       [InstallLocation] : 
+           Raw Value           : C:\Program Files\Java\jre-9.0.1\
+       [DisplayName] : 
+           Raw Value           : Java 9.0.1 (64-bit)
+       [UninstallString] : 
+           Raw Value           : MsiExec.exe /X{2590B9D6-4310-52BC-808E-1A585861A836}
+       [InstallDate] : 
+           Raw Value           : 2020/01/06
+       [DisplayVersion] : 
+           Raw Value           : 9.0.1.0
+       [VersionMinor] : 
+           Raw Value           : 0
+
+ - Microsoft Visual C++ 2008 Redistributable - x86 9.0.30729.6161
+     Best Confidence Version  : 9.0.30729.6161
+     Version Confidence Level : 2
+     All Possible Versions    :  9.0.30729.6161
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 9
+       [Version] : 
+           Raw Value           : 151025673
+       [DisplayName] : 
+           Raw Value           : Microsoft Visual C++ 2008 Redistributable - x86 9.0.30729.6161
+       [UninstallString] : 
+           Raw Value           : MsiExec.exe /X{9BE518E6-ECC6-35A9-88E4-87755C07200F}
+       [InstallDate] : 
+           Raw Value           : 2019/01/31
+       [DisplayVersion] : 
+           Raw Value           : 9.0.30729.6161
+       [VersionMinor] : 
+           Raw Value           : 0
+
+ - WinSCP 5.21.3
+     Best Confidence Version  : 51.1052.0.0
+     Version Confidence Level : 3
+     All Possible Versions    :  51.1052.0.0, 5.21.3, 5.21.3.12800
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 5
+       [InstallLocation] : 
+           Raw Value           : C:\Program Files (x86)\WinSCP\
+       [DisplayName] : 
+           Raw Value           : WinSCP 5.21.3
+       [UninstallString] : 
+           Raw Value           : "C:\Program Files (x86)\WinSCP\unins000.exe"
+           Parsed File Path    : C:\Program Files (x86)\WinSCP\unins000.exe
+           Parsed File Version : 51.1052.0.0
+       [InstallDate] : 
+           Raw Value           : 2022/10/02
+       [DisplayVersion] : 
+           Raw Value           : 5.21.3
+       [VersionMinor] : 
+           Raw Value           : 21
+       [DisplayIcon] : 
+           Raw Value           : C:\Program Files (x86)\WinSCP\WinSCP.exe
+           Parsed File Path    : C:\Program Files (x86)\WinSCP\WinSCP.exe
+           Parsed File Version : 5.21.3.12800
+
+ - Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.36.32532
+     Best Confidence Version  : 14.36.32532
+     Version Confidence Level : 2
+     All Possible Versions    :  14.36.32532
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 14
+       [Version] : 
+           Raw Value           : 237272852
+       [DisplayName] : 
+           Raw Value           : Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.36.32532
+       [UninstallString] : 
+           Raw Value           : MsiExec.exe /I{73F77E4E-5A17-46E5-A5FC-8A061047725F}
+       [InstallDate] : 
+           Raw Value           : 2023/10/16
+       [DisplayVersion] : 
+           Raw Value           : 14.36.32532
+       [VersionMinor] : 
+           Raw Value           : 36
+
+ - Microsoft .NET Framework 4 Client Profile
+     Best Confidence Version  : 4.0.30319
+     Version Confidence Level : 2
+     All Possible Versions    :  103.19.37251, 4.0.30319
+     Other Version Data
+       [InstallDate] : 
+           Raw Value           : 2018/05/19
+       [DisplayIcon] : 
+           Raw Value           : C:\Windows\Microsoft.NET\Framework64\v4.0.30319\SetupCache\Client\DisplayIcon.ico
+       [InstallLocation] : 
+           Raw Value           : C:\Windows\Microsoft.NET\Framework64\v4.0.30319\SetupCache\Client
+       [UninstallString] : 
+           Raw Value           : MsiExec.exe /X{F5B09CFD-F0B2-36AF-8DF4-1DF6B63FC7B4}
+       [VersionMinor] : 
+           Raw Value           : 0
+       [VersionMajor] : 
+           Raw Value           : 4
+       [Version] : 
+           Raw Value           : 67139183
+           Parsed Version : 103.19.37251
+       [DisplayVersion] : 
+           Raw Value           : 4.0.30319
+       [DisplayName] : 
+           Raw Value           : Microsoft .NET Framework 4 Client Profile
+
+ - Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.6161
+     Best Confidence Version  : 9.0.30729.6161
+     Version Confidence Level : 2
+     All Possible Versions    :  9.0.30729.6161
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 9
+       [Version] : 
+           Raw Value           : 151025673
+       [DisplayName] : 
+           Raw Value           : Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.6161
+       [UninstallString] : 
+           Raw Value           : MsiExec.exe /X{5FCE6D76-F5DC-37AB-B2B8-22AB8CEDB1D4}
+       [InstallDate] : 
+           Raw Value           : 2019/01/31
+       [DisplayVersion] : 
+           Raw Value           : 9.0.30729.6161
+       [VersionMinor] : 
+           Raw Value           : 0
+
+ - Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.36.32532
+     Best Confidence Version  : 14.36.32532
+     Version Confidence Level : 2
+     All Possible Versions    :  14.36.32532
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 14
+       [Version] : 
+           Raw Value           : 237272852
+       [DisplayName] : 
+           Raw Value           : Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.36.32532
+       [UninstallString] : 
+           Raw Value           : MsiExec.exe /I{D5D19E2F-7189-42FE-8103-92CD1FA457C2}
+       [InstallDate] : 
+           Raw Value           : 2023/10/16
+       [DisplayVersion] : 
+           Raw Value           : 14.36.32532
+       [VersionMinor] : 
+           Raw Value           : 36
+
+ - Microsoft Visual C++ 2022 X86 Additional Runtime - 14.36.32532
+     Best Confidence Version  : 14.36.32532
+     Version Confidence Level : 2
+     All Possible Versions    :  14.36.32532
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 14
+       [Version] : 
+           Raw Value           : 237272852
+       [DisplayName] : 
+           Raw Value           : Microsoft Visual C++ 2022 X86 Additional Runtime - 14.36.32532
+       [UninstallString] : 
+           Raw Value           : MsiExec.exe /I{C2C59CAB-8766-4ABD-A8EF-1151A36C41E5}
+       [InstallDate] : 
+           Raw Value           : 2023/10/16
+       [DisplayVersion] : 
+           Raw Value           : 14.36.32532
+       [VersionMinor] : 
+           Raw Value           : 36
+
+ - Mozilla Maintenance Service
+     Best Confidence Version  : 1.0.0.0
+     Version Confidence Level : 3
+     All Possible Versions    :  1.0.0.0, 83.0
+     Other Version Data
+       [DisplayName] : 
+           Raw Value           : Mozilla Maintenance Service
+       [UninstallString] : 
+           Raw Value           : "C:\Program Files (x86)\Mozilla Maintenance Service\uninstall.exe"
+           Parsed File Path    : C:\Program Files (x86)\Mozilla Maintenance Service\uninstall.exe
+           Parsed File Version : 1.0.0.0
+       [DisplayVersion] : 
+           Raw Value           : 83.0
+       [DisplayIcon] : 
+           Raw Value           : C:\Program Files (x86)\Mozilla Maintenance Service\Uninstall.exe,0
+           Parsed File Path    : C:\Program Files (x86)\Mozilla Maintenance Service\Uninstall.exe
+           Parsed File Version : 1.0.0.0
+
+ - VMware Tools
+     Best Confidence Version  : 12.3.0.22234872
+     Version Confidence Level : 2
+     All Possible Versions    :  12.3.0.22234872
+     Other Version Data
+       [VersionMajor] : 
+           Raw Value           : 12
+       [Version] : 
+           Raw Value           : 201523200

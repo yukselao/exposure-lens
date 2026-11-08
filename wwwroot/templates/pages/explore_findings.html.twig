@@ -1,0 +1,31 @@
+{% import 'partials/icons.twig' as icons %}
+<div class="explore" id="findings">
+  <aside class="card">
+    <div class="filter-group">
+      <div class="filter-title">Severity</div>
+      <button type="button" class="filter-option" data-f="severity" data-v="">Any<span class="count" data-count="total"></span></button>
+      <button type="button" class="filter-option" data-f="severity" data-v="4">Critical<span class="count" data-count="critical"></span></button>
+      <button type="button" class="filter-option" data-f="severity" data-v="3">High<span class="count" data-count="high"></span></button>
+      <button type="button" class="filter-option" data-f="severity" data-v="2">Medium<span class="count" data-count="medium"></span></button>
+      <button type="button" class="filter-option" data-f="severity" data-v="1">Low<span class="count" data-count="low"></span></button>
+      <button type="button" class="filter-option" data-f="severity" data-v="0">Info<span class="count" data-count="info"></span></button>
+    </div>
+    <div class="filter-group">
+      <div class="filter-title">Exploit</div>
+      <button type="button" class="filter-option" data-f="exploitable" data-v="">Any</button>
+      <button type="button" class="filter-option" data-f="exploitable" data-v="1">Known exploit<span class="count" data-count="exploitable"></span></button>
+    </div>
+    <div class="filter-group" id="findingScope">
+      <div class="filter-title">Scope</div>
+      <div class="muted" id="findingScopeList">All findings</div>
+    </div>
+  </aside>
+  <section class="card">
+    <div class="toolbar">
+      <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="findingSearch" placeholder="Host, plugin name or plugin ID" aria-label="Search findings"></div>
+      <span class="muted" id="findingHint"></span>
+    </div>
+    <div class="table-wrap"><table class="table table-hover"><thead id="findingHead"></thead><tbody id="findingBody"></tbody></table></div>
+    <div class="pager" id="findingPager"></div>
+  </section>
+</div>

@@ -1,0 +1,25 @@
+The following software are installed on the remote host :
+
+Microsoft Edge  [version 117.0.2045.60]  [installed on 2023/10/08]
+Microsoft Edge Update  [version 1.3.177.11]
+Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.32.31326  [version 14.32.31326.0]
+Tenable.ad Secure Relay  [version 3.56.1]  [installed on 2023/10/10]
+Microsoft Visual C++ 2022 X64 Additional Runtime - 14.32.31326  [version 14.32.31326]  [installed on 2023/03/09]
+Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.32.31326  [version 14.32.31326]  [installed on 2023/03/09]
+VMware Tools  [version 12.1.5.20735119]  [installed on 2023/03/09]
+Microsoft Visual C++ 2015-2022 Redistributable (x86) - 14.32.31326  [version 14.32.31326.0]
+Microsoft Visual C++ 2022 X86 Additional Runtime - 14.32.31326  [version 14.32.31326]  [installed on 2023/03/09]
+Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.32.31326  [version 14.32.31326]  [installed on 2023/03/09]
+
+The following software are installed on the remote host :
+
+Microsoft Edge  [version 117.0.2045.60]  [installed on 2023/10/08]
+Microsoft Edge Update  [version 1.3.177.11]
+Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.32.31326  [version 14.32.31326.0]
+Microsoft Visual C++ 2022 X64 Additional Runtime - 14.32.31326  [version 14.32.31326]  [installed on 2023/03/09]
+Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.32.31326  [version 14.32.31326]  [installed on 2023/03/09]
+VMware Tools  [version 12.1.5.20735119]  [installed on 2023/03/09]
+Microsoft Visual C++ 2015-2022 Redistributable (x86) - 14.32.31326  [version 14.32.31326.0]
+Microsoft Visual C++ 2022 X86 Additional Runtime - 14.32.31326  [version 14.32.31326]  [installed on 2023/03/09]
+Tenable.ad Secure Relay  [version 3.48.1]  [installed on 2023/06/19]
+Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.32.31326  [version 14.32.31326]  [installed on 2023/03/09]

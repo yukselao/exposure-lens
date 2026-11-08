@@ -8,6 +8,10 @@ require __DIR__ . '/Db.php';
 require __DIR__ . '/Crypto.php';
 require __DIR__ . '/Jobs.php';
 require __DIR__ . '/Logs.php';
+require __DIR__ . '/ai/Knowledge.php';
+require __DIR__ . '/ai/Llm.php';
+require __DIR__ . '/ai/Tools.php';
+require __DIR__ . '/ai/Chat.php';
 
 session_name('el_session');
 session_set_cookie_params(['path' => '/', 'httponly' => true, 'samesite' => 'Lax']);

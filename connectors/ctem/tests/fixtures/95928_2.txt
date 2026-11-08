@@ -1,0 +1,220 @@
+-----------[ User Accounts ]-----------
+
+User         : abe
+Home folder  : /home/abe
+Start script : /bin/bash
+Groups       : abe
+
+User         : abe-with-password
+Home folder  : /home/abe-with-password
+Start script : /bin/bash
+Groups       : abe-with-password
+
+User         : test
+Home folder  : /home/test
+Start script : /bin/bash
+Groups       : test
+
+User         : maltouf
+Home folder  : /home/maltouf
+Start script : /bin/bash
+Groups       : maltouf
+               wheel
+
+User         : maltouf2
+Home folder  : /home/maltouf2
+Start script : /bin/bash
+Groups       : wheel
+               maltouf2
+
+User         : 1abe
+Home folder  : /home/abe
+Start script : /bin/bash
+Groups       : abe
+
+User         : 1abe-with-password
+Home folder  : /home/abe-with-password
+Start script : /bin/bash
+Groups       : abe-with-password
+
+User         : 1test
+Home folder  : /home/test
+Start script : /bin/bash
+Groups       : test
+
+User         : 1maltouf
+Home folder  : /home/maltouf
+Start script : /bin/bash
+Groups       : maltouf
+
+User         : 1maltouf2
+Home folder  : /home/maltouf2
+Start script : /bin/bash
+Groups       : maltouf2
+
+User         : 2abe
+Home folder  : /home/abe
+Start script : /bin/bash
+Groups       : abe
+
+User         : 2abe-with-password
+Home folder  : /home/abe-with-password
+Start script : /bin/bash
+Groups       : abe-with-password
+
+User         : 2test
+Home folder  : /home/test
+Start script : /bin/bash
+Groups       : test
+
+User         : 2maltouf
+Home folder  : /home/maltouf
+Start script : /bin/bash
+Groups       : maltouf
+
+User         : 2maltouf2
+Home folder  : /home/maltouf2
+Start script : /bin/bash
+Groups       : maltouf2
+
+User         : 3abe
+Home folder  : /home/abe
+Start script : /bin/bash
+Groups       : abe
+
+User         : 3abe-with-password
+Home folder  : /home/abe-with-password
+Start script : /bin/bash
+Groups       : abe-with-password
+
+User         : 3test
+Home folder  : /home/test
+Start script : /bin/bash
+Groups       : test
+
+User         : 3maltouf
+Home folder  : /home/maltouf
+Start script : /bin/bash
+Groups       : maltouf
+
+User         : 3maltouf2
+Home folder  : /home/maltouf2
+Start script : /bin/bashw
+Groups       : maltouf2
+
+User         : comptest
+Home folder  : /home/comptest
+Start script : /bin/bash
+Groups       : comptest
+               wheel
+
+----------[ System Accounts ]----------
+
+User         : root
+Home folder  : /root
+Start script : /bin/bash
+Groups       : root
+
+User         : bin
+Home folder  : /bin
+Start script : /sbin/nologin
+Groups       : bin
+
+User         : daemon
+Home folder  : /sbin
+Start script : /sbin/nologin
+Groups       : daemon
+
+User         : adm
+Home folder  : /var/adm
+Start script : /sbin/nologin
+Groups       : adm
+
+User         : lp
+Home folder  : /var/spool/lpd
+Start script : /sbin/nologin
+Groups       : lp
+
+User         : sync
+Home folder  : /sbin
+Start script : /bin/sync
+Groups       : root
+
+User         : shutdown
+Home folder  : /sbin
+Start script : /sbin/shutdown
+Groups       : root
+
+User         : halt
+Home folder  : /sbin
+Start script : /sbin/halt
+Groups       : root
+
+User         : mail
+Home folder  : /var/spool/mail
+Start script : /sbin/nologin
+Groups       : mail
+
+User         : operator
+Home folder  : /root
+Start script : /sbin/nologin
+Groups       : root
+
+User         : games
+Home folder  : /usr/games
+Start script : /sbin/nologin
+Groups       : users
+
+User         : ftp
+Home folder  : /var/ftp
+Start script : /sbin/nologin
+Groups       : ftp
+
+User         : nobody
+Home folder  : /
+Start script : /sbin/nologin
+Groups       : nobody
+
+User         : systemd-coredump
+Home folder  : /
+Start script : /sbin/nologin
+Groups       : systemd-coredump
+
+User         : dbus
+Home folder  : /
+Start script : /sbin/nologin
+Groups       : dbus
+
+User         : polkitd
+Home folder  : /
+Start script : /sbin/nologin
+Groups       : polkitd
+
+User         : tss
+Home folder  : /dev/null
+Start script : /sbin/nologin
+Groups       : tss
+
+User         : clevis
+Home folder  : /var/cache/clevis
+Start script : /usr/sbin/nologin
+Groups       : tss
+               clevis
+
+User         : sssd
+Home folder  : /
+Start script : /sbin/nologin
+Groups       : sssd
+
+User         : libstoragemgmt
+Home folder  : /var/run/lsm
+Start script : /sbin/nologin
+Groups       : libstoragemgmt
+
+User         : setroubleshoot
+Home folder  : /var/lib/setroubleshoot
+Start script : /sbin/nologin
+Groups       : setroubleshoot
+
+User         : cockpit-ws
+Home folder  : /nonexisting

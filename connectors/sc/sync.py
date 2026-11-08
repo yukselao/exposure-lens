@@ -94,12 +94,14 @@ def sync_pool(job, log) -> dict:
                 errors.append(f"{query.name}: {err}")
                 log.error("sc_query_failed", **fields, error=str(err))
 
-        stats.update(_delete_unreferenced(session))
+        stats.update(delete_unreferenced(session))
         if stats["queries_failed"] < len(queries):
             pool.last_sync_at = func.now()
         session.commit()
         stats["hosts_total"] = session.scalar(select(func.count()).select_from(HostAsset))
         stats["vulnerabilities_total"] = session.scalar(select(func.count()).select_from(Vulnerability))
+        if jobs.enqueue_if_idle("ctem", "correlate", None, "chain"):
+            log.info("ctem_correlate_queued", job_id=job["id"])
         if errors:
             jobs.progress(job["id"], **stats)
             raise JobError(f"{len(errors)} of {len(queries)} queries failed. " + " | ".join(errors))
@@ -156,8 +158,8 @@ def _sync_query(session, client, query, job, log, fields) -> dict:
             "hosts": len(hosts_seen), "truncated": bool(limit and total > fetched)}
 
 
-def _upsert_page(session, records):
-    """Upsert the hosts and findings of one page. Returns (finding ids, host ids)."""
+def upsert_hosts(session, records) -> dict:
+    """Upsert the hosts of these records. Returns {(repository_id, host_key): id}."""
     hosts = {}
     for record in records:
         row = host_row(record)
@@ -175,13 +177,17 @@ def _upsert_page(session, records):
     update["first_seen"] = func.least(HostAsset.first_seen, stmt.excluded.first_seen)
     update["last_seen"] = func.greatest(HostAsset.last_seen, stmt.excluded.last_seen)
     update["synced_at"] = func.now()
-    host_ids = {
+    return {
         (r.repository_id, r.host_key): r.id
         for r in session.execute(stmt.on_conflict_do_update(
             index_elements=["repository_id", "host_key"], set_=update,
         ).returning(HostAsset.id, HostAsset.repository_id, HostAsset.host_key))
     }
 
+
+def _upsert_page(session, records):
+    """Upsert the hosts and findings of one page. Returns (finding ids, host ids)."""
+    host_ids = upsert_hosts(session, records)
     findings = {}
     for record in records:
         host = host_row(record)
@@ -201,14 +207,16 @@ def _upsert_page(session, records):
     return ids, set(host_ids.values())
 
 
-def _delete_unreferenced(session) -> dict:
-    """Hard delete: findings no query returns any more, then hosts left without findings."""
+def delete_unreferenced(session) -> dict:
+    """Hard delete: findings no query returns any more, then hosts left with
+    neither findings nor plugin outputs."""
     findings = session.execute(text("""
         DELETE FROM vulnerabilities v
         WHERE NOT EXISTS (SELECT 1 FROM sc_query_findings f WHERE f.vulnerability_id = v.id)""")).rowcount
     hosts = session.execute(text("""
         DELETE FROM host_assets h
-        WHERE NOT EXISTS (SELECT 1 FROM vulnerabilities v WHERE v.host_asset_id = h.id)""")).rowcount
+        WHERE NOT EXISTS (SELECT 1 FROM vulnerabilities v WHERE v.host_asset_id = h.id)
+          AND NOT EXISTS (SELECT 1 FROM plugin_outputs o WHERE o.host_asset_id = h.id)""")).rowcount
     return {"findings_deleted": findings, "hosts_deleted": hosts}
 
 

@@ -94,6 +94,42 @@ class TenableSC:
         rows = self._request("GET", "/rest/pluginFamily?fields=id,name", timeout=30) or []
         return [{"id": str(r.get("id")), "name": r.get("name") or ""} for r in rows]
 
+    def scan_results(self) -> list:
+        """Finished scan results, newest first. Attachments live on these."""
+        response = self._request("GET", "/rest/scanResult?fields=id,name,status,importStatus,finishTime", timeout=60) or {}
+        rows = {str(r.get("id")): r for r in (response.get("usable") or []) + (response.get("manageable") or [])}
+        finished = [r for r in rows.values() if r.get("importStatus") == "Finished"]
+        return sorted(finished, key=lambda r: int(r.get("finishTime") or 0), reverse=True)
+
+    def scan_vulns(self, scan_id, filters: list, start_offset: int, end_offset: int) -> dict:
+        """POST /rest/analysis on one scan result (source `individual`)."""
+        body = {
+            "query": {
+                "name": "", "description": "", "context": "", "status": -1,
+                "createdTime": 0, "modifiedTime": 0, "groups": [],
+                "type": "vuln", "tool": "vulndetails", "sourceType": "individual",
+                "scanID": str(scan_id), "view": "all",
+                "startOffset": start_offset, "endOffset": end_offset,
+                "filters": filters, "vulnTool": "vulndetails",
+            },
+            "sourceType": "individual", "scanID": str(scan_id), "view": "all", "columns": [], "type": "vuln",
+        }
+        response = self._request("POST", "/rest/analysis", body)
+        if not isinstance(response, dict) or not isinstance(response.get("results"), list):
+            raise ScError("Security Center returned an analysis reply without results.")
+        return response
+
+    def attachment(self, scan_id, attachment_id) -> bytes:
+        """GET /rest/scanResult/{id}/attachment/{attachmentID}: the file itself."""
+        try:
+            reply = self.session.get(f"{self.url}/rest/scanResult/{scan_id}/attachment/{attachment_id}",
+                                     timeout=(self.CONNECT_TIMEOUT, self.timeout))
+        except requests.exceptions.RequestException as err:
+            raise ScError(f"Attachment download failed: {type(err).__name__}: {_short(err)}") from err
+        if reply.status_code != 200:
+            raise ScError(f"Attachment download failed (HTTP {reply.status_code}).")
+        return reply.content
+
     def cumulative_vulns(self, filters: list, start_offset: int, end_offset: int, on_retry=None) -> dict:
         """POST /rest/analysis, tool `vulndetails`, cumulative database.
         Returns rows [start_offset, end_offset) with `totalRecords`."""

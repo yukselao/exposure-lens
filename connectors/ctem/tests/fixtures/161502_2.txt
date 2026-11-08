@@ -1,0 +1,9 @@
+Logged on users :
+  - S-1-5-21-1141888507-2854189471-3097088611-500
+    Domain   : DEMO
+    Username : Administrator
+
+Logged on users :
+  - S-1-5-21-1141888507-2854189471-3097088611-500
+    Domain   : DEMO
+    Username : Administrator

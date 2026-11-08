@@ -8,6 +8,18 @@ final class Jobs
         finished_at, progress, stats, error,
         EXTRACT(EPOCH FROM COALESCE(finished_at, now()) - started_at)::int AS duration_seconds";
 
+    /** The newest job of each kind for a connector. */
+    public static function latestByKind(array $connectors): array
+    {
+        $marks = implode(',', array_fill(0, count($connectors), '?'));
+        $rows = Db::all(
+            'SELECT DISTINCT ON (connector, kind) ' . self::COLUMNS . " FROM sync_jobs WHERE connector IN ($marks)
+             ORDER BY connector, kind, id DESC",
+            $connectors
+        );
+        return array_map([self::class, 'decode'], $rows);
+    }
+
     /** Queue a job unless the same one is already queued or running. Returns the job id either way. */
     public static function enqueue(string $connector, string $kind, ?int $targetId): array
     {

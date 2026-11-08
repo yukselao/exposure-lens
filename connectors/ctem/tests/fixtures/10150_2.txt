@@ -1,0 +1,14 @@
+The following 8 NetBIOS names have been gathered :
+
+ LN-DC            = Computer name
+ LABNET           = Workgroup / Domain name
+ LABNET           = Domain Controllers
+ LN-DC            = File Server Service
+ LABNET           = Browser Service Elections
+ LABNET           = Domain Master Browser
+ LABNET           = Master Browser
+ __MSBROWSE__     = Master Browser
+
+The remote host has the following MAC address on its adapter :
+
+   00:50:56:a6:d3:8c

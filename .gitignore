@@ -11,3 +11,7 @@ build/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Agent Tenable knowledge packs uploaded through the UI
+/data/ai-packs/*
+!/data/ai-packs/.gitkeep

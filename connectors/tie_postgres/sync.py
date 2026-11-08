@@ -4,15 +4,16 @@ What exists in TIE is upserted; what no longer exists in TIE is deleted."""
 import os
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text as sql
 from sqlalchemy.dialects.postgresql import insert
 
 from eldb.database import new_session
-from eldb.models import AdComputer, AdGroup, AdGroupPolicy, AdTierAssignment, AdUser
+from eldb.models import AdComputer, AdDomain, AdGroup, AdGroupPolicy, AdTierAssignment, AdUser
 from elcommon import config, jobs
 from elcommon.crypto import SecretError
 from elcommon.worker import JobError
 
+from decode import decode_attributes, text as text_value
 from mapping import to_row
 from tie_client import TieClient, TieError
 
@@ -114,12 +115,17 @@ def sync_ad(job, log) -> dict:
             stats.update(_delete_missing(session, started, seen, complete, log, fields))
             jobs.progress(job["id"], step="tier0")
             stats.update(_sync_tier0(session, client, log, fields))
+            jobs.progress(job["id"], step="domains")
+            stats.update(_sync_domains(session, client, log, fields))
+            stats.update(_sync_group_members(session, log, fields))
         except TieError as err:
             session.rollback()
             raise JobError(str(err)) from err
         session.commit()
         for name, model in MODELS.items():
             stats[name] = session.scalar(select(func.count()).select_from(model))
+        if jobs.enqueue_if_idle("ctem", "correlate", None, "chain"):
+            log.info("ctem_correlate_queued", **fields)
         return stats
     finally:
         session.close()
@@ -197,6 +203,45 @@ def _sync_tier0(session, client, log, fields) -> dict:
     log.info("tie_tier0_synced", **fields, tier0=len(values),
              builtin=result.get("builtinCount"), derived=result.get("derivedCount"))
     return {"tier0": len(values)}
+
+
+def _sync_domains(session, client, log, fields) -> dict:
+    """NetBIOS and DNS names of each domain, from the crossRef objects. Plugin
+    output names domains by NetBIOS name, so account matching needs this map."""
+    result = client.tool("query_ad_objects", {"expression": "objectClass=crossRef", "limit": 0})
+    rows = {}
+    for obj in result.get("objects") or []:
+        attributes = decode_attributes(obj.get("attributes"))
+        netbios = text_value(attributes.get("netbiosname"))
+        if netbios:
+            directory = int(obj.get("directoryId") or 0)
+            rows[(directory, netbios)] = {"directory_id": directory, "netbios_name": netbios,
+                                          "dns_name": text_value(attributes.get("dnsroot")),
+                                          "nc_name": text_value(attributes.get("ncname"))}
+    if not rows:
+        log.warning("tie_domains_empty", **fields)
+        return {"domains": 0}
+    session.execute(delete(AdDomain))
+    session.execute(insert(AdDomain), list(rows.values()))
+    log.info("tie_domains_synced", **fields, domains=len(rows))
+    return {"domains": len(rows)}
+
+
+def _sync_group_members(session, log, fields) -> dict:
+    """Direct membership: match each `member` DN to a synced object."""
+    session.execute(sql("DELETE FROM ad_group_members"))
+    count = session.execute(sql("""
+        INSERT INTO ad_group_members (group_key, member_key)
+        SELECT DISTINCT g.object_key, o.object_key
+        FROM ad_groups g
+        CROSS JOIN LATERAL jsonb_array_elements_text(
+            CASE WHEN jsonb_typeof(g.attributes->'member') = 'array' THEN g.attributes->'member'
+                 WHEN jsonb_typeof(g.attributes->'member') = 'string' THEN jsonb_build_array(g.attributes->'member')
+                 ELSE '[]'::jsonb END) AS m(dn)
+        JOIN v_ad_objects o ON lower(o.dn) = lower(m.dn) AND o.directory_id = g.directory_id
+        ON CONFLICT DO NOTHING""")).rowcount
+    log.info("tie_group_members_synced", **fields, members=count)
+    return {"group_members": count}
 
 
 # ---- scheduler -----------------------------------------------------------------
