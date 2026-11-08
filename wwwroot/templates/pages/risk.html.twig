@@ -1,6 +1,10 @@
 {% import 'partials/icons.twig' as icons %}
 <div id="risk">
-  <p class="muted" id="riskUpdated" style="margin-top:-12px">&nbsp;</p>
+  <div class="risk-updated">
+    <p class="muted mb-0" id="riskUpdated">&nbsp;</p>
+    <button type="button" class="btn btn-sm btn-outline-primary" id="riskRecalc" title="Run the CTEM correlation now: match identities to AD and rebuild the access facts and read models"><span class="icon icon-16 i-scan"></span> Recalculate now</button>
+    <span class="muted small-text" id="riskRecalcStatus">Recalculated automatically after every Security Center or Identity Exposure sync, and at least every hour.</span>
+  </div>
   <div class="coverage" id="riskCoverage"></div>
   <div class="tiles risk-tiles" id="riskTiles">
     <button type="button" class="tile" data-view="critical_users"><div class="title">Users Reaching Hosts with Critical Vulnerabilities</div><div class="data"><span class="icon i-vuln"></span><span data-v="critical_users">&ndash;</span></div></button>

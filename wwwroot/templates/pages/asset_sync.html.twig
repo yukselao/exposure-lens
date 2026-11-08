@@ -36,6 +36,7 @@
         <div class="sync-actions">
           <button type="button" class="btn btn-primary" id="scRun" disabled><span class="icon icon-16 i-scan"></span> <span id="scRunLabel">Sync users</span></button>
           <button type="button" class="btn btn-outline-secondary" id="scCancel" hidden>Cancel</button>
+          <button type="button" class="btn btn-outline-primary" id="scHistory" title="Past syncs: how many succeeded or failed and how long they took"><span class="icon icon-16 i-scan"></span> History</button>
           <a class="btn btn-link" href="/explore/assets">Open Assets</a>
           <span class="muted small-text">Users are synced in batches of 50; you can leave the filters as they are while it runs. A sync replaces the user's existing snapshot.</span>
         </div>
@@ -54,5 +55,37 @@
       </table></div>
       <div class="pager" id="scPager"></div>
     </section>
+  </div>
+</div>
+
+<div class="modal fade" id="syncHistory" tabindex="-1" aria-labelledby="syncHistoryTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="syncHistoryTitle">Sync history</h2>
+        <button type="button" class="btn btn-sm btn-link ms-3" id="shBack" hidden>&larr; All runs</button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="shList">
+          <div class="sh-toolbar">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Trigger">
+              <button type="button" class="btn btn-outline-primary active" data-trigger="">All</button>
+              <button type="button" class="btn btn-outline-primary" data-trigger="bulk">Asset Sync runs</button>
+              <button type="button" class="btn btn-outline-primary" data-trigger="single">Single syncs</button>
+              <button type="button" class="btn btn-outline-primary" data-trigger="agent">Agent Tenable</button>
+            </div>
+            <span class="muted small-text" id="shTotals"></span>
+            <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="shClear">Clear history</button>
+          </div>
+          <div class="table-wrap"><table class="table table-hover">
+            <thead><tr><th>Started</th><th>Trigger</th><th>What</th><th>Status</th><th class="text-end">Planned</th><th class="text-end">Synced</th><th class="text-end">Failed</th><th class="text-end">Duration</th><th class="text-end">Per asset</th></tr></thead>
+            <tbody id="shBody"></tbody>
+          </table></div>
+          <div class="pager" id="shPager"></div>
+        </div>
+        <div id="shDetail" hidden></div>
+      </div>
+    </div>
   </div>
 </div>

@@ -606,7 +606,7 @@
     $('#assetBody').on('click', '[data-resync]', function (e) {
       e.stopPropagation();
       var $b = $(this).prop('disabled', true).text('Syncing…');
-      api('asset_profile', { id: this.dataset.resync }).then(function (p) { return post('asset_sync', assetRefOf(p)); })
+      api('asset_profile', { id: this.dataset.resync }).then(function (p) { return post('asset_sync', $.extend(assetRefOf(p), { trigger: 'resync' })); })
         .done(function () { toast('Asset re-synced.'); load(); }).fail(function (xhr) { toast(errText(xhr), 'error'); $b.prop('disabled', false).text('Re-sync'); });
     }).on('click', '[data-del]', function (e) {
       e.stopPropagation();
@@ -660,7 +660,7 @@
     $form.on('input change', reload).on('reset', function () { setTimeout(reload, 0); }).on('submit', function (e) { e.preventDefault(); });
     $('#scBody').on('click', '[data-one]', function () {
       var $b = $(this).prop('disabled', true).text('Syncing…');
-      post('asset_sync', { kind: 'identity', ad_user_id: this.dataset.one }).done(function (r) { toast('Synced ' + r.name + ' in ' + r.ms + ' ms.'); load(); })
+      post('asset_sync', { kind: 'identity', ad_user_id: this.dataset.one, trigger: 'row' }).done(function (r) { toast('Synced ' + r.name + ' in ' + r.ms + ' ms.'); load(); })
         .fail(function (xhr) { toast(errText(xhr), 'error'); $b.prop('disabled', false).text('Sync'); });
     });
 
@@ -668,14 +668,16 @@
       if (!total || running) return;
       var f = filters(), planned = total;
       function start() {
-        running = { cancelled: false, done: 0, ok: 0, failed: 0, t0: Date.now(), after: 0 };
+        running = { cancelled: false, done: 0, ok: 0, failed: 0, t0: Date.now(), after: 0, runId: 0 };
         $('#scRun').prop('disabled', true); $('#scCancel').prop('hidden', false); $('#scProgress').prop('hidden', false);
         $form.find('input, select, button').prop('disabled', true);
-        step();
+        $('#scBar').css('width', '0%').text(''); $('#scStatus').text('Starting…');
+        post('asset_sync_run_start', $.extend({}, f, { label: filterLabel(f), planned: planned })).done(function (r) { running.runId = r.id; step(); })
+          .fail(function (xhr) { finish('Stopped: ' + errText(xhr)); });
       }
       function step() {
         if (running.cancelled) return finish('Cancelled');
-        post('asset_sync_batch', $.extend({}, f, { after_id: running.after, limit: 50 })).done(function (r) {
+        post('asset_sync_batch', $.extend({}, f, { after_id: running.after, limit: 50, run_id: running.runId })).done(function (r) {
           running.after = r.last_id; running.ok += r.synced; running.failed += r.failed; running.done += r.synced + r.failed;
           var pct = Math.min(100, Math.round(running.done / planned * 100));
           $('#scBar').css('width', pct + '%').text(pct + '%');
@@ -687,6 +689,7 @@
       }
       function finish(word) {
         var r = running; running = null;
+        if (r.runId) post('asset_sync_run_finish', { run_id: r.runId, status: word === 'Done' ? 'done' : word === 'Cancelled' ? 'cancelled' : 'stopped' });
         $('#scCancel').prop('hidden', true); $form.find('input, select, button').prop('disabled', false);
         $('#scStatus').text(word + ' · ' + num(r.ok) + ' synced' + (r.failed ? ', ' + num(r.failed) + ' failed (see the browser console)' : '') + ' in ' + secs(Math.round((Date.now() - r.t0) / 1000)) + '.');
         if (word === 'Done') $('#scBar').css('width', '100%').text('100%');
@@ -697,6 +700,82 @@
       else start();
     });
     $('#scCancel').on('click', function () { if (running) { running.cancelled = true; $(this).prop('disabled', true).text('Cancelling…'); setTimeout(function () { $('#scCancel').prop('disabled', false).text('Cancel'); }, 1500); } });
+
+    /** "Search: stark · Domain: ALSID · Tier 0": the filters as people read them. */
+    function filterLabel(f) {
+      var parts = [];
+      $form.find('[name]').each(function () {
+        var v = f[this.name]; if (v === undefined || v === '') return;
+        parts.push(this.tagName === 'SELECT' ? $(this).find('option:selected').text().replace(/ \(\d[\d,]*\)$/, '') : (FILTER_NAME[this.name] || this.name) + ': ' + v);
+      });
+      return parts.length ? parts.join(' · ') : 'All AD users';
+    }
+
+    var FILTER_NAME = { q: 'Search', domain_id: 'Domain', type: 'Type', tier: 'Tier', status: 'Status', reach: 'Host access', snapshot: 'Snapshot', ou: 'DN contains' };
+    var FILTER_VALUE = { reach: { yes: 'reaches a host', no: 'reaches no host' }, snapshot: { none: 'never synced', synced: 'synced', stale: 'older than a day' }, type: { user: 'users', service_account: 'service accounts' }, tier: { none: 'no tier' } };
+
+    // -- History of syncs (asset_sync_runs)
+    var TRIGGER_LABEL = { bulk: 'Asset Sync', panel: 'Detail panel', row: 'Asset Sync row', resync: 'Re-sync', agent: 'Agent Tenable', manual: 'Manual' };
+    var STATUS_BADGE = { done: ['ok', 'Done'], running: ['run', 'Running'], cancelled: ['wait', 'Cancelled'], stopped: ['bad', 'Failed'], interrupted: ['wait', 'Interrupted'] };
+    var hs = { trigger: '', page: 1, size: 25 };
+    function ms(v) { v = Number(v) || 0; return v < 1000 ? v + ' ms' : v < 60000 ? (v / 1000).toFixed(1) + ' s' : Math.floor(v / 60000) + ' min ' + Math.round(v % 60000 / 1000) + ' s'; }
+    function statusBadgeRun(st) { var b = STATUS_BADGE[st] || ['', st]; return '<span class="badge-soft ' + b[0] + '">' + esc(b[1]) + '</span>'; }
+    function loadRuns() {
+      $('#shDetail').prop('hidden', true); $('#shList').prop('hidden', false); $('#shBack').prop('hidden', true);
+      $('#syncHistory [data-trigger]').each(function () { $(this).toggleClass('active', this.dataset.trigger === hs.trigger); });
+      $('#shBody').html(loadingRow(9));
+      api('asset_sync_runs', hs).done(function (d) {
+        var t = d.totals;
+        $('#shTotals').text(num(t.runs) + ' runs · ' + num(t.synced) + ' synced · ' + num(t.failed) + ' failed · ' + ms(t.work_ms) + ' of work');
+        $('#shBody').html(d.rows.length ? d.rows.map(function (r) {
+          var n = Number(r.synced) + Number(r.failed);
+          return '<tr class="clickable" tabindex="0" data-run="' + esc(r.id) + '"><td class="text-nowrap" title="' + esc(fmtDate(r.started_at)) + '">' + esc(fmtDate(r.started_at)) + '<div class="muted small-text">' + esc(ago(r.started_at)) + '</div></td>' +
+            '<td><span class="chip">' + esc(TRIGGER_LABEL[r.trigger] || r.trigger) + '</span></td><td class="wrap" style="max-width:320px">' + esc(r.label || '') + '</td><td>' + statusBadgeRun(r.status) + '</td>' +
+            '<td class="text-end">' + num(r.planned) + '</td><td class="text-end">' + countCell(r.synced) + '</td><td class="text-end">' + (Number(r.failed) ? '<span class="text-danger fw-bold">' + num(r.failed) + '</span>' : countCell(0)) + '</td>' +
+            '<td class="text-end text-nowrap">' + esc(ms(r.elapsed_ms)) + '</td><td class="text-end text-nowrap">' + (n ? esc(ms(Math.round(r.work_ms / n))) : '–') + '</td></tr>';
+        }).join('') : emptyRow(9, 'No sync has run yet.'));
+        renderPager($('#shPager'), hs, d.total, loadRuns);
+      }).fail(function (xhr) { $('#shBody').html(emptyRow(9, esc(errText(xhr)))); });
+    }
+    function openRun(id) {
+      api('asset_sync_run', { id: id }).done(function (r) {
+        var n = Number(r.synced) + Number(r.failed), items = r.items || [], failed = items.filter(function (i) { return !i.ok; });
+        var f = r.filters || {}, fl = Object.keys(f).map(function (k) {
+          var v = k === 'domain_id' ? ($('#sfDomain option[value="' + f[k] + '"]').text().replace(/ \(\d[\d,]*\)$/, '') || f[k]) : ((FILTER_VALUE[k] || {})[f[k]] || f[k]);
+          return '<span class="chip">' + esc(FILTER_NAME[k] || k) + ': ' + esc(v) + '</span>';
+        }).join('');
+        var slow = items.filter(function (i) { return i.ok; }).sort(function (a, b) { return b.ms - a.ms; }).slice(0, 5);
+        $('#shDetail').html(
+          '<div class="sh-head"><div><h3 class="fs-5 mb-1">' + esc(r.label || 'Sync run') + '</h3><div class="muted">' + esc(TRIGGER_LABEL[r.trigger] || r.trigger) + ' · run #' + esc(r.id) + '</div></div>' + statusBadgeRun(r.status) + '</div>' +
+          '<div class="sync-counts mt-3">' +
+            '<div><span class="label">Planned</span><b>' + num(r.planned) + '</b></div><div><span class="label">Synced</span><b>' + num(r.synced) + '</b></div>' +
+            '<div><span class="label">Failed</span><b' + (Number(r.failed) ? ' class="text-danger"' : '') + '>' + num(r.failed) + '</b></div>' +
+            '<div><span class="label">Duration</span><b>' + esc(ms(r.elapsed_ms)) + '</b></div></div>' +
+          kv([['Started', fmtDate(r.started_at)], ['Finished', r.finished_at ? fmtDate(r.finished_at) : (r.status === 'interrupted' ? 'never (the tab was closed); last progress ' + fmtDate(r.updated_at) : 'still running')],
+            ['Server work time', ms(r.work_ms) + (n ? ' (' + ms(Math.round(r.work_ms / n)) + ' per asset)' : '')],
+            ['Not processed', Math.max(0, Number(r.planned) - n) ? num(Math.max(0, Number(r.planned) - n)) : ''],
+            ['Filters', fl || (r.trigger === 'bulk' ? 'none (all AD users)' : ''), true],
+            ['Slowest', slow.map(function (i) { return esc(i.name) + ' ' + esc(ms(i.ms)); }).join(', '), true]]) +
+          (failed.length ? '<h3 class="fs-6 mt-4 text-danger">Failed (' + num(failed.length) + ')</h3><div class="table-wrap"><table class="table table-sm"><thead><tr><th>Asset</th><th>Account</th><th>Error</th></tr></thead><tbody>' +
+            failed.map(function (i) { return '<tr><td>' + esc(i.name || '') + '</td><td class="mono">' + esc(i.account || '') + '</td><td class="text-danger">' + esc(i.error || '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '') +
+          '<h3 class="fs-6 mt-4">Assets (' + num(items.length) + ')</h3><div class="table-wrap sh-items"><table class="table table-sm table-hover"><thead><tr><th>Asset</th><th>Account</th><th>Result</th><th class="text-end">Time</th></tr></thead><tbody>' +
+            (items.length ? items.map(function (i) {
+              return '<tr><td>' + (i.asset_id ? '<a href="/explore/assets/view?id=' + esc(i.asset_id) + '" target="_blank" rel="noopener">' + esc(i.name) + '</a>' : esc(i.name || '')) + '</td><td class="mono">' + esc(i.account || '') + '</td>' +
+                '<td>' + (i.ok ? '<span class="badge-soft ok">synced</span>' : '<span class="badge-soft bad">failed</span>') + '</td><td class="text-end">' + esc(ms(i.ms)) + '</td></tr>';
+            }).join('') : emptyRow(4, 'No asset was processed.')) + '</tbody></table></div>');
+        $('#shList').prop('hidden', true); $('#shDetail').prop('hidden', false); $('#shBack').prop('hidden', false);
+      }).fail(function (xhr) { toast(errText(xhr), 'error'); });
+    }
+    $('#scHistory').on('click', function () { hs.page = 1; loadRuns(); bootstrap.Modal.getOrCreateInstance('#syncHistory').show(); });
+    $('#syncHistory').on('click', '[data-trigger]', function () { hs.trigger = this.dataset.trigger; hs.page = 1; loadRuns(); })
+      .on('click keydown', 'tr[data-run]', function (e) { if (e.type === 'keydown' && e.key !== 'Enter') return; openRun(this.dataset.run); });
+    $('#shBack').on('click', loadRuns);
+    $('#shClear').on('click', function () {
+      bootstrap.Modal.getOrCreateInstance('#syncHistory').hide();
+      confirmAction('Clear sync history', 'Delete the record of every past sync? The asset snapshots themselves are kept.', 'Clear', function () {
+        post('asset_sync_runs_clear').done(function (r) { toast(num(r.deleted) + ' runs deleted.'); }).fail(function (xhr) { toast(errText(xhr), 'error'); });
+      });
+    });
     load();
   }
 
@@ -721,6 +800,7 @@
     if (q.get('sync') === '1') {
       var ref = {};
       ['kind', 'ad_user_id', 'identity_key', 'account', 'host_asset_id', 'target', 'ad_computer_id'].forEach(function (k) { if (q.get(k)) ref[k] = q.get(k); });
+      ref.trigger = 'panel';
       sync(ref);
     } else if (q.get('id')) load(q.get('id'));
     else fail('No asset selected. Open one from Explore > Assets.');
@@ -1072,7 +1152,7 @@
     }
 
     // -- actions
-    $('#avResync').on('click', function () { if (current) sync(assetRefOf(current)); });
+    $('#avResync').on('click', function () { if (current) sync($.extend(assetRefOf(current), { trigger: 'resync' })); });
     $('#avDelete').on('click', function () {
       if (!current) return;
       confirmAction('Delete asset', 'Remove "' + current.name + '" from the asset table? The source data is not touched; you can sync it again at any time.', 'Delete', function () {
@@ -1530,6 +1610,23 @@
     $('#riskBody').on('click keydown', 'tr.clickable', function (e) {
       if (e.type === 'keydown' && e.key !== 'Enter') return;
       openEvidence(this.dataset.name, this.dataset.key, this.dataset.shape);
+    });
+    $('#riskRecalc').on('click', function () {
+      var $b = $(this).prop('disabled', true);
+      $('#riskRecalcStatus').text('Queued…');
+      post('ctem_run', { kind: 'correlate' }).done(function (r) {
+        watchJob(r.id, function (job) {
+          $('#riskRecalcStatus').text(job.status === 'running' ? 'Correlating identities and rebuilding the risk data…' : 'Waiting for the CTEM worker (it checks every 30 seconds)…');
+        }, function (job) {
+          $b.prop('disabled', false);
+          if (job.status === 'succeeded') {
+            var st = job.stats || {};
+            toast('Risk data recalculated.');
+            $('#riskRecalcStatus').text('Done: ' + num(st.access) + ' access facts, ' + num(st.access_via_groups) + ' through groups. Reloading…');
+            setTimeout(function () { window.location.reload(); }, 900);
+          } else $('#riskRecalcStatus').html('<span class="text-danger">Failed: ' + esc(job.error || job.status) + '</span>');
+        });
+      }).fail(function (xhr) { $b.prop('disabled', false); $('#riskRecalcStatus').html('<span class="text-danger">' + esc(errText(xhr)) + '</span>'); });
     });
     if (query().get('evidence')) openEvidence(query().get('name') || query().get('evidence'), query().get('evidence'), query().get('shape') === 'host' ? 'host' : 'identity');   // deep link from Agent Tenable
     api('risk_summary').done(function (d) {

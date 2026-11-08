@@ -180,26 +180,127 @@ final class Assets
      * Syncs the next batch of users a filter selects, in id order after $afterId. The page
      * calls it until `done`, which gives it progress and keeps every request short.
      */
-    public static function syncBatch(array $f, int $afterId, int $limit, string $source = 'bulk'): array
+    public static function syncBatch(array $f, int $afterId, int $limit, string $source = 'bulk', int $runId = 0): array
     {
         [$where, $params] = self::candidateWhere($f);
-        $ids = array_map('intval', array_column(Db::all(
-            "SELECT u.id " . self::CANDIDATE_FROM . " WHERE $where AND u.id > ? ORDER BY u.id LIMIT ?",
+        $users = Db::all(
+            "SELECT u.id, COALESCE(NULLIF(u.display_name, ''), u.sam_account_name) AS name, d.netbios_name AS domain, u.sam_account_name
+             " . self::CANDIDATE_FROM . " WHERE $where AND u.id > ? ORDER BY u.id LIMIT ?",
             array_merge($params, [$afterId, $limit])
-        ), 'id'));
+        );
         $t0 = microtime(true);
         $ok = 0;
         $errors = [];
-        foreach ($ids as $id) {
+        $items = [];
+        foreach ($users as $u) {
+            $t1 = microtime(true);
             try {
-                self::sync('identity', ['ad_user_id' => $id], $source);
+                $r = self::sync('identity', ['ad_user_id' => (int) $u['id']], $source);
                 $ok++;
+                $items[] = ['ok' => true, 'asset_id' => $r['id'], 'ad_user_id' => (int) $u['id'], 'name' => $r['name'], 'account' => ($u['domain'] ? $u['domain'] . '\\' : '') . $u['sam_account_name'], 'ms' => $r['ms']];
             } catch (Throwable $e) {
-                $errors[] = ['id' => $id, 'error' => $e->getMessage()];
+                $errors[] = ['id' => (int) $u['id'], 'error' => $e->getMessage()];
+                $items[] = ['ok' => false, 'ad_user_id' => (int) $u['id'], 'name' => $u['name'], 'account' => ($u['domain'] ? $u['domain'] . '\\' : '') . $u['sam_account_name'],
+                            'ms' => (int) round((microtime(true) - $t1) * 1000), 'error' => $e->getMessage()];
             }
         }
-        return ['synced' => $ok, 'failed' => count($errors), 'errors' => array_slice($errors, 0, 10), 'last_id' => $ids ? end($ids) : $afterId,
-                'done' => count($ids) < $limit, 'ms' => (int) round((microtime(true) - $t0) * 1000)];
+        $ms = (int) round((microtime(true) - $t0) * 1000);
+        if ($runId > 0) {
+            self::runRecord($runId, $items, $ok, count($errors), $ms);
+        }
+        $last = $users ? (int) end($users)['id'] : $afterId;
+        return ['synced' => $ok, 'failed' => count($errors), 'errors' => array_slice($errors, 0, 10), 'last_id' => $last,
+                'done' => count($users) < $limit, 'ms' => $ms];
+    }
+
+    // ---- sync history (asset_sync_runs) ------------------------------------------------------------
+    public const TRIGGERS = ['bulk', 'panel', 'row', 'resync', 'agent', 'manual'];
+    private const RUN_STATUSES = ['done', 'cancelled', 'stopped'];
+
+    public static function runStart(string $trigger, string $label, array $filters, int $planned): int
+    {
+        return (int) Db::value(
+            'INSERT INTO asset_sync_runs (trigger, label, filters, planned) VALUES (?, ?, CAST(? AS jsonb), ?) RETURNING id',
+            [in_array($trigger, self::TRIGGERS, true) ? $trigger : 'manual', mb_substr($label, 0, 500), json_encode((object) array_filter($filters, fn ($v) => $v !== '' && $v !== 0 && $v !== null)), max(0, $planned)]
+        );
+    }
+
+    private static function runRecord(int $runId, array $items, int $ok, int $failed, int $ms): void
+    {
+        Db::run(
+            "UPDATE asset_sync_runs SET synced = synced + ?, failed = failed + ?, work_ms = work_ms + ?, updated_at = now(),
+                    items = items || CAST(? AS jsonb) WHERE id = ? AND status = 'running'",
+            [$ok, $failed, $ms, json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $runId]
+        );
+    }
+
+    public static function runFinish(int $runId, string $status): array
+    {
+        $status = in_array($status, self::RUN_STATUSES, true) ? $status : 'done';
+        Db::run("UPDATE asset_sync_runs SET status = ?, finished_at = now(), updated_at = now() WHERE id = ? AND status = 'running'", [$status, $runId]);
+        return self::run($runId, false);
+    }
+
+    /** A single sync (panel, row, re-sync, Agent Tenable) as a run of one, so History shows every sync. */
+    public static function logSingle(string $trigger, string $label, ?array $result, ?string $error, int $ms): void
+    {
+        try {
+            $item = $result ? ['ok' => true, 'asset_id' => $result['id'], 'name' => $result['name'], 'kind' => $result['kind'], 'ms' => $result['ms']]
+                            : ['ok' => false, 'name' => $label, 'ms' => $ms, 'error' => $error];
+            Db::run(
+                "INSERT INTO asset_sync_runs (trigger, label, status, planned, synced, failed, work_ms, items, finished_at)
+                 VALUES (?, ?, ?, 1, ?, ?, ?, CAST(? AS jsonb), now())",
+                [in_array($trigger, self::TRIGGERS, true) ? $trigger : 'manual', mb_substr($result['name'] ?? $label, 0, 500),
+                 $result ? 'done' : 'stopped', $result ? 1 : 0, $result ? 0 : 1, $ms, json_encode([$item], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]
+            );
+        } catch (Throwable $e) {
+            error_log('asset sync history: ' . $e->getMessage());   // history must never break a sync
+        }
+    }
+
+    /** A run still "running" with no progress for two minutes was left by a closed tab. */
+    private const RUN_STATUS_SQL = "CASE WHEN status = 'running' AND updated_at < now() - interval '2 minutes' THEN 'interrupted' ELSE status END";
+
+    public static function runs(string $trigger, int $limit, int $offset): array
+    {
+        $where = $trigger === 'single' ? "trigger <> 'bulk'" : (in_array($trigger, self::TRIGGERS, true) ? 'trigger = ?' : 'TRUE');
+        $params = in_array($trigger, self::TRIGGERS, true) ? [$trigger] : [];
+        $rows = Db::all(
+            "SELECT id, trigger, label, filters, " . self::RUN_STATUS_SQL . " AS status, planned, synced, failed, work_ms, started_at, finished_at,
+                    EXTRACT(EPOCH FROM (COALESCE(finished_at, updated_at) - started_at)) * 1000 AS elapsed_ms
+             FROM asset_sync_runs WHERE $where ORDER BY started_at DESC, id DESC LIMIT ? OFFSET ?",
+            array_merge($params, [$limit, $offset])
+        );
+        foreach ($rows as &$r) {
+            $r['filters'] = json_decode((string) $r['filters'], true);
+            $r['elapsed_ms'] = (int) round((float) $r['elapsed_ms']);
+        }
+        $totals = Db::one(
+            "SELECT count(*) AS runs, count(*) FILTER (WHERE trigger = 'bulk') AS bulk_runs, COALESCE(sum(synced), 0) AS synced, COALESCE(sum(failed), 0) AS failed,
+                    COALESCE(sum(work_ms), 0) AS work_ms FROM asset_sync_runs WHERE $where", $params);
+        return ['total' => (int) $totals['runs'], 'totals' => array_map('intval', $totals), 'rows' => $rows];
+    }
+
+    public static function run(int $id, bool $withItems = true): array
+    {
+        $r = Db::one(
+            "SELECT id, trigger, label, filters, " . self::RUN_STATUS_SQL . " AS status, planned, synced, failed, work_ms, started_at, finished_at, updated_at,
+                    EXTRACT(EPOCH FROM (COALESCE(finished_at, updated_at) - started_at)) * 1000 AS elapsed_ms" . ($withItems ? ', items' : '') . "
+             FROM asset_sync_runs WHERE id = ?", [$id]);
+        if (!$r) {
+            throw new ApiError('This sync run is not in the history.', 404);
+        }
+        $r['filters'] = json_decode((string) $r['filters'], true);
+        $r['elapsed_ms'] = (int) round((float) $r['elapsed_ms']);
+        if ($withItems) {
+            $r['items'] = json_decode((string) $r['items'], true) ?: [];
+        }
+        return $r;
+    }
+
+    public static function runsClear(): int
+    {
+        return Db::run('DELETE FROM asset_sync_runs', []);
     }
 
     // ---- identity ------------------------------------------------------------------------------

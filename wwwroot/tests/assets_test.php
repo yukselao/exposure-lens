@@ -74,6 +74,20 @@ try {
         ok($e->status === 404, 'unknown account is refused with 404');
     }
 
+    // sync history: a bulk run records counts and items; a single sync is logged as a run of one
+    $run = Assets::runStart('bulk', 'test run', ['reach' => 'yes'], 3);
+    $b = Assets::syncBatch(['reach' => 'yes'], 0, 3, 'bulk', $run);
+    $fin = Assets::runFinish($run, 'done');
+    $detail = Assets::run($run);
+    ok($fin['status'] === 'done' && (int) $fin['synced'] === $b['synced'] && (int) $fin['failed'] === $b['failed'], 'a bulk run records synced and failed counts');
+    ok(count($detail['items']) === $b['synced'] + $b['failed'] && !empty($detail['items'][0]['name']) && isset($detail['items'][0]['ms']), 'a bulk run lists every asset it processed');
+    ok((int) $detail['work_ms'] >= 0 && $detail['finished_at'] !== null, 'a bulk run records its work time and end');
+    $one = Assets::sync('identity', ['ad_user_id' => (int) $user['id']]);
+    Assets::logSingle('row', $one['name'], $one, null, $one['ms']);
+    $runs = Assets::runs('single', 5, 0);
+    ok($runs['rows'] && $runs['rows'][0]['trigger'] === 'row' && (int) $runs['rows'][0]['synced'] === 1, 'a single sync is logged as a run of one');
+    ok(Assets::runs('bulk', 5, 0)['rows'][0]['id'] == $run, 'history filters by trigger');
+
     // saved conversations
     $c = Api::aiConversationSave(['messages' => json_encode([['role' => 'user', 'content' => 'test question'], ['role' => 'assistant', 'content' => 'answer']]), 'skill' => 'x']);
     ok($c['id'] > 0 && $c['title'] === 'test question', 'conversation saved with a title from the first question');

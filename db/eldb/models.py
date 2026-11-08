@@ -88,6 +88,27 @@ class AssetProfile(Base):
                       Index("ix_asset_profiles_synced_at", "synced_at"))
 
 
+class AssetSyncRun(Base):
+    """One asset sync run: a bulk run from the Asset Sync page, or a single sync from a
+    detail panel, an Assets row or Agent Tenable. `items` lists every asset it touched
+    (name, asset id, ms, error) for the History view."""
+    __tablename__ = "asset_sync_runs"
+    id = Column(BigInteger, Identity(), primary_key=True)
+    trigger = Column(String(16), nullable=False)
+    label = Column(Text)
+    filters = _jsonb()
+    status = Column(String(16), nullable=False, server_default=text("'running'"))
+    planned = Column(Integer, nullable=False, server_default=text("0"))
+    synced = Column(Integer, nullable=False, server_default=text("0"))
+    failed = Column(Integer, nullable=False, server_default=text("0"))
+    work_ms = Column(BigInteger, nullable=False, server_default=text("0"))
+    items = _jsonb("[]")
+    started_at = _now()
+    updated_at = _now()
+    finished_at = Column(DateTime(timezone=True))
+    __table_args__ = (Index("ix_asset_sync_runs_started_at", "started_at"),)
+
+
 class SyncJob(Base):
     """Work queue between the web UI and the connectors. The UI (or the
     connector's own scheduler) inserts a `queued` row; the connector claims it."""
