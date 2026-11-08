@@ -72,6 +72,9 @@ final class Api
         'asset_lookup' => ['GET', 'assetLookup'],
         'asset_delete' => ['POST', 'assetDelete'],
         'plugin_output' => ['GET', 'pluginOutput'],
+        'asset_sync_candidates' => ['GET', 'assetSyncCandidates'],
+        'asset_sync_batch' => ['POST', 'assetSyncBatch'],
+        'ad_directories' => ['GET', 'adDirectories'],
     ];
 
     private const SEVERITY = [4 => 'Critical', 3 => 'High', 2 => 'Medium', 1 => 'Low', 0 => 'Info'];
@@ -1451,6 +1454,33 @@ final class Api
         }
         $row['clipped'] = (int) $row['length'] > 300000;
         return $row;
+    }
+
+    /** The Asset Sync page filters, from the request. */
+    private static function syncFilters(array $in): array
+    {
+        return ['q' => self::str($in, 'q', 200), 'domain_id' => self::int($in, 'domain_id'), 'type' => self::str($in, 'type', 20),
+                'tier' => self::str($in, 'tier', 8), 'status' => self::str($in, 'status', 12), 'reach' => self::str($in, 'reach', 8),
+                'snapshot' => self::str($in, 'snapshot', 12), 'ou' => self::str($in, 'ou', 200)];
+    }
+
+    public static function assetSyncCandidates(array $in): array
+    {
+        $size = self::int($in, 'size', 50, 1, 200);
+        $page = self::int($in, 'page', 1, 1);
+        return Assets::candidates(self::syncFilters($in), $size, ($page - 1) * $size);
+    }
+
+    public static function assetSyncBatch(array $in): array
+    {
+        return Assets::syncBatch(self::syncFilters($in), self::int($in, 'after_id'), self::int($in, 'limit', 50, 1, 200), 'bulk');
+    }
+
+    public static function adDirectories(array $in): array
+    {
+        return ['rows' => Db::all("SELECT d.id AS domain_id, d.netbios_name, d.dns_name, count(u.id) AS users
+                                   FROM ad_users u LEFT JOIN LATERAL (SELECT dd.id, dd.netbios_name, dd.dns_name FROM ad_domains dd WHERE dd.directory_id = u.directory_id OR (dd.nc_name IS NOT NULL AND lower(u.dn) LIKE '%' || lower(dd.nc_name)) ORDER BY (dd.nc_name IS NOT NULL AND lower(u.dn) LIKE '%' || lower(dd.nc_name)) DESC, (dd.directory_id = u.directory_id) DESC, length(dd.nc_name) DESC NULLS LAST LIMIT 1) d ON true
+                                   GROUP BY 1, 2, 3 ORDER BY lower(d.netbios_name)")];
     }
 
     public static function assetDelete(array $in): array

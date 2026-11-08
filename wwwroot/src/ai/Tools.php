@@ -136,7 +136,7 @@ final class Tools
         $select = "SELECT u.id, u.object_key, u.sam_account_name, u.display_name, u.user_principal_name, u.enabled, u.admin_count, u.account_type,
                     u.last_logon, u.pwd_last_set, u.when_created, u.dn, u.sid, u.attributes, d.netbios_name AS domain, d.dns_name AS domain_dns,
                     t.tier, t.source AS tier_source, t.detail AS tier_detail
-             FROM ad_users u LEFT JOIN ad_domains d ON d.directory_id = u.directory_id
+             FROM ad_users u LEFT JOIN LATERAL (SELECT dd.id, dd.netbios_name, dd.dns_name FROM ad_domains dd WHERE dd.directory_id = u.directory_id OR (dd.nc_name IS NOT NULL AND lower(u.dn) LIKE '%' || lower(dd.nc_name)) ORDER BY (dd.nc_name IS NOT NULL AND lower(u.dn) LIKE '%' || lower(dd.nc_name)) DESC, (dd.directory_id = u.directory_id) DESC, length(dd.nc_name) DESC NULLS LAST LIMIT 1) d ON true
              LEFT JOIN v_ad_object_tier t ON t.object_key = u.object_key";
         if (preg_match('/^#ad:(\d{1,18})$/', $account, $m)) {
             // Internal form used by the asset pages: one exact AD user, no name guessing.
@@ -223,7 +223,7 @@ final class Tools
         $lq = strtolower($q);
         $select = "SELECT u.id AS ad_user_id, u.sam_account_name, u.display_name, u.user_principal_name, u.attributes->>'mail' AS mail, u.enabled, t.tier,
                           u.admin_count, u.account_type, u.last_logon::date AS last_logon, u.pwd_last_set::date AS pwd_last_set, d.netbios_name AS directory
-                   FROM ad_users u LEFT JOIN ad_domains d ON d.directory_id = u.directory_id LEFT JOIN v_ad_object_tier t ON t.object_key = u.object_key";
+                   FROM ad_users u LEFT JOIN LATERAL (SELECT dd.id, dd.netbios_name, dd.dns_name FROM ad_domains dd WHERE dd.directory_id = u.directory_id OR (dd.nc_name IS NOT NULL AND lower(u.dn) LIKE '%' || lower(dd.nc_name)) ORDER BY (dd.nc_name IS NOT NULL AND lower(u.dn) LIKE '%' || lower(dd.nc_name)) DESC, (dd.directory_id = u.directory_id) DESC, length(dd.nc_name) DESC NULLS LAST LIMIT 1) d ON true LEFT JOIN v_ad_object_tier t ON t.object_key = u.object_key";
         $exact = Db::all("$select WHERE lower(u.sam_account_name) = ? OR lower(u.user_principal_name) = ? OR lower(u.attributes->>'mail') = ? ORDER BY u.id LIMIT ?",
             [$lq, $lq, $lq, $limit]);
         $rows = $exact;

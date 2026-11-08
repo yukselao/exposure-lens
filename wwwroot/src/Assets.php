@@ -102,6 +102,106 @@ final class Assets
         return Db::run('DELETE FROM asset_profiles WHERE id = ?', [$id]);
     }
 
+    // ---- bulk sync of AD users (Explore > Assets > Asset Sync) ---------------------------------
+
+    /** Filters of the Asset Sync page -> [WHERE over ad_users u (with domain d), params]. */
+    private static function candidateWhere(array $f): array
+    {
+        $w = ['TRUE'];
+        $p = [];
+        $q = trim((string) ($f['q'] ?? ''));
+        if ($q !== '') {
+            $w[] = "lower(coalesce(u.sam_account_name, '') || ' ' || coalesce(u.display_name, '') || ' ' || coalesce(u.user_principal_name, '') || ' ' || coalesce(u.attributes->>'mail', '')) LIKE ?";
+            $p[] = '%' . addcslashes(strtolower($q), '%_\\') . '%';
+        }
+        if (!empty($f['domain_id'])) {
+            $w[] = 'd.id = ?';
+            $p[] = (int) $f['domain_id'];
+        }
+        $type = (string) ($f['type'] ?? '');
+        if ($type === 'user') $w[] = "u.account_type = 'user'";
+        elseif ($type === 'service_account') $w[] = "u.account_type <> 'user'";
+        $tier = (string) ($f['tier'] ?? '');
+        if (in_array($tier, ['0', '1', '2'], true)) {
+            $w[] = 't.tier = ?';
+            $p[] = (int) $tier;
+        } elseif ($tier === 'none') {
+            $w[] = 't.tier IS NULL';
+        }
+        $status = (string) ($f['status'] ?? '');
+        if ($status === 'enabled') $w[] = 'u.enabled IS TRUE';
+        elseif ($status === 'disabled') $w[] = 'u.enabled IS FALSE';
+        $reach = (string) ($f['reach'] ?? '');
+        $exists = "EXISTS (SELECT 1 FROM identity_host_access a WHERE a.ad_object_key = u.object_key AND a.access_class <> 'scan')";
+        if ($reach === 'yes') $w[] = $exists;
+        elseif ($reach === 'no') $w[] = "NOT $exists";
+        $snap = (string) ($f['snapshot'] ?? '');
+        $snapSql = "SELECT 1 FROM asset_profiles ap WHERE ap.asset_kind = 'identity' AND ap.asset_key = u.object_key";
+        if ($snap === 'none') $w[] = "NOT EXISTS ($snapSql)";
+        elseif ($snap === 'synced') $w[] = "EXISTS ($snapSql)";
+        elseif ($snap === 'stale') $w[] = "EXISTS ($snapSql AND ap.synced_at < now() - interval '1 day')";
+        $ou = trim((string) ($f['ou'] ?? ''));
+        if ($ou !== '') {
+            $w[] = 'u.dn ILIKE ?';
+            $p[] = '%' . addcslashes($ou, '%_\\') . '%';
+        }
+        return [implode(' AND ', $w), $p];
+    }
+
+    private const CANDIDATE_FROM = "FROM ad_users u LEFT JOIN LATERAL (SELECT dd.id, dd.netbios_name, dd.dns_name FROM ad_domains dd WHERE dd.directory_id = u.directory_id OR (dd.nc_name IS NOT NULL AND lower(u.dn) LIKE '%' || lower(dd.nc_name)) ORDER BY (dd.nc_name IS NOT NULL AND lower(u.dn) LIKE '%' || lower(dd.nc_name)) DESC, (dd.directory_id = u.directory_id) DESC, length(dd.nc_name) DESC NULLS LAST LIMIT 1) d ON true LEFT JOIN v_ad_object_tier t ON t.object_key = u.object_key";
+
+    /** Count, breakdown and one page of the AD users a filter selects. */
+    public static function candidates(array $f, int $limit, int $offset): array
+    {
+        [$where, $params] = self::candidateWhere($f);
+        $counts = Db::one(
+            "SELECT count(*) AS total,
+                    count(*) FILTER (WHERE EXISTS (SELECT 1 FROM identity_host_access a WHERE a.ad_object_key = u.object_key AND a.access_class <> 'scan')) AS with_access,
+                    count(*) FILTER (WHERE EXISTS (SELECT 1 FROM asset_profiles ap WHERE ap.asset_kind = 'identity' AND ap.asset_key = u.object_key)) AS synced
+             " . self::CANDIDATE_FROM . " WHERE $where",
+            $params
+        );
+        $rows = Db::all(
+            "SELECT u.id, u.sam_account_name, u.display_name, u.user_principal_name, u.account_type, u.enabled, d.netbios_name AS domain, t.tier,
+                    (SELECT count(DISTINCT a.host_asset_id) FROM identity_host_access a WHERE a.ad_object_key = u.object_key AND a.access_class <> 'scan') AS hosts,
+                    ap.id AS asset_id, ap.synced_at, ap.risk->>'level' AS risk_level, ap.risk_score
+             " . self::CANDIDATE_FROM . "
+             LEFT JOIN asset_profiles ap ON ap.asset_kind = 'identity' AND ap.asset_key = u.object_key
+             WHERE $where ORDER BY hosts DESC, t.tier NULLS LAST, lower(u.sam_account_name), u.id LIMIT ? OFFSET ?",
+            array_merge($params, [$limit, $offset])
+        );
+        $counts = array_map('intval', $counts);
+        // measured: about 7 ms for a user without host access, about 40 ms with
+        $counts['estimate_seconds'] = (int) ceil(($counts['with_access'] * 40 + ($counts['total'] - $counts['with_access']) * 7) / 1000);
+        return ['counts' => $counts, 'rows' => $rows];
+    }
+
+    /**
+     * Syncs the next batch of users a filter selects, in id order after $afterId. The page
+     * calls it until `done`, which gives it progress and keeps every request short.
+     */
+    public static function syncBatch(array $f, int $afterId, int $limit, string $source = 'bulk'): array
+    {
+        [$where, $params] = self::candidateWhere($f);
+        $ids = array_map('intval', array_column(Db::all(
+            "SELECT u.id " . self::CANDIDATE_FROM . " WHERE $where AND u.id > ? ORDER BY u.id LIMIT ?",
+            array_merge($params, [$afterId, $limit])
+        ), 'id'));
+        $t0 = microtime(true);
+        $ok = 0;
+        $errors = [];
+        foreach ($ids as $id) {
+            try {
+                self::sync('identity', ['ad_user_id' => $id], $source);
+                $ok++;
+            } catch (Throwable $e) {
+                $errors[] = ['id' => $id, 'error' => $e->getMessage()];
+            }
+        }
+        return ['synced' => $ok, 'failed' => count($errors), 'errors' => array_slice($errors, 0, 10), 'last_id' => $ids ? end($ids) : $afterId,
+                'done' => count($ids) < $limit, 'ms' => (int) round((microtime(true) - $t0) * 1000)];
+    }
+
     // ---- identity ------------------------------------------------------------------------------
 
     private static function identitySnapshot(array $ref): array

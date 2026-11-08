@@ -12,6 +12,7 @@ $routes = [
     '/explore/assets' => ['explore-assets', 'Assets', 'explore'],
     '/explore/hosts' => ['explore-hosts', 'Hosts', 'explore'],
     '/explore/assets/view' => ['asset-view', 'Asset Details', 'explore'],
+    '/explore/assets/sync' => ['asset-sync', 'Asset Sync', 'explore'],
     '/explore/ad-objects' => ['explore-ad', 'AD Objects', 'explore'],
     '/explore/software' => ['explore-software', 'Software Inventory', 'explore'],
     '/explore/local-users' => ['explore-local-users', 'Local Users', 'explore'],
@@ -25,6 +26,7 @@ $routes = [
     '/settings/ctem/plugins' => ['settings-catalog', 'Plugin Catalog', 'settings'],
     '/settings/agent' => ['settings-ai', 'Agent Tenable', 'settings'],
     '/logs' => ['logs', 'Connector Logs', 'logs'],
+    '/help' => ['help', 'Help', 'help'],
 ];
 
 if ($path === '/settings') {
@@ -53,7 +55,7 @@ $context = ['page' => $page, 'title' => $title, 'section' => $section];
 $crumbs = [['Home', '/']];
 if ($section === 'explore') {
     $crumbs[] = ['Explore', null];
-    if ($page === 'asset-view') {
+    if ($page === 'asset-view' || $page === 'asset-sync') {
         $crumbs[] = ['Assets', '/explore/assets'];
     }
 } elseif ($section === 'settings') {
