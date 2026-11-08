@@ -154,6 +154,7 @@ final class Chat
         $synced[$sig] = true;
         try {
             $asset = Assets::sync($ref[0], $ref[1], 'agent');
+            Assets::logSingle('agent', $asset['name'], $asset, null, $asset['ms']);
             if (isset($synced['key:' . $asset['kind'] . $asset['key']])) {
                 return;
             }

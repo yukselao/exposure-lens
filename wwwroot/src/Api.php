@@ -74,6 +74,11 @@ final class Api
         'plugin_output' => ['GET', 'pluginOutput'],
         'asset_sync_candidates' => ['GET', 'assetSyncCandidates'],
         'asset_sync_batch' => ['POST', 'assetSyncBatch'],
+        'asset_sync_run_start' => ['POST', 'assetSyncRunStart'],
+        'asset_sync_run_finish' => ['POST', 'assetSyncRunFinish'],
+        'asset_sync_runs' => ['GET', 'assetSyncRuns'],
+        'asset_sync_run' => ['GET', 'assetSyncRun'],
+        'asset_sync_runs_clear' => ['POST', 'assetSyncRunsClear'],
         'ad_directories' => ['GET', 'adDirectories'],
     ];
 
@@ -1412,7 +1417,17 @@ final class Api
         if (!$ref) {
             throw new ApiError('Name the asset to sync.');
         }
-        return Assets::sync($kind, $ref, 'manual');
+        $trigger = self::str($in, 'trigger', 16);
+        $trigger = in_array($trigger, ['panel', 'row', 'resync'], true) ? $trigger : 'manual';
+        $t0 = microtime(true);
+        try {
+            $r = Assets::sync($kind, $ref, 'manual');
+        } catch (Throwable $e) {
+            Assets::logSingle($trigger, $kind . ' ' . json_encode($ref), null, $e->getMessage(), (int) round((microtime(true) - $t0) * 1000));
+            throw $e;
+        }
+        Assets::logSingle($trigger, $r['name'], $r, null, $r['ms']);
+        return $r;
     }
 
     public static function assetProfile(array $in): array
@@ -1473,7 +1488,34 @@ final class Api
 
     public static function assetSyncBatch(array $in): array
     {
-        return Assets::syncBatch(self::syncFilters($in), self::int($in, 'after_id'), self::int($in, 'limit', 50, 1, 200), 'bulk');
+        return Assets::syncBatch(self::syncFilters($in), self::int($in, 'after_id'), self::int($in, 'limit', 50, 1, 200), 'bulk', self::int($in, 'run_id'));
+    }
+
+    public static function assetSyncRunStart(array $in): array
+    {
+        return ['id' => Assets::runStart('bulk', self::str($in, 'label', 500), self::syncFilters($in), self::int($in, 'planned'))];
+    }
+
+    public static function assetSyncRunFinish(array $in): array
+    {
+        return Assets::runFinish(self::int($in, 'run_id'), self::str($in, 'status', 16));
+    }
+
+    public static function assetSyncRuns(array $in): array
+    {
+        $size = self::int($in, 'size', 25, 1, 100);
+        $page = self::int($in, 'page', 1, 1);
+        return Assets::runs(self::str($in, 'trigger', 16), $size, ($page - 1) * $size);
+    }
+
+    public static function assetSyncRun(array $in): array
+    {
+        return Assets::run(self::int($in, 'id'));
+    }
+
+    public static function assetSyncRunsClear(array $in): array
+    {
+        return ['ok' => true, 'deleted' => Assets::runsClear()];
     }
 
     public static function adDirectories(array $in): array

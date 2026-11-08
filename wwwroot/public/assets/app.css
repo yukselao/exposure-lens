@@ -681,3 +681,8 @@ tr.conn-detail > td { background: var(--bg-page-alt); padding: 0; }
 .sync-progress { margin-top: 14px; }
 .sync-progress .progress { height: 18px; }
 .sync-progress .progress-bar { font-size: 11px; transition: width .3s ease; }
+.sh-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
+.sh-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.sh-items { max-height: 380px; overflow: auto; }
+#syncHistory .modal-header .btn-close { margin-left: auto; }
+.risk-updated { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: -12px 0 14px; }
