@@ -13,7 +13,7 @@ description: Full Active Directory profile of one account by sAMAccountName or U
 }
 ```
 
-**Returns** `account` (identity fields, tier and tier_detail, selected attributes: description,
+**Returns** `account` (the same identity card as `identity_access.person`, plus identity fields, tier and tier_detail, selected attributes: description,
 mail, admincount, pwdlastset, lastlogontimestamp, useraccountcontrol flags, serviceprincipalname,
 msds-allowedtodelegateto, memberof count), `groups` (name, tier, group_type, member_count) and
 `usage` (count of hosts by access_type from `identity_host_access`).

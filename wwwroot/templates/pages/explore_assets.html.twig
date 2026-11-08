@@ -1,25 +1,32 @@
+{% import 'partials/icons.twig' as icons %}
+{# The central asset table (asset_profiles). Rows exist only for assets that were analysed:
+   the "Sync asset details" button of a detail panel, or Agent Tenable during an investigation. #}
 <div class="explore" id="assets">
   <aside class="card">
     <div class="filter-group">
       <div class="filter-title">Type</div>
-      <button type="button" class="filter-option" data-type="users">Users<span class="count" data-count="users"></span></button>
-      <button type="button" class="filter-option" data-type="devices">Devices<span class="count" data-count="devices"></span></button>
-      <button type="button" class="filter-option" data-type="iot">IOT Devices<span class="count" data-count="iot"></span></button>
+      <button type="button" class="filter-option active" data-type="">All assets<span class="count" data-count="all"></span></button>
+      <button type="button" class="filter-option" data-type="user">Users<span class="count" data-count="user"></span></button>
+      <button type="button" class="filter-option" data-type="service_account">Service accounts<span class="count" data-count="service_account"></span></button>
+      <button type="button" class="filter-option" data-type="host">Hosts<span class="count" data-count="host"></span></button>
     </div>
-    <div class="filter-group" id="assetSourceGroup">
-      <div class="filter-title">Seen by</div>
-      <button type="button" class="filter-option active" data-source="">Any source</button>
-      <button type="button" class="filter-option" data-source="sc+ad">Security Center and AD</button>
-      <button type="button" class="filter-option" data-source="sc">Security Center only</button>
-      <button type="button" class="filter-option" data-source="ad">AD only</button>
+    <div class="filter-group">
+      <div class="filter-title">Sort by</div>
+      <button type="button" class="filter-option active" data-sort="synced">Last synced</button>
+      <button type="button" class="filter-option" data-sort="risk">Risk score</button>
+      <button type="button" class="filter-option" data-sort="name">Name</button>
     </div>
+    <p class="muted small-text assets-note">Assets are analysed on demand, never in bulk. Press <b>Sync asset details</b> in the detail panel of a user, computer or host (AD Objects, Risk, Findings), or ask <b>Agent Tenable</b> about an account or a host.</p>
   </aside>
   <section class="card">
     <div class="toolbar">
-      <div class="search">{% import 'partials/icons.twig' as icons %}{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="assetSearch" placeholder="Search" aria-label="Search assets"></div>
+      <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="assetSearch" placeholder="Search assets" aria-label="Search assets"></div>
       <span class="muted" id="assetHint"></span>
     </div>
-    <div class="table-wrap"><table class="table table-hover"><thead id="assetHead"></thead><tbody id="assetBody"></tbody></table></div>
+    <div class="table-wrap"><table class="table table-hover">
+      <thead><tr><th>Asset</th><th>Type</th><th>Tier</th><th>Risk</th><th class="text-end">Hosts</th><th class="text-end">Critical</th><th class="text-end">High</th><th class="text-end">Exploitable</th><th>Synced</th><th>By</th><th></th></tr></thead>
+      <tbody id="assetBody"></tbody>
+    </table></div>
     <div class="pager" id="assetPager"></div>
   </section>
 </div>

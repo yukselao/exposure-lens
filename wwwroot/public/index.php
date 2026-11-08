@@ -9,7 +9,9 @@ $path = rtrim((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), 
 /** path => [page id, title, main menu section] */
 $routes = [
     '/' => ['dashboard', 'Dashboard', 'dashboard'],
-    '/explore/assets' => ['explore-assets', 'Asset Inventory', 'explore'],
+    '/explore/assets' => ['explore-assets', 'Assets', 'explore'],
+    '/explore/hosts' => ['explore-hosts', 'Hosts', 'explore'],
+    '/explore/assets/view' => ['asset-view', 'Asset Details', 'explore'],
     '/explore/ad-objects' => ['explore-ad', 'AD Objects', 'explore'],
     '/explore/software' => ['explore-software', 'Software Inventory', 'explore'],
     '/explore/local-users' => ['explore-local-users', 'Local Users', 'explore'],
@@ -27,6 +29,10 @@ $routes = [
 
 if ($path === '/settings') {
     header('Location: /settings/security-center', true, 302);
+    exit;
+}
+if ($path === '/assets') {
+    header('Location: /explore/assets', true, 302);
     exit;
 }
 if ($path === '/explore') {
@@ -51,6 +57,11 @@ try {
         $context['ctem'] = Api::ctemPublicSettings();
     } elseif ($page === 'settings-ai') {
         $context['ai'] = Api::aiPublicSettings();
+    } elseif ($page === 'asset-view' && ($id = (int) ($_GET['id'] ?? 0)) > 0) {
+        $name = Db::value('SELECT name FROM asset_profiles WHERE id = ?', [$id]);
+        if ($name) {
+            $context['title'] = (string) $name;
+        }
     } elseif ($page === 'logs') {
         $context['connectors'] = Logs::CONNECTORS;
     }

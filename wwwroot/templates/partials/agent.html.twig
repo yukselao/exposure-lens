@@ -15,6 +15,7 @@
 
   <nav class="agent-tabs" role="tablist" aria-label="Agent sections">
     <button type="button" class="active" role="tab" data-tab="chat" aria-selected="true">Chat</button>
+    <button type="button" role="tab" data-tab="history" aria-selected="false">History</button>
     <button type="button" role="tab" data-tab="prompts" aria-selected="false">Prompts</button>
     <button type="button" role="tab" data-tab="skills" aria-selected="false">Skills</button>
     <button type="button" role="tab" data-tab="tools" aria-selected="false">Tools</button>
@@ -43,6 +44,15 @@
     </div>
   </section>
 
+  <section class="agent-pane" data-pane="history" hidden>
+    <div class="agent-pane-body">
+      <div class="history-tools">
+        <input type="search" class="form-control form-control-sm" id="agentHistorySearch" placeholder="Search conversations" aria-label="Search conversations">
+        <button type="button" class="btn btn-sm btn-outline-danger" id="agentHistoryClear" title="Delete every saved conversation">Delete all</button>
+      </div>
+      <div id="agentHistory" class="history-list"></div>
+    </div>
+  </section>
   <section class="agent-pane" data-pane="prompts" hidden>
     <div class="agent-pane-body" id="agentPrompts"></div>
   </section>

@@ -48,3 +48,22 @@ To add a parser: write the module against real output, save samples under `tests
 ```sh
 docker compose run --rm --no-deps ctem python -m pytest -q -p no:cacheprovider /app/tests
 ```
+
+## Domain and identity aliases
+
+Correlate matches a telemetry identity (`DOMAIN\name` from plugin output) to an AD object by
+SID, then by domain + sAMAccountName, then UPN, then the host's domain. When the telemetry
+domain name differs from the TIE NetBIOS name (a renamed domain, or a demo lab scanned by SC
+next to a different demo directory in TIE), set aliases in the `identity_mapping` settings row:
+
+```sql
+INSERT INTO settings (section, data) VALUES ('identity_mapping', '{
+  "domain_aliases":   {"demo": "alsid"},
+  "identity_aliases": {"demo\\sccmadmin": "alsid\\taher"}
+}') ON CONFLICT (section) DO UPDATE SET data = EXCLUDED.data;
+```
+
+Keys are the telemetry domain (NetBIOS or first DNS label) or `domain\name`, lower case; values
+are a TIE NetBIOS name or `netbios\samaccountname`. Identity aliases are applied first and are
+recorded as `principals.resolved_by = 'alias'`. Run **correlate** afterwards; delete the row and
+run correlate again to undo.

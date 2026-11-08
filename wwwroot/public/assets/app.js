@@ -172,6 +172,46 @@
     setNavOpen(open); remember('el.nav', open ? 'open' : 'closed'); closeFlyouts();
   });
 
+  // ---- "How is this calculated?" info icons (dashboard widgets) -------------------------------
+  var INFO = {
+    severity: 'Findings by Severity\n\nCounts every cumulative Security Center finding stored in Exposure Lens (one finding = one plugin on one host and port), grouped by severity: Critical (4), High (3), Medium (2), Low (1), Info (0). The centre shows the total number of findings and takes the colour of the most severe level present. Arc size is each severity\'s share of the total. Only the severities your SC queries collect are present.',
+    by_query: 'Vulnerabilities by Asset Tag\n\nFor each Security Center pool and query (Settings > Security Center), counts the findings that the query returned on its last sync, split by severity. A finding returned by two queries counts in both. The 12 queries with the most findings are shown.',
+    factors: 'Top Contributing Factors\n\nGenerated from the same totals as the rest of the page: Critical and High findings and the number of hosts carrying them; findings with VPR 9 or higher; AD objects in Tier 0; Security Center hosts of class "device" that are not joined to a domain.',
+    top_vpr: 'Top Vulnerabilities, VPR 9 to 10\n\nPlugins with a Vulnerability Priority Rating of 9 or higher on at least one host. Each plugin is listed once with its highest VPR and the number of distinct hosts it affects. Sorted by VPR, then by host count; the top 10 are shown. "Exploitable" means Security Center reports a public exploit.',
+    risk_critical_users: 'Users Reaching Critical Hosts\n\nDistinct identities (users and service accounts; groups and computers are excluded) that have at least one access fact on a host with one or more Critical findings.\n\nAccess facts come from the CTEM correlation: local Administrators, Remote Desktop Users and Remote Management Users membership (rights), and sessions, last logons, SMB sessions and services run as the account (usage), parsed from Nessus plugin output and matched to AD by SID, DOMAIN\\name, UPN or the host\'s domain. A right held by an AD group is counted for every nested member. The scanner\'s own login is ignored.',
+    risk_acr_users: 'Users Reaching High-ACR Hosts\n\nDistinct identities (users and service accounts) with at least one access fact (right or usage, as in "Users Reaching Critical Hosts") on a host whose Asset Criticality Rating is at or above the ACR threshold set in Settings > CTEM (7 by default). ACR comes from Tenable (1 to 10).',
+    risk_tier0_hosts: 'Hosts Using Tier 0 Accounts\n\nDistinct hosts where a Tier 0 identity was actually used: a session, a last logon, an SMB session or a service running as it. Holding a right alone does not count.\n\nAn identity is Tier 0 when its tier is 0 (from Identity Exposure control paths, or set manually under AD Objects) or when it is a privileged group such as Domain Admins. The Risk page also shows how many of these hosts are not Tier 0 themselves.',
+    risk_service_accounts: 'Service Accounts on Critical Hosts\n\nDistinct accounts that run at least one Windows service (from the Nessus service enumeration plugins) on a host with one or more Critical findings. Anyone who compromises that host can recover the service account\'s credentials.',
+    users: 'Users\n\nAD user objects synced from Tenable Identity Exposure across all directories, excluding service accounts (accounts with an SPN, and gMSAs). Disabled users are included.',
+    groups: 'Groups\n\nAll AD group objects synced from Identity Exposure across all directories, security and distribution groups alike.',
+    service_accounts: 'Service Accounts\n\nAD accounts that are not plain users: accounts with at least one servicePrincipalName (Kerberoastable) and group Managed Service Accounts (gMSA).',
+    group_policies: 'Group Policies\n\nAll Group Policy Objects synced from Identity Exposure across all directories, linked or not.',
+    tier0: 'Tier 0 Objects\n\nAD objects of every type (users, groups, computers, GPOs, containers) whose tier is 0. A manual tier assignment under AD Objects wins; otherwise the tier comes from Identity Exposure: built-in privileged groups and every object with a control path to them (membership, ACL rights, SID history, delegation).',
+    tier1: 'Tier 1 Objects\n\nAD objects of every type whose tier is 1 (server and application administration), from a manual assignment under AD Objects or from Identity Exposure.',
+    tier2: 'Tier 2 Objects\n\nAD objects of every type whose tier is 2 (workstations and standard users), from a manual assignment under AD Objects or from Identity Exposure.',
+    users_disabled: 'Disabled Users\n\nAD user objects (service accounts excluded) whose userAccountControl has the ACCOUNTDISABLE flag.',
+    ad_computers: 'Computers Joined to the Domain\n\nAD computer objects synced from Identity Exposure, plus Security Center hosts that report a domain membership (from Nessus) in a domain Identity Exposure does not monitor.',
+    not_joined: 'Computers Not Joined\n\nSecurity Center hosts of class "device" that neither match an AD computer by name nor report a domain membership in their plugin output.',
+    iot: 'IOT Devices\n\nSecurity Center hosts classified as IoT/OT: the Nessus device type is something other than a general-purpose computer, server or hypervisor (printers, cameras, PLCs, network gear and so on).',
+    sc_hosts: 'Security Center Hosts\n\nEvery host Security Center returned for your queries, credentialed or not, of any class.',
+    local_privileged: 'Privileged Local Users\n\nLocal user accounts found on scanned hosts (from the Nessus local account and group enumeration plugins) that are members of the local Administrators group, have RID 500, are named root, or belong to sudo, wheel, admin or root. Each account is counted once per host.',
+    local_normal: 'Normal Local Users\n\nLocal user accounts found on scanned hosts that are not privileged by the rules of "Privileged Local Users". Each account is counted once per host.',
+    did_you_know: 'Did You Know\n\nFacts computed from the same data as the dashboard: the share of AD objects in Tier 0, the share of findings with a known exploit, how many Security Center hosts match an AD computer by name, and how many user accounts are disabled. The dots switch between them.',
+    connectors: 'Connectors\n\nThe status and finish time of the latest sync job of each connector (Security Center and Identity Exposure), with the totals they have stored. The Logs link opens the connector logs.',
+    pools: 'Pools\n\nThe Security Center pools and queries configured under Settings > Security Center, with the number of findings each returned on its last sync.'
+  };
+  function initInfoTips($root) {
+    $root.find('[data-info]').each(function () {
+      var key = this.dataset.info, text = INFO[key];
+      if (!text || $(this).children('.info-tip').length) return;
+      var $tip = $('<span class="info-tip" tabindex="0" role="button" aria-label="How is this calculated?"><span class="icon icon-16 i-info"></span></span>');
+      $(this).addClass('has-info').append($tip);
+      new bootstrap.Tooltip($tip[0], { title: text, placement: 'auto', trigger: 'hover focus', customClass: 'info-tooltip', container: 'body' });
+    });
+    // the icon sits inside links (tiles) and collapse toggles: it explains, it does not navigate
+    $root.on('click', '.info-tip', function (e) { e.preventDefault(); e.stopPropagation(); });
+  }
+
   // ---- dashboard ------------------------------------------------------------------
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   /** "November 4, 2022 2:12pm" */
@@ -182,6 +222,7 @@
   function plural(n, one, many) { return num(n) + ' ' + (Number(n) === 1 ? one : many); }
 
   function initDashboard() {
+    initInfoTips($('#dash'));
     function setSide(open) {
       $('body').toggleClass('sidebar-closed', !open);
       $('#sideToggle').attr('aria-expanded', String(open));
@@ -357,12 +398,24 @@
   }
 
   // ---- detail panel (AD object or device) -------------------------------------------
-  function showDetail(title, html, kind) {
+  var detailAsset = null;
+  /** assetRef ({kind, ad_user_id | identity_key | host_asset_id | ad_computer_id}) shows the "Sync asset details" button. */
+  function showDetail(title, html, kind, assetRef) {
     $('#detailTitle').text(title);
     $('#detailBody').html(html);
     $('#detailAnalyze').prop('hidden', !kind).attr('data-kind', kind || '');
+    detailAsset = assetRef || null;
+    $('#detailAssetSync').prop('hidden', !detailAsset);
+    $('#detailAssetOpen').prop('hidden', true);
+    if (detailAsset) {
+      api('asset_lookup', detailAsset).done(function (d) {
+        if (detailAsset !== assetRef || !d.profile) return;
+        $('#detailAssetOpen').prop('hidden', false).attr('href', '/explore/assets/view?id=' + d.profile.id).attr('title', 'Last synced ' + ago(d.profile.synced_at) + '. Open the stored Asset Details page.');
+      });
+    }
     bootstrap.Offcanvas.getOrCreateInstance('#detailPanel').show();
   }
+  $('#detailAssetSync').on('click', function () { if (detailAsset) syncAssetInNewTab(detailAsset); });
   function kv(pairs) {
     return '<div class="kv">' + pairs.filter(function (p) { return p[1] !== null && p[1] !== undefined && p[1] !== ''; }).map(function (p) {
       return '<div>' + esc(p[0]) + '</div><div>' + (p[2] ? p[1] : esc(p[1])) + '</div>';
@@ -387,7 +440,9 @@
         var text = typeof v === 'object' ? JSON.stringify(v) : String(v);
         return [n, text.length > 600 ? text.slice(0, 600) + '…' : text];
       }));
-      showDetail(o.name || o.sam_account_name || 'AD object', html, 'AD ' + String(type || 'object').replace(/_/g, ' ').replace(/s$/, ''));
+      var assetRef = ['users', 'service_accounts', 'all_users'].indexOf(type) >= 0 ? { kind: 'identity', ad_user_id: o.id || id }
+        : type === 'computers' ? { kind: 'host', ad_computer_id: o.id || id } : null;
+      showDetail(o.name || o.sam_account_name || 'AD object', html, 'AD ' + String(type || 'object').replace(/_/g, ' ').replace(/s$/, ''), assetRef);
     }).fail(function (xhr) { showDetail('Not available', '<div class="alert alert-danger">' + esc(errText(xhr)) + '</div>'); });
   }
   function openDevice(id, highlightPlugin) {
@@ -403,7 +458,7 @@
           return '<tr' + (highlightPlugin && String(v.plugin_id) === String(highlightPlugin) ? ' class="table-active highlight"' : '') + '><td>' + sevBadge(v.severity) + '</td><td>' + esc(v.plugin_name) + '<div class="muted mono">' + esc(v.plugin_id) + (v.cve.length ? ' · ' + esc(v.cve.slice(0, 3).join(', ')) + (v.cve.length > 3 ? ' +' + (v.cve.length - 3) : '') : '') +
             '</div></td><td>' + (v.vpr_score === null ? '' : esc(Number(v.vpr_score).toFixed(1))) + '</td><td class="mono">' + (Number(v.port) ? esc(v.port) + '/' + esc(v.protocol) : '') + '</td></tr>';
         }).join('') + '</tbody></table>';
-      showDetail(h.dns_name || h.ip || 'Host', html, 'host');
+      showDetail(h.dns_name || h.ip || 'Host', html, 'host', { kind: 'host', host_asset_id: h.id || id });
       if (highlightPlugin) setTimeout(function () { var el = document.querySelector('#detailBody tr.highlight'); if (el) el.scrollIntoView({ block: 'center' }); }, 350);
     }).fail(function (xhr) { showDetail('Not available', '<div class="alert alert-danger">' + esc(errText(xhr)) + '</div>'); });
   }
@@ -436,6 +491,7 @@
   AD_COLUMNS.all_users.splice(3, 0, ['Kind', null, function (r) { return r.account_type === 'user' ? '' : '<span class="chip">Service account</span>'; }]);
 
   function countCell(n) { n = Number(n); return '<span class="count-pill' + (n ? '' : ' zero') + '">' + num(n) + '</span>'; }
+
   var SOURCE_LABEL = { 'sc': 'Security Center', 'ad': 'AD', 'sc+ad': 'Security Center + AD' };
   var DEVICE_COLUMNS = [['Name', 'name', nameCell], ['IP address', 'ip', function (r) { return '<span class="mono">' + esc(r.ip) + '</span>'; }],
     ['Operating system', 'os', function (r) { return '<div class="truncate" style="max-width:260px" title="' + esc(r.os) + '">' + esc(r.os) + '</div>'; }],
@@ -464,50 +520,457 @@
     $group.find('[data-' + attr + ']').each(function () { $(this).toggleClass('active', this.dataset[attr] === String(value)); });
   }
 
-  // ---- Explore: Asset Inventory -----------------------------------------------------------
-  function initAssets() {
+  // ---- Explore: Hosts (Security Center hosts as they come from SC) -------------------------------------
+  function initHosts() {
     var q = query();
-    var state = { type: ['users', 'devices', 'iot'].indexOf(q.get('type')) >= 0 ? q.get('type') : 'devices', source: '', q: q.get('q') || '', page: 1, size: 50, sort: '', dir: 'asc' };
-    var $root = $('#assets');
-    $('#assetSearch').val(state.q);
-    if (q.get('host')) openDevice(Number(q.get('host')), q.get('plugin'));   // deep link from Agent Tenable
-
-    function columns() { return state.type === 'users' ? AD_COLUMNS.all_users : state.type === 'iot' ? IOT_COLUMNS : DEVICE_COLUMNS; }
+    var state = { type: q.get('type') === 'iot' ? 'iot' : 'devices', source: '', q: q.get('q') || '', page: 1, size: 50, sort: '', dir: 'asc' };
+    var $root = $('#hosts');
+    $('#hostSearch').val(state.q);
+    if (q.get('host')) openDevice(Number(q.get('host')), q.get('plugin'));   // deep link from Agent Tenable and Findings
+    function columns() { return state.type === 'iot' ? IOT_COLUMNS : DEVICE_COLUMNS; }
     function load() {
       var cols = columns();
       setActive($root, 'type', state.type); setActive($root, 'source', state.source);
-      $('#assetSourceGroup').toggle(state.type === 'devices');
-      renderHead($('#assetHead'), cols, state, false);
-      $('#assetBody').html(loadingRow(cols.length));
-      var request = state.type === 'users'
-        ? api('ad_objects', { type: 'all_users', q: state.q, page: state.page, size: state.size, sort: state.sort, dir: state.dir })
-        : api('devices', { 'class': state.type === 'iot' ? 'iot' : 'device', source: state.source, q: state.q, page: state.page, size: state.size, sort: state.sort, dir: state.dir });
-      request.done(function (d) {
-        $('#assetBody').html(d.rows.length ? d.rows.map(function (r) {
-          var open = state.type === 'users' ? 'data-ad="' + esc(r.id) + '"' : (r.host_id ? 'data-host="' + esc(r.host_id) + '"' : 'data-computer="' + esc(r.ad_computer_id) + '"');
+      $('#hostSourceGroup').toggle(state.type === 'devices');
+      renderHead($('#hostHead'), cols, state, false);
+      $('#hostBody').html(loadingRow(cols.length));
+      api('devices', { 'class': state.type === 'iot' ? 'iot' : 'device', source: state.source, q: state.q, page: state.page, size: state.size, sort: state.sort, dir: state.dir }).done(function (d) {
+        $('#hostBody').html(d.rows.length ? d.rows.map(function (r) {
+          var open = r.host_id ? 'data-host="' + esc(r.host_id) + '"' : 'data-computer="' + esc(r.ad_computer_id) + '"';
           return '<tr class="clickable" tabindex="0" ' + open + '>' + cols.map(function (c) { return '<td>' + c[2](r) + '</td>'; }).join('') + '</tr>';
-        }).join('') : emptyRow(cols.length, state.q || state.source ? 'Nothing matches these filters.' :
-          'No assets yet. Run a sync under <a href="/settings/security-center">Settings</a>.'));
-        renderPager($('#assetPager'), state, d.total, load);
-        $root.find('[data-count="' + state.type + '"]').text(state.q || state.source ? '' : num(d.total));
-      }).fail(function (xhr) { $('#assetBody').html(emptyRow(cols.length, esc(errText(xhr)))); });
+        }).join('') : emptyRow(cols.length, state.q || state.source ? 'Nothing matches these filters.' : 'No hosts yet. Run a sync under <a href="/settings/security-center">Settings</a>.'));
+        renderPager($('#hostPager'), state, d.total, load);
+        if (!state.q && !state.source) $root.find('[data-count="' + state.type + '"]').text(num(d.total));
+      }).fail(function (xhr) { $('#hostBody').html(emptyRow(cols.length, esc(errText(xhr)))); });
     }
-    function counts() {
-      api('ad_objects', { type: 'all_users', size: 10 }).done(function (d) { $root.find('[data-count="users"]').text(num(d.total)); });
-      api('devices', { 'class': 'device', size: 10 }).done(function (d) { $root.find('[data-count="devices"]').text(num(d.total)); });
-      api('devices', { 'class': 'iot', size: 10 }).done(function (d) { $root.find('[data-count="iot"]').text(num(d.total)); });
-    }
+    api('devices', { 'class': 'device', size: 10 }).done(function (d) { $root.find('[data-count="devices"]').text(num(d.total)); });
+    api('devices', { 'class': 'iot', size: 10 }).done(function (d) { $root.find('[data-count="iot"]').text(num(d.total)); });
     $root.on('click', '[data-type]', function () { state.type = this.dataset.type; state.page = 1; state.sort = ''; state.source = ''; load(); });
     $root.on('click', '[data-source]', function () { state.source = this.dataset.source; state.page = 1; load(); });
-    $('#assetSearch').on('input', debounce(function () { state.q = this.value.trim(); state.page = 1; load(); }, 300));
-    $('#assetBody').on('click keydown', 'tr.clickable', function (e) {
+    $('#hostSearch').on('input', debounce(function () { state.q = this.value.trim(); state.page = 1; load(); }, 300));
+    $('#hostBody').on('click keydown', 'tr.clickable', function (e) {
       if (e.type === 'keydown' && e.key !== 'Enter') return;
       if (this.dataset.host) openDevice(this.dataset.host);
-      else if (this.dataset.ad) openAdObject('all_users', this.dataset.ad);
       else if (this.dataset.computer) openAdObject('computers', this.dataset.computer);
     });
-    bindSort($('#assetHead'), state, load);
-    counts(); load();
+    bindSort($('#hostHead'), state, load);
+    load();
+  }
+
+  // ---- Assets: the central asset table (asset_profiles) -------------------------------------------
+  var ASSET_TYPE_LABEL = { user: 'User', service_account: 'Service account', host: 'Host' };
+  var ACCESS_LABEL = { local_admin: 'Local admin', rdp_right: 'RDP right', psremote_right: 'PS remoting', session: 'Session', last_logon: 'Last logon',
+    smb_session: 'SMB session', service_account: 'Runs a service', scan_account: 'Scan account' };
+  function accessLabel(a) { return ACCESS_LABEL[a] || String(a || '').replace(/_/g, ' '); }
+  function assetViewUrl(id) { return '/explore/assets/view?id=' + encodeURIComponent(id); }
+  /** Opens a new tab that analyses the asset, stores it and then shows it. */
+  function syncAssetInNewTab(ref) { window.open('/explore/assets/view?sync=1&' + $.param(ref), '_blank', 'noopener'); }
+  function riskBadge(level, score) {
+    if (!level) return '<span class="muted">–</span>';
+    var cls = { critical: 'risk-critical', high: 'risk-high', medium: 'risk-medium', low: 'risk-low' }[level] || '';
+    return '<span class="risk-pill ' + cls + '">' + esc(level) + (score !== null && score !== undefined ? ' · ' + esc(Math.round(score)) : '') + '</span>';
+  }
+
+  function initAssets() {
+    var q = query();
+    var legacy = { users: 'user', devices: 'host', iot: 'host' };
+    var t = q.get('type');
+    var state = { type: legacy[t] || (['user', 'service_account', 'host'].indexOf(t) >= 0 ? t : ''), sort: 'synced', q: q.get('q') || '', page: 1, size: 50 };
+    var $root = $('#assets');
+    $('#assetSearch').val(state.q);
+    if (q.get('host')) openDevice(Number(q.get('host')), q.get('plugin'));   // deep link from Agent Tenable and Findings
+    function load() {
+      setActive($root, 'type', state.type); setActive($root, 'sort', state.sort);
+      $('#assetBody').html(loadingRow(11));
+      api('asset_profiles', { type: state.type, q: state.q, sort: state.sort, page: state.page, size: state.size }).done(function (d) {
+        Object.keys(d.counts || {}).forEach(function (k) { $root.find('[data-count="' + k + '"]').text(num(d.counts[k])); });
+        $('#assetHint').text(num(d.total) + ' analysed asset' + (d.total === 1 ? '' : 's'));
+        $('#assetBody').html(d.rows.length ? d.rows.map(function (r) {
+          var s = r.summary || {};
+          var sub = r.asset_type === 'host' ? r.subtitle : [r.subtitle, r.mail, r.org_unit].filter(Boolean).join(' · ');
+          return '<tr class="clickable" tabindex="0" data-id="' + esc(r.id) + '"><td><a href="' + esc(assetViewUrl(r.id)) + '"><b>' + esc(r.name) + '</b></a><div class="muted small-text truncate" style="max-width:380px">' + esc(sub) + '</div></td>' +
+            '<td><span class="chip">' + esc(ASSET_TYPE_LABEL[r.asset_type] || r.asset_type) + '</span></td><td>' + (tierBadge(r.tier) || '<span class="muted">–</span>') + '</td>' +
+            '<td>' + riskBadge(r.risk_level, r.risk_score) + '</td><td class="text-end">' + countCell(s.hosts) + '</td><td class="text-end">' + countCell(s.critical) + '</td>' +
+            '<td class="text-end">' + countCell(s.high) + '</td><td class="text-end">' + countCell(s.exploitable) + '</td>' +
+            '<td class="text-nowrap" title="' + esc(fmtDate(r.synced_at)) + '">' + esc(ago(r.synced_at)) + '</td><td><span class="chip">' + (r.source === 'agent' ? 'Agent Tenable' : 'Manual') + '</span></td>' +
+            '<td class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary" data-resync="' + esc(r.id) + '" title="Analyse again">Re-sync</button> ' +
+            '<button type="button" class="btn btn-sm btn-outline-danger" data-del="' + esc(r.id) + '" data-name="' + esc(r.name) + '" title="Remove from the asset table">Delete</button></td></tr>';
+        }).join('') : emptyRow(11, state.q || state.type ? 'No analysed asset matches these filters.' :
+          'No asset has been analysed yet. Open a user, computer or host (for example in <a href="/explore/ad-objects">AD Objects</a> or <a href="/explore/findings">Findings</a>) and press <b>Sync asset details</b>, or ask Agent Tenable about an account.'));
+        renderPager($('#assetPager'), state, d.total, load);
+      }).fail(function (xhr) { $('#assetBody').html(emptyRow(11, esc(errText(xhr)))); });
+    }
+    $root.on('click', '[data-type]', function () { state.type = this.dataset.type; state.page = 1; load(); });
+    $root.on('click', '[data-sort]', function () { state.sort = this.dataset.sort; state.page = 1; load(); });
+    $('#assetSearch').on('input', debounce(function () { state.q = this.value.trim(); state.page = 1; load(); }, 300));
+    $('#assetBody').on('click', '[data-resync]', function (e) {
+      e.stopPropagation();
+      var $b = $(this).prop('disabled', true).text('Syncing…');
+      api('asset_profile', { id: this.dataset.resync }).then(function (p) { return post('asset_sync', assetRefOf(p)); })
+        .done(function () { toast('Asset re-synced.'); load(); }).fail(function (xhr) { toast(errText(xhr), 'error'); $b.prop('disabled', false).text('Re-sync'); });
+    }).on('click', '[data-del]', function (e) {
+      e.stopPropagation();
+      var id = this.dataset.del, name = this.dataset.name;
+      confirmAction('Delete asset', 'Remove "' + name + '" from the asset table? The source data is not touched; you can sync it again at any time.', 'Delete', function () {
+        post('asset_delete', { id: id }).done(function () { toast('Asset deleted.'); load(); }).fail(function (xhr) { toast(errText(xhr), 'error'); });
+      });
+    }).on('click keydown', 'tr.clickable', function (e) {
+      if (e.type === 'keydown' && e.key !== 'Enter') return;
+      if ($(e.target).closest('a, button').length) return;
+      window.location.href = assetViewUrl(this.dataset.id);
+    });
+    load();
+  }
+
+  /** The asset_sync parameters that rebuild a stored snapshot. */
+  function assetRefOf(p) {
+    if (p.asset_kind === 'host') return { kind: 'host', host_asset_id: p.host_asset_id || p.asset_key };
+    if (p.profile && p.profile.ad_user_id) return { kind: 'identity', ad_user_id: p.profile.ad_user_id };
+    return { kind: 'identity', identity_key: p.asset_key };
+  }
+
+  // ---- Asset Details page ---------------------------------------------------------------------------
+  function initAssetView() {
+    var q = query(), current = null, tab = (window.location.hash || '').replace('#', '') || 'overview', charts = [];
+    var $pane = $('#avPane');
+
+    function fail(text) { $('#avSyncing').prop('hidden', true); $('#avError').prop('hidden', false).text(text); }
+    function load(id) {
+      api('asset_profile', { id: id }).done(function (p) { current = p; render(); }).fail(function (xhr) { fail(errText(xhr)); });
+    }
+    function sync(ref) {
+      $('#avSyncing').prop('hidden', false); $('#avContent').prop('hidden', true); $('#avError').prop('hidden', true);
+      post('asset_sync', ref).done(function (r) {
+        history.replaceState(null, '', assetViewUrl(r.id) + window.location.hash);
+        $('#avSyncing').prop('hidden', true);
+        load(r.id);
+      }).fail(function (xhr) { fail(errText(xhr)); });
+    }
+    if (q.get('sync') === '1') {
+      var ref = {};
+      ['kind', 'ad_user_id', 'identity_key', 'account', 'host_asset_id', 'target', 'ad_computer_id'].forEach(function (k) { if (q.get(k)) ref[k] = q.get(k); });
+      sync(ref);
+    } else if (q.get('id')) load(q.get('id'));
+    else fail('No asset selected. Open one from Explore > Assets.');
+
+    // -- header, KPIs, tabs
+    function render() {
+      var p = current, s = p.summary || {}, r = p.risk || {}, isHost = p.asset_kind === 'host', pr = p.profile || {};
+      document.title = p.name + ' · Asset Details · Exposure Lens';
+      $('#avContent').prop('hidden', false);
+      $('#avIcon').html('<span class="icon ' + (isHost ? 'b-pc' : pr.kind && pr.kind !== 'user' ? 'b-person-gear' : 'b-person') + '"></span>');
+      $('#avName').text(p.name);
+      $('#avSubtitle').text(p.subtitle || '');
+      var badges = ['<span class="chip">' + esc(isHost ? 'Host' : (pr.kind && pr.kind !== 'user' ? 'Service account' : 'User')) + '</span>'];
+      if (p.tier !== null && p.tier !== undefined) badges.push(tierBadge(p.tier));
+      if (!isHost && pr.enabled !== undefined && pr.enabled !== null) badges.push(enabledBadge(pr.enabled));
+      if (!isHost && pr.in_ad === false) badges.push('<span class="badge-soft wait">Not in AD</span>');
+      if (isHost && pr.credentialed === false) badges.push('<span class="badge-soft wait">Not credentialed</span>');
+      if (pr.org_unit) badges.push('<span class="chip" title="Organizational unit">' + esc(pr.org_unit) + '</span>');
+      $('#avBadges').html(badges.join(''));
+      $('#avScore').html('<div class="gauge risk-' + esc(r.level || 'low') + '"><b>' + esc(r.score === undefined ? '–' : Math.round(r.score)) + '</b><span>' + esc(r.level || '') + ' risk</span></div>');
+      $('#avSynced').html('Synced ' + esc(ago(p.synced_at)) + ' (' + esc(fmtDate(p.synced_at)) + ')' + (p.source === 'agent' ? ' by Agent Tenable' : '') + (p.sync_ms !== null ? ' · ' + esc(p.sync_ms) + ' ms' : ''));
+      var kpis = isHost
+        ? [['Identities', s.identities, 'systems'], ['Tier 0 identities', s.tier0_identities, 'systems'], ['Critical', s.critical, 'vulns'], ['High', s.high, 'vulns'], ['Exploitable', s.exploitable, 'vulns'], ['Max VPR', s.max_vpr, 'risk']]
+        : [['Connected systems', s.hosts, 'systems'], ['With Critical findings', s.hosts_with_critical, 'systems'], ['High-ACR hosts', s.high_acr_hosts, 'systems'], ['Critical', s.critical, 'vulns'], ['High', s.high, 'vulns'], ['Exploitable', s.exploitable, 'vulns']];
+      $('#avKpis').html(kpis.map(function (k) {
+        var v = k[1] === null || k[1] === undefined ? '–' : (k[0] === 'Max VPR' ? Number(k[1]).toFixed(1) : num(k[1]));
+        return '<button type="button" class="kpi" data-goto="' + k[2] + '"><span class="title">' + esc(k[0]) + '</span><span class="value">' + esc(v) + '</span></button>';
+      }).join(''));
+      var tabs = isHost
+        ? [['overview', 'Overview'], ['systems', 'Identities', distinct(p.systems, 'identity_key')], ['vulns', 'Vulnerabilities', p.vulnerabilities.length], ['risk', 'Risk'], ['evidence', 'Correlation Evidence', p.systems.length], ['local', 'Local Accounts & Services', (pr.local_accounts || []).length + (pr.services || []).length]]
+        : [['overview', 'Overview'], ['systems', 'Connected Systems', distinct(p.systems, 'host_asset_id')], ['vulns', 'Vulnerabilities', p.vulnerabilities.length], ['risk', 'Risk'], ['evidence', 'Correlation Evidence', p.systems.length], ['groups', 'Groups', (pr.groups || []).length]];
+      if (!tabs.some(function (t) { return t[0] === tab; })) tab = 'overview';
+      $('#avTabs').html(tabs.map(function (t) {
+        return '<li class="nav-item" role="presentation"><button type="button" class="nav-link' + (t[0] === tab ? ' active' : '') + '" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === tab) + '">' + esc(t[1]) +
+          (t[2] !== undefined ? ' <span class="count">' + num(t[2]) + '</span>' : '') + '</button></li>';
+      }).join(''));
+      showTab(tab);
+    }
+    function distinct(rows, key) { var seen = {}; (rows || []).forEach(function (r) { seen[r[key]] = 1; }); return Object.keys(seen).length; }
+    function showTab(name) {
+      tab = name;
+      history.replaceState(null, '', window.location.pathname + window.location.search + '#' + name);
+      $('#avTabs .nav-link').each(function () { var on = this.dataset.tab === name; $(this).toggleClass('active', on).attr('aria-selected', String(on)); });
+      charts.forEach(function (c) { c.destroy(); }); charts = [];
+      var isHost = current.asset_kind === 'host';
+      var html = { overview: isHost ? hostOverview : identityOverview, systems: isHost ? hostIdentities : connectedSystems, vulns: vulnTab, risk: riskTab,
+        evidence: evidenceTab, groups: groupsTab, local: localTab }[name]();
+      $pane.html(html);
+      if (name === 'vulns') bindVulns();
+      if (name === 'risk') drawRiskCharts();
+    }
+    $('#avTabs').on('click', '[data-tab]', function () { showTab(this.dataset.tab); });
+    $('#avKpis').on('click', '[data-goto]', function () { showTab(this.dataset.goto); });
+    $pane.on('click', '[data-host]', function (e) { e.preventDefault(); openDevice(this.dataset.host, this.dataset.plugin); });
+    $pane.on('click', '[data-goto]', function () { showTab(this.dataset.goto); });
+
+    // -- cells
+    function hostLink(id, name, plugin) { return '<a href="' + esc('/explore/hosts?host=' + id + (plugin ? '&plugin=' + plugin : '')) + '" data-host="' + esc(id) + '"' + (plugin ? ' data-plugin="' + esc(plugin) + '"' : '') + ' title="Open the host panel">' + esc(name) + '</a>'; }
+    function vpr(v) { return v === null || v === undefined || v === '' ? '<span class="muted">–</span>' : '<b>' + esc(Number(v).toFixed(1)) + '</b>'; }
+    function yes(v) { return v === true || v === 't'; }
+    function section(title, body, sub) { return '<h3 class="pane-h">' + esc(title) + (sub ? ' <span class="muted fw-normal">' + esc(sub) + '</span>' : '') + '</h3>' + body; }
+    function tbl(head, rows, empty) {
+      return '<div class="table-wrap"><table class="table table-hover table-sm"><thead><tr>' + head.map(function (h) { return '<th' + (/^(Hosts|Critical|High|Findings|VPR|ACR|Max VPR|Count|Other hosts)$/.test(h) ? ' class="text-end"' : '') + '>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        (rows.length ? rows.join('') : emptyRow(head.length, empty || 'Nothing to show.')) + '</tbody></table></div>';
+    }
+    function td(v, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + v + '</td>'; }
+
+    // -- Overview
+    function identityOverview() {
+      var pr = current.profile || {}, r = current.risk || {};
+      if (pr.in_ad === false) {
+        return section('Identity', kv([['Account', pr.account], ['Kind', pr.kind], ['Scope', pr.scope]])) + '<p class="muted mt-2">' + esc(pr.note || '') + '</p>' + factorsBlock(r.factors, 4);
+      }
+      var pf = pr.password_findings || {};
+      var pwd = [];
+      if (pf.isbreached) pwd.push('<span class="badge-soft bad">Breached</span>');
+      if (pf.isweak) pwd.push('<span class="badge-soft bad">Weak</span>');
+      if (pf.islmblank === false) pwd.push('<span class="badge-soft wait">LM hash stored</span>');
+      if (pf.isntblank) pwd.push('<span class="badge-soft bad">Blank NT hash</span>');
+      var left = section('User information', kv([['Display name', pr.display_name], ['Account', pr.account], ['User principal name', pr.user_principal_name], ['E-mail', pr.mail || '–'],
+        ['Telephone', pr.telephone], ['Description', pr.description], ['Organizational unit', pr.org_unit], ['Department / title', 'Not collected by Identity Exposure'],
+        ['Status', enabledBadge(pr.enabled), true], ['Account type', pr.account_type], ['Tier', tierBadge(pr.tier, pr.tier_source) || 'none', true], ['adminCount', pr.admin_count]]));
+      var right = section('Account security', kv([['Last logon', fmtDate(pr.last_logon)], ['Password last set', fmtDate(pr.pwd_last_set)], ['Password age', pr.password_age_days !== null && pr.password_age_days !== undefined ? pr.password_age_days + ' days' : ''],
+        ['Password findings', pwd.join(' ') || '<span class="muted">none reported</span>', true], ['Bad password count', pr.bad_password_count], ['Lockout time', pr.lockout_time],
+        ['userAccountControl', (pr.uac_flags || []).map(function (f) { return '<span class="chip">' + esc(f) + '</span>'; }).join('') || '–', true],
+        ['SPNs', (pr.service_principal_names || []).map(function (f) { return '<span class="chip mono">' + esc(f) + '</span>'; }).join('') || '–', true],
+        ['Delegation', pr.allowed_to_delegate_to ? [].concat(pr.allowed_to_delegate_to).join(', ') : ''], ['SID history', pr.sid_history ? [].concat(pr.sid_history).join(', ') : ''],
+        ['Created', fmtDate(pr.created)], ['SID', pr.sid], ['Distinguished name', pr.dn]]));
+      var path = pr.tier_detail && pr.tier_detail.path && pr.tier_detail.path.length
+        ? section('Path to Tier 0', '<ol class="tier-path">' + pr.tier_detail.path.map(function (s) { return '<li><b>' + esc(s.from) + '</b> <span class="chip">' + esc(s.kind) + '</span> <b>' + esc(s.to) + '</b></li>'; }).join('') + '</ol>', '(' + pr.tier_detail.hops + ' hop' + (pr.tier_detail.hops === 1 ? '' : 's') + ')') : '';
+      return '<div class="pane-grid">' + '<div>' + left + path + '</div><div>' + right + '</div></div>' + factorsBlock(r.factors, 4) + topHosts(4);
+    }
+    function hostOverview() {
+      var h = current.profile || {}, r = current.risk || {};
+      var left = section('Host information', kv([['Name', current.name], ['IP address', h.ip], ['DNS name', h.dns_name], ['NetBIOS name', h.netbios_name], ['MAC address', h.mac_address],
+        ['Operating system', h.os], ['Device type', h.device_type], ['Asset class', h.asset_class], ['Repository', h.repository_name], ['First seen', fmtDate(h.first_seen)], ['Last seen', fmtDate(h.last_seen)]]));
+      var right = section('Directory and exposure', kv([['Domain', h.domain_joined ? 'Joined (' + esc(h.domain_name || '') + ')' : 'Not joined', true], ['AD computer', h.ad_sam_account_name], ['Organizational unit', h.org_unit],
+        ['AD last logon', fmtDate(h.ad_last_logon)], ['Tier', tierBadge(h.host_tier) || 'none', true], ['Asset criticality (ACR)', h.acr_score], ['Asset exposure (AES)', h.aes_score],
+        ['Scanned with credentials', h.credentialed === null || h.credentialed === undefined ? '' : (yes(h.credentialed) ? 'yes' : 'no')], ['Agent UUID', h.agent_uuid], ['Host UUID', h.host_uuid]]));
+      return '<div class="pane-grid"><div>' + left + '</div><div>' + right + '</div></div>' + factorsBlock(r.factors, 4);
+    }
+    function factorsBlock(factors, limit) {
+      factors = factors || [];
+      if (!factors.length) return '';
+      var shown = limit ? factors.slice(0, limit) : factors;
+      return section('Risk factors', '<ul class="factors">' + shown.map(function (f) {
+        return '<li class="factor ' + esc(f.level) + '"><span class="lvl">' + esc(f.level) + '</span><div><b>' + esc(f.title) + '</b><div class="muted">' + esc(f.detail) + '</div></div></li>';
+      }).join('') + '</ul>' + (limit && factors.length > limit ? '<button type="button" class="btn btn-sm btn-link px-0" data-goto="risk">All ' + factors.length + ' factors in the Risk tab →</button>' : ''));
+    }
+    function topHosts(n) {
+      var rows = ((current.risk || {}).by_host || []).slice(0, n || 5);
+      if (!rows.length) return '';
+      return section('Most exposed connected systems', tbl(['Host', 'Access', 'Tier', 'Critical', 'High', 'Max VPR', 'ACR'], rows.map(function (h) {
+        return '<tr>' + td(hostLink(h.host_asset_id, h.host_name) + '<div class="muted mono small-text">' + esc(h.ip) + '</div>') + td((h.access || []).map(function (a) { return '<span class="chip">' + esc(accessLabel(a)) + '</span>'; }).join('')) +
+          td(tierBadge(h.host_tier) || '<span class="muted">–</span>') + td(countCell(h.critical), 'text-end') + td(countCell(h.high), 'text-end') + td(vpr(h.max_vpr), 'text-end') + td(esc(h.acr_score || ''), 'text-end') + '</tr>';
+      })) + '<button type="button" class="btn btn-sm btn-link px-0" data-goto="systems">All connected systems →</button>');
+    }
+
+    // -- Connected systems (identity): one row per host
+    function connectedSystems() {
+      var by = {};
+      current.systems.forEach(function (s) {
+        var h = by[s.host_asset_id] || (by[s.host_asset_id] = $.extend({}, s, { access: [], via: [] }));
+        if (h.access.indexOf(s.access_type) < 0) h.access.push(s.access_type);
+        if (s.via_group && h.via.indexOf(s.via_group) < 0) h.via.push(s.via_group);
+        if (s.last_seen > h.last_seen) h.last_seen = s.last_seen;
+      });
+      var rows = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return (b.critical - a.critical) || ((b.max_vpr || 0) - (a.max_vpr || 0)); });
+      return '<p class="muted">Systems this identity can log on to or administer (<b>rights</b>), and systems where it was seen (<b>usage</b>), from Nessus plugin output correlated with Active Directory.</p>' +
+        tbl(['Host', 'Operating system', 'Access', 'Via group', 'Tier', 'ACR', 'Critical', 'High', 'Max VPR', 'Exploitable', 'Credentialed', 'Last seen'], rows.map(function (h) {
+          return '<tr>' + td(hostLink(h.host_asset_id, h.host_name) + '<div class="muted mono small-text">' + esc(h.ip) + '</div>') + td('<div class="truncate" style="max-width:220px" title="' + esc(h.os) + '">' + esc(h.os) + '</div>') +
+            td(h.access.map(function (a) { return '<span class="chip">' + esc(accessLabel(a)) + '</span>'; }).join('')) + td(esc(h.via.join(', ')) || '<span class="muted">direct</span>') +
+            td(tierBadge(h.host_tier) || '<span class="muted">–</span>') + td(esc(h.acr_score || ''), 'text-end') + td(countCell(h.critical), 'text-end') + td(countCell(h.high), 'text-end') + td(vpr(h.max_vpr), 'text-end') +
+            td(countCell(h.exploitable), 'text-end') + td(yes(h.credentialed) ? '<span class="badge-soft ok">yes</span>' : '<span class="badge-soft wait">no</span>') + td(esc(fmtDay(h.last_seen)), 'text-nowrap') + '</tr>';
+        }), 'No host access was found for this identity.');
+    }
+    // -- Identities (host): one row per identity
+    function hostIdentities() {
+      var by = {};
+      current.systems.forEach(function (s) {
+        var i = by[s.identity_key] || (by[s.identity_key] = $.extend({}, s, { access: [] }));
+        if (i.access.indexOf(s.access_type) < 0) i.access.push(s.access_type);
+      });
+      var rows = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return (yes(b.tier0_like) - yes(a.tier0_like)) || String(a.identity_name).localeCompare(String(b.identity_name)); });
+      return '<p class="muted">Identities that hold rights on this host or were seen using it. <b>Other hosts</b> is how many more systems the same identity reaches.</p>' +
+        tbl(['Identity', 'Kind', 'Scope', 'Tier', 'Access', 'Other hosts', 'Last seen', ''], rows.map(function (i) {
+          var ref = i.ad_object_id && (i.object_type === 'user' || i.object_type === 'service_account') ? { kind: 'identity', ad_user_id: i.ad_object_id } : { kind: 'identity', identity_key: i.identity_key };
+          return '<tr>' + td('<b>' + esc(i.identity_name) + '</b>' + (yes(i.privileged_hint) ? ' <span class="badge-soft tier-0">privileged</span>' : '')) + td(esc(i.identity_kind)) + td(esc(i.scope)) +
+            td(tierBadge(i.tier) || '<span class="muted">–</span>') + td(i.access.map(function (a) { return '<span class="chip">' + esc(accessLabel(a)) + '</span>'; }).join('')) +
+            td(countCell(i.other_hosts), 'text-end') + td(esc(fmtDay(i.last_seen)), 'text-nowrap') +
+            td(i.identity_kind === 'group' || i.identity_kind === 'computer' ? '' : '<button type="button" class="btn btn-sm btn-outline-primary" data-sync-ref="' + esc(JSON.stringify(ref)) + '">Asset details</button>', 'text-end') + '</tr>';
+        }), 'No identity is linked to this host.');
+    }
+    $pane.on('click', '[data-sync-ref]', function () { syncAssetInNewTab(JSON.parse(this.dataset.syncRef)); });
+
+    // -- Correlation evidence: the raw access facts
+    function evidenceTab() {
+      var isHost = current.asset_kind === 'host';
+      return '<p class="muted">Every access fact behind this asset, as the CTEM correlation built it: the Nessus plugin whose output proves it, the lines of that output that name the account (or the AD group the right comes through), and how confident the match is.</p>' +
+        tbl([isHost ? 'Identity' : 'Host', 'Access', 'Via group', 'Plugin', 'Plugin output (matching lines)', 'Confidence', 'Last seen'], current.systems.map(function (s) {
+          var who = isHost ? '<b>' + esc(s.identity_name) + '</b>' : hostLink(s.host_asset_id, s.host_name) + '<div class="muted mono small-text">' + esc(s.ip) + '</div>';
+          if (s.principal_name && String(s.identity_name).toLowerCase().indexOf(String(s.principal_name).toLowerCase()) < 0) who += '<div class="muted small-text">seen as <span class="mono">' + esc((s.principal_domain ? s.principal_domain + '\\' : '') + s.principal_name) + '</span></div>';
+          return '<tr>' + td(who) +
+            td('<span class="chip">' + esc(accessLabel(s.access_type)) + '</span><div><span class="badge-soft ' + (s.access_class === 'usage' ? 'bad' : 'run') + '">' + esc(s.access_class === 'usage' ? 'used' : 'has the right') + '</span></div>') +
+            td(esc(s.via_group || '') || '<span class="muted">direct</span>') +
+            td(s.evidence_plugin_id ? '<span class="mono">' + esc(s.evidence_plugin_id) + '</span><div class="muted small-text" style="max-width:220px">' + esc(s.plugin_name || '') + '</div>' : '<span class="muted">–</span>') +
+            td(s.output_excerpt ? '<pre class="evidence-out">' + esc(s.output_excerpt) + '</pre>' + (s.plugin_output_id ? '<button type="button" class="btn btn-sm btn-link px-0" data-output="' + esc(s.plugin_output_id) + '">View full output</button>' : '')
+              : '<span class="muted">' + esc(s.evidence || '–') + '</span>') +
+            td(esc(s.confidence)) + td(esc(fmtDay(s.last_seen)), 'text-nowrap') + '</tr>';
+        }), 'No correlation evidence.');
+    }
+    $pane.on('click', '[data-output]', function () {
+      showDetail('Loading…', '');
+      api('plugin_output', { id: this.dataset.output }).done(function (o) {
+        showDetail('Plugin ' + o.plugin_id + ' on ' + (o.host_name || o.ip), kv([['Plugin', o.plugin_id + ' · ' + o.plugin_name], ['Host', (o.host_name || '') + ' (' + o.ip + ')'], ['Port', Number(o.port) ? o.port + '/' + o.protocol : 'host level'],
+          ['First seen', fmtDate(o.first_seen)], ['Last seen', fmtDate(o.last_seen)], ['Length', num(o.length) + ' characters' + (o.clipped ? ' (first 300,000 shown)' : '') + (o.truncated ? ', truncated by Security Center' : '')]]) +
+          '<h3 class="fs-6 mt-4">Output</h3><pre class="evidence-full">' + esc(o.output) + '</pre>', 'plugin output');
+      }).fail(function (xhr) { showDetail('Not available', '<div class="alert alert-danger">' + esc(errText(xhr)) + '</div>'); });
+    });
+    function groupsTab() {
+      return tbl(['Group', 'Tier', 'Type', 'Members', 'Description'], (current.profile.groups || []).map(function (g) {
+        return '<tr>' + td('<a href="' + esc('/explore/ad-objects?type=groups&open=' + g.ad_group_id) + '" target="_blank" rel="noopener"><b>' + esc(g.name) + '</b></a>') + td(tierBadge(g.tier) || '<span class="muted">–</span>') +
+          td(esc(String(g.group_type || '').toLowerCase().replace(/_/g, ' '))) + td(countCell(g.member_count), 'text-end') + td(esc(g.description || '')) + '</tr>';
+      }), 'No direct group membership.');
+    }
+    function localTab() {
+      var pr = current.profile || {};
+      return section('Local accounts', tbl(['Name', 'RID', 'Type', 'Status', 'Privileged', 'Groups', 'Last seen'], (pr.local_accounts || []).map(function (l) {
+        return '<tr>' + td('<b>' + esc(l.name) + '</b>') + td(esc(l.rid)) + td(esc(l.account_type)) + td(yes(l.disabled) ? '<span class="badge-soft bad">Disabled</span>' : '<span class="badge-soft ok">Enabled</span>') +
+          td(yes(l.privileged) ? '<span class="badge-soft tier-0">Privileged</span>' : '') + td(esc((l.groups || []).join(', '))) + td(esc(fmtDay(l.last_seen))) + '</tr>';
+      }), 'No local accounts were reported (credentialed scan needed).')) +
+      section('Services', tbl(['Service', 'Display name', 'Runs as', 'Account scope', 'Start type', 'Path'], (pr.services || []).map(function (s) {
+        return '<tr>' + td('<b>' + esc(s.service_name) + '</b>') + td(esc(s.display_name)) + td(esc(s.run_as || '')) + td(esc(s.account_scope || '')) + td(esc(s.start_type || '')) + td('<div class="truncate mono small-text" style="max-width:320px" title="' + esc(s.path) + '">' + esc(s.path) + '</div>') + '</tr>';
+      }), 'No non-built-in services were reported.'));
+    }
+
+    // -- Vulnerabilities: filter, group and page in the browser (the snapshot holds them all)
+    var vs = { sev: '', exploit: false, q: '', group: 'none', page: 1, size: 100 };
+    function vulnTab() {
+      var s = current.summary || {};
+      return '<div class="toolbar px-0 pt-0">' +
+        '<div class="btn-group btn-group-sm" role="group" aria-label="Severity">' + [['', 'All'], ['4', 'Critical'], ['3', 'High'], ['2', 'Medium'], ['1', 'Low']].map(function (b) {
+          return '<button type="button" class="btn btn-outline-primary' + (vs.sev === b[0] ? ' active' : '') + '" data-sev="' + b[0] + '">' + b[1] + '</button>'; }).join('') + '</div>' +
+        '<button type="button" class="btn btn-sm btn-outline-danger' + (vs.exploit ? ' active' : '') + '" data-exploit="1">Exploitable only</button>' +
+        '<div class="btn-group btn-group-sm" role="group" aria-label="Group by">' + [['none', 'Findings'], ['plugin', 'By plugin'], ['host', 'By host'], ['cve', 'By CVE']].map(function (b) {
+          return '<button type="button" class="btn btn-outline-secondary' + (vs.group === b[0] ? ' active' : '') + '" data-group="' + b[0] + '">' + b[1] + '</button>'; }).join('') + '</div>' +
+        '<div class="search"><input type="search" class="form-control form-control-sm" id="avVulnSearch" placeholder="Search plugin, CVE, host" value="' + esc(vs.q) + '" aria-label="Search findings"></div>' +
+        '<span class="muted ms-auto" id="avVulnHint"></span></div>' +
+        (s.findings_truncated ? '<div class="alert alert-warning py-2">Only the ' + num(current.vulnerabilities.length) + ' most severe findings are stored in this snapshot.</div>' : '') +
+        '<div id="avVulnTable"></div><div class="pager" id="avVulnPager"></div>';
+    }
+    function bindVulns() {
+      $pane.off('.v');
+      $pane.on('click.v', '[data-sev]', function () { vs.sev = this.dataset.sev; vs.page = 1; showTab('vulns'); })
+        .on('click.v', '[data-exploit]', function () { vs.exploit = !vs.exploit; vs.page = 1; showTab('vulns'); })
+        .on('click.v', '[data-group]', function () { vs.group = this.dataset.group; vs.page = 1; showTab('vulns'); })
+        .on('input.v', '#avVulnSearch', debounce(function () { vs.q = this.value.trim().toLowerCase(); vs.page = 1; drawVulns(); }, 250));
+      drawVulns();
+    }
+    function drawVulns() {
+      var rows = current.vulnerabilities.filter(function (v) {
+        if (vs.sev && String(v.severity) !== vs.sev) return false;
+        if (vs.exploit && !yes(v.exploit_available)) return false;
+        if (vs.q && (v.plugin_name + ' ' + v.plugin_id + ' ' + v.host_name + ' ' + v.ip + ' ' + (v.cve || []).join(' ')).toLowerCase().indexOf(vs.q) < 0) return false;
+        return true;
+      });
+      var out;
+      if (vs.group === 'none') {
+        var page = rows.slice((vs.page - 1) * vs.size, vs.page * vs.size);
+        out = tbl(['', 'Plugin', current.asset_kind === 'host' ? 'Port' : 'Host', 'VPR', 'CVSS', 'EPSS', 'CVE', 'Exploit', 'First seen', 'Last seen'], page.map(function (v) {
+          return '<tr>' + td(sevBadge(v.severity)) + td(esc(v.plugin_name) + '<div class="muted mono small-text">' + esc(v.plugin_id) + (v.family_name ? ' · ' + esc(v.family_name) : '') + '</div>') +
+            td(current.asset_kind === 'host' ? '<span class="mono">' + esc(v.port_label) + '</span>' : hostLink(v.host_asset_id, v.host_name, v.plugin_id) + '<div class="muted mono small-text">' + esc(v.ip) + ' · ' + esc(v.port_label) + '</div>') +
+            td(vpr(v.vpr_score), 'text-end') + td(v.cvss_v3 === null ? '' : esc(Number(v.cvss_v3).toFixed(1))) + td(v.epss_score === null || v.epss_score === undefined ? '' : esc(Number(v.epss_score).toFixed(3))) +
+            td((v.cve || []).slice(0, 3).map(function (c) { return '<a class="chip" href="' + esc('/explore/findings?cve=' + c) + '" target="_blank" rel="noopener">' + esc(c) + '</a>'; }).join('') + ((v.cve || []).length > 3 ? '<span class="chip">+' + (v.cve.length - 3) + '</span>' : '')) +
+            td(yes(v.exploit_available) ? '<span class="badge-soft bad">yes</span>' : '') + td(esc(fmtDay(v.first_seen)), 'text-nowrap') + td(esc(fmtDay(v.last_seen)), 'text-nowrap') + '</tr>';
+        }), 'No finding matches these filters.');
+        $('#avVulnHint').text(num(rows.length) + ' findings');
+        $('#avVulnTable').html(out);
+        renderPager($('#avVulnPager'), vs, rows.length, drawVulns);
+        return;
+      }
+      var g = {};
+      rows.forEach(function (v) {
+        var keys = vs.group === 'cve' ? (v.cve.length ? v.cve : ['(no CVE)']) : [vs.group === 'host' ? v.host_asset_id : v.plugin_id];
+        keys.forEach(function (k) {
+          var x = g[k] || (g[k] = { key: k, name: vs.group === 'host' ? v.host_name : vs.group === 'cve' ? k : v.plugin_name, host: v.host_asset_id, sev: 0, vpr: 0, findings: 0, hosts: {}, critical: 0, high: 0, exploit: 0 });
+          x.findings++; x.hosts[v.host_asset_id] = 1; x.sev = Math.max(x.sev, v.severity); x.vpr = Math.max(x.vpr, Number(v.vpr_score) || 0);
+          if (Number(v.severity) === 4) x.critical++; if (Number(v.severity) === 3) x.high++; if (yes(v.exploit_available)) x.exploit++;
+        });
+      });
+      var list = Object.keys(g).map(function (k) { return g[k]; }).sort(function (a, b) { return (b.vpr - a.vpr) || (b.findings - a.findings); });
+      $('#avVulnHint').text(num(list.length) + ' groups · ' + num(rows.length) + ' findings');
+      $('#avVulnTable').html(tbl(['', vs.group === 'host' ? 'Host' : vs.group === 'cve' ? 'CVE' : 'Plugin', 'Findings', 'Hosts', 'Critical', 'High', 'Max VPR', 'Exploitable'], list.slice(0, 500).map(function (x) {
+        var label = vs.group === 'host' ? hostLink(x.host, x.name) : vs.group === 'cve' && /^CVE-/i.test(x.key) ? '<a href="' + esc('/explore/findings?cve=' + x.key) + '" target="_blank" rel="noopener">' + esc(x.key) + '</a>' : esc(x.name) + (vs.group === 'plugin' ? '<div class="muted mono small-text">' + esc(x.key) + '</div>' : '');
+        return '<tr>' + td(sevBadge(x.sev)) + td(label) + td(countCell(x.findings), 'text-end') + td(countCell(Object.keys(x.hosts).length), 'text-end') + td(countCell(x.critical), 'text-end') +
+          td(countCell(x.high), 'text-end') + td(vpr(x.vpr), 'text-end') + td(countCell(x.exploit), 'text-end') + '</tr>';
+      }), 'No finding matches these filters.'));
+      $('#avVulnPager').empty();
+    }
+
+    // -- Risk: score, factors, the four risk questions and the breakdowns
+    function riskTab() {
+      var r = current.risk || {}, isHost = current.asset_kind === 'host';
+      var q = (r.questions || []).map(function (x) {
+        return '<div class="question ' + (x.answer ? 'yes' : 'no') + '"><span class="ans">' + (x.answer ? 'Yes' : 'No') + '</span><div><b>' + esc(x.question) + '</b>' + (x.answer ? '<div class="muted">' + num(x.count) + ' host' + (x.count === 1 ? '' : 's') + '</div>' : '') + '</div></div>';
+      }).join('');
+      var charts = '<div class="risk-grid">' +
+        '<section class="mini-card"><h4>Findings by severity</h4><div class="chart-box" style="height:220px"><canvas id="avChartSev"></canvas></div></section>' +
+        (isHost ? '<section class="mini-card"><h4>Identities by access type</h4><div class="chart-box" style="height:220px"><canvas id="avChartAccess"></canvas></div></section>'
+                : '<section class="mini-card"><h4>Connected systems by tier</h4><div class="chart-box" style="height:220px"><canvas id="avChartTier"></canvas></div></section>' +
+                  '<section class="mini-card"><h4>Access facts by type</h4><div class="chart-box" style="height:220px"><canvas id="avChartAccess"></canvas></div></section>') +
+        '<section class="mini-card"><h4>High and Critical findings by plugin family</h4><div class="chart-box" style="height:220px"><canvas id="avChartFamily"></canvas></div></section></div>';
+      var plugins = section('Top vulnerabilities', tbl(['', 'Plugin', 'Hosts', 'Max VPR', 'Exploit', 'CVE'], (r.top_plugins || []).slice(0, 15).map(function (p) {
+        return '<tr>' + td(sevBadge(p.severity)) + td(esc(p.plugin_name) + '<div class="muted mono small-text">' + esc(p.plugin_id) + '</div>') + td(countCell(p.hosts), 'text-end') + td(vpr(p.max_vpr), 'text-end') +
+          td(p.exploit ? '<span class="badge-soft bad">yes</span>' : '') + td((p.cve || []).map(function (c) { return '<span class="chip">' + esc(c) + '</span>'; }).join('')) + '</tr>';
+      }), 'No High or Critical findings.'));
+      var cves = section('Top CVEs', tbl(['CVE', 'Hosts', 'Max VPR'], (r.top_cves || []).slice(0, 15).map(function (c) {
+        return '<tr>' + td('<a href="' + esc('/explore/findings?cve=' + c.cve) + '" target="_blank" rel="noopener">' + esc(c.cve) + '</a>') + td(countCell(c.hosts), 'text-end') + td(vpr(c.max_vpr), 'text-end') + '</tr>';
+      }), 'No CVEs.'));
+      var subnets = isHost ? '' : section('Exposure by network (/24)', tbl(['Network', 'Hosts', 'Critical', 'High'], (r.by_subnet || []).map(function (s) {
+        return '<tr>' + td('<span class="mono">' + esc(s.subnet) + '</span>') + td(countCell(s.hosts), 'text-end') + td(countCell(s.critical), 'text-end') + td(countCell(s.high), 'text-end') + '</tr>';
+      })));
+      return '<div class="risk-head"><div class="gauge big risk-' + esc(r.level || 'low') + '"><b>' + esc(Math.round(r.score || 0)) + '</b><span>' + esc(r.level || '') + ' risk</span></div>' +
+        '<div class="muted small-text">The score adds the weight of each risk factor (Critical 25, High 12, Medium 5) and is capped at 100. ACR threshold: ' + esc(r.acr_threshold) + '.</div></div>' +
+        (q ? section(isHost ? '' : 'Risk questions', '<div class="questions">' + q + '</div>') : '') + factorsBlock(r.factors) + charts +
+        (isHost ? '' : topHosts(15)) + '<div class="pane-grid"><div>' + plugins + '</div><div>' + cves + subnets + '</div></div>';
+    }
+    function drawRiskCharts() {
+      if (typeof Chart === 'undefined') return;
+      var r = current.risk || {};
+      Chart.defaults.font.family = 'Helvetica, Arial, sans-serif'; Chart.defaults.font.size = 12; Chart.defaults.color = '#33363f';
+      function bar(id, labels, values, color) {
+        var el = document.getElementById(id); if (!el) return;
+        charts.push(new Chart(el, { type: 'bar', data: { labels: labels, datasets: [{ data: values, backgroundColor: color, borderRadius: 100, borderSkipped: false, maxBarThickness: 14 }] },
+          options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#d9dbe0' }, border: { display: false }, ticks: { precision: 0 } }, y: { grid: { display: false } } } } }));
+      }
+      var sev = r.severity || {}, el = document.getElementById('avChartSev');
+      if (el) charts.push(new Chart(el, { type: 'doughnut', data: { labels: ['Critical', 'High', 'Medium', 'Low'], datasets: [{ data: [sev.critical, sev.high, sev.medium, sev.low], backgroundColor: ['#91243e', '#dd4b50', '#f18c43', '#f8c851'] }] },
+        options: { maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } }));
+      var tiers = r.by_tier || {};
+      bar('avChartTier', Object.keys(tiers), Object.keys(tiers).map(function (k) { return tiers[k]; }), Object.keys(tiers).map(function (k) { return { 'tier 0': '#91243e', 'tier 1': '#b0541a', 'tier 2': '#026edd' }[k] || '#8b92a1'; }));
+      bar('avChartAccess', (r.by_access_type || []).map(function (x) { return accessLabel(x.label); }), (r.by_access_type || []).map(function (x) { return x.n; }), '#026edd');
+      bar('avChartFamily', (r.by_family || []).map(function (x) { return x.label; }), (r.by_family || []).map(function (x) { return x.n; }), '#dd4b50');
+    }
+
+    // -- actions
+    $('#avResync').on('click', function () { if (current) sync(assetRefOf(current)); });
+    $('#avDelete').on('click', function () {
+      if (!current) return;
+      confirmAction('Delete asset', 'Remove "' + current.name + '" from the asset table? The source data is not touched; you can sync it again at any time.', 'Delete', function () {
+        post('asset_delete', { id: current.id }).done(function () { window.location.href = '/explore/assets'; }).fail(function (xhr) { toast(errText(xhr), 'error'); });
+      });
+    });
+    $('#avAsk').on('click', function () {
+      if (!current) return;
+      var p = current, s = p.summary || {}, r = p.risk || {}, lines = ['Asset: ' + p.name + ' (' + p.asset_kind + ')', p.subtitle || '', 'Risk: ' + r.level + ' (' + r.score + '/100)'];
+      Object.keys(s).forEach(function (k) { if (typeof s[k] !== 'object') lines.push(k + ': ' + s[k]); });
+      lines.push('', '## Risk factors'); (r.factors || []).forEach(function (f) { lines.push('- [' + f.level + '] ' + f.title + ': ' + f.detail); });
+      lines.push('', '## Most exposed systems'); (r.by_host || []).slice(0, 15).forEach(function (h) { lines.push('- ' + h.host_name + ' (' + h.ip + '): ' + h.critical + ' critical, ' + h.high + ' high, max VPR ' + h.max_vpr + ', access ' + (h.access || []).join('/')); });
+      lines.push('', '## Top vulnerabilities'); (r.top_plugins || []).slice(0, 10).forEach(function (x) { lines.push('- ' + x.plugin_name + ' (' + x.plugin_id + ') on ' + x.hosts + ' host(s), VPR ' + x.max_vpr); });
+      agent.analyze(p.name + ' (asset details)', lines.join('\n'), 'Brief me on this asset: who or what it is, which systems it touches, the main risks and the first three actions.');
+    });
   }
 
   // ---- Explore: AD Objects ---------------------------------------------------------------------
@@ -942,9 +1405,9 @@
       showDetail(name, 'Loading…');
       api('risk_evidence', { key: key, shape: shape }).done(function (d) {
         showDetail(name, '<table class="table"><thead><tr><th>Access</th><th>Who / where</th><th>Evidence</th><th>Seen</th></tr></thead><tbody>' + d.rows.map(function (r) {
-          return '<tr><td><span class="chip">' + esc(ACCESS[r.access_type] || r.access_type) + '</span></td><td><b>' + esc(r.identity_name) + '</b><div class="muted"><a href="' + esc('/explore/assets?host=' + r.host_asset_id) + '">' + esc(r.host_name) + '</a> · <a href="' + esc('/explore/findings?host=' + r.host_asset_id + '&severity=4') + '">' + num(r.critical) + ' critical</a></div></td><td>Plugin ' +
+          return '<tr><td><span class="chip">' + esc(ACCESS[r.access_type] || r.access_type) + '</span></td><td><b>' + esc(r.identity_name) + '</b><div class="muted"><a href="' + esc('/explore/hosts?host=' + r.host_asset_id) + '">' + esc(r.host_name) + '</a> · <a href="' + esc('/explore/findings?host=' + r.host_asset_id + '&severity=4') + '">' + num(r.critical) + ' critical</a></div></td><td>Plugin ' +
             esc(r.evidence_plugin_id) + '<div class="muted">' + esc(r.plugin_name) + '</div><div class="muted">' + esc(r.evidence) + '</div></td><td class="text-nowrap">' + esc(fmtDay(r.last_seen)) + '</td></tr>';
-        }).join('') + '</tbody></table>', 'risk evidence');
+        }).join('') + '</tbody></table>', 'risk evidence', shape === 'host' ? { kind: 'host', host_asset_id: key } : { kind: 'identity', identity_key: key });
       }).fail(function (xhr) { showDetail(name, '<div class="alert alert-danger">' + esc(errText(xhr)) + '</div>'); });
     }
     $('#riskBody').on('click keydown', 'tr.clickable', function (e) {
@@ -1226,7 +1689,7 @@
   var agent = (function () {
     var $panel = $('#agent'), $log = $('#agentLog'), $input = $('#agentInput'), $status = $('#agentStatus');
     if (!$panel.length) return { analyze: function () {}, open: function () {} };
-    var state = { messages: [], skill: '', context: null, contextLabel: '', large: false, w: 0, h: 0 };
+    var state = { messages: [], skill: '', context: null, contextLabel: '', large: false, w: 0, h: 0, conversationId: null, conversationTitle: '' };
     var meta = null, busy = false, chartCount = 0;
     var SKILL_ICON = { shield: 'i-shield', people: 'b-people', crosshair: 'i-goal', lens: 'i-score', person: 'b-person', pc: 'b-pc', compass: 'i-scan' };
 
@@ -1266,7 +1729,57 @@
       $('.agent-tabs button').each(function () { var on = this.dataset.tab === name; $(this).toggleClass('active', on).attr('aria-selected', String(on)); });
       $('.agent-pane').each(function () { $(this).prop('hidden', this.dataset.pane !== name); });
       if (name === 'chat') setTimeout(function () { $input.trigger('focus'); scrollLog(); }, 20);
+      if (name === 'history') loadHistory();
     }
+
+    // -- saved conversations (server side, table ai_conversations)
+    var saving = null;
+    function saveConversation() {
+      var list = state.messages.filter(function (m) { return m.role === 'user' || m.role === 'assistant'; });
+      if (!list.length) return;
+      var payload = { id: state.conversationId || '', skill: state.skill || '', title: state.conversationTitle || '', messages: JSON.stringify(state.messages) };
+      saving = post('ai_conversation_save', payload).done(function (r) {
+        state.conversationId = r.id; state.conversationTitle = r.title; persist();
+      }).fail(function (xhr) { $status.text('Not saved: ' + errText(xhr)); });
+    }
+    function loadHistory() {
+      var q = $('#agentHistorySearch').val().trim();
+      $('#agentHistory').html('<p class="muted">Loading…</p>');
+      api('ai_conversations', { q: q }).done(function (d) {
+        $('#agentHistoryClear').prop('disabled', !d.rows.length);
+        $('#agentHistory').html(d.rows.length ? d.rows.map(function (c) {
+          var active = String(c.id) === String(state.conversationId);
+          return '<div class="history-item' + (active ? ' active' : '') + '" data-id="' + esc(c.id) + '"><button type="button" class="open" data-open="' + esc(c.id) + '" title="Continue this conversation">' +
+            '<b>' + esc(c.title) + '</b><span class="muted">' + esc(ago(c.updated_at)) + ' · ' + num(c.message_count) + ' message' + (Number(c.message_count) === 1 ? '' : 's') + (c.skill ? ' · ' + esc(c.skill) : '') + (active ? ' · <b>active</b>' : '') + '</span></button>' +
+            '<button type="button" class="btn btn-sm btn-link text-danger del" data-del="' + esc(c.id) + '" data-title="' + esc(c.title) + '" aria-label="Delete this conversation" title="Delete">Delete</button></div>';
+        }).join('') : '<p class="muted">' + (q ? 'No conversation matches.' : 'No saved conversations yet. Every answer is saved here automatically.') + '</p>');
+      }).fail(function (xhr) { $('#agentHistory').html('<div class="alert alert-danger">' + esc(errText(xhr)) + '</div>'); });
+    }
+    function openConversation(id) {
+      if (busy) return;
+      api('ai_conversation', { id: id }).done(function (c) {
+        state.messages = c.messages || []; state.conversationId = c.id; state.conversationTitle = c.title;
+        if (c.skill && meta && meta.skills.some(function (s) { return s.name === c.skill; })) { state.skill = c.skill; $('#agentSkill').val(c.skill); renderSkills(); }
+        clearContext(); persist(); renderLog(); showTab('chat');
+      }).fail(function (xhr) { toast(errText(xhr), 'error'); });
+    }
+    $('#agentHistorySearch').on('input', debounce(loadHistory, 250));
+    $('#agentHistory').on('click', '[data-open]', function () { openConversation(this.dataset.open); })
+      .on('click', '[data-del]', function () {
+        var id = this.dataset.del, title = this.dataset.title;
+        confirmAction('Delete conversation', 'Delete "' + title + '"? This cannot be undone.', 'Delete', function () {
+          post('ai_conversation_delete', { id: id }).done(function () {
+            if (String(id) === String(state.conversationId)) { state.conversationId = null; state.conversationTitle = ''; persist(); }
+            toast('Conversation deleted.'); loadHistory();
+          }).fail(function (xhr) { toast(errText(xhr), 'error'); });
+        });
+      });
+    $('#agentHistoryClear').on('click', function () {
+      confirmAction('Delete all conversations', 'Delete every saved conversation? This cannot be undone.', 'Delete all', function () {
+        post('ai_conversations_clear').done(function (r) { state.conversationId = null; state.conversationTitle = ''; persist(); toast(num(r.deleted) + ' conversations deleted.'); loadHistory(); })
+          .fail(function (xhr) { toast(errText(xhr), 'error'); });
+      });
+    });
     $('.agent-tabs button').on('click', function () { showTab(this.dataset.tab); });
 
     // -- skills, prompts, tools
@@ -1332,6 +1845,7 @@
       if (m.role === 'system' || m.role === 'error') return '<div class="msg ' + m.role + '"><div class="bubble">' + esc(m.content) + '</div></div>';
       var $m = $('<div class="msg assistant"></div>');
       (m.tools || []).forEach(function (t) { $m.append(toolCard(t)); });
+      (m.assets || []).forEach(function (a) { $m.append(assetCard(a)); });
       var $b = $('<div class="bubble md"></div>').html(md(m.content || ''));
       linkify($b, linkMap(m.tools));
       (m.charts || []).forEach(function (c) { $b.append(chartCard(c)); });
@@ -1352,7 +1866,7 @@
 
     // -- links to the detail screens (open in a new tab)
     var AD_TYPE_OF = { user: 'users', service_account: 'service_accounts', group: 'groups', computer: 'computers', group_policy: 'group_policies' };
-    function hostUrl(id, plugin) { return '/explore/assets?host=' + encodeURIComponent(id) + (plugin ? '&plugin=' + encodeURIComponent(plugin) : ''); }
+    function hostUrl(id, plugin) { return '/explore/hosts?host=' + encodeURIComponent(id) + (plugin ? '&plugin=' + encodeURIComponent(plugin) : ''); }
     function adUrl(type, id) { return '/explore/ad-objects?type=' + encodeURIComponent(type) + '&open=' + encodeURIComponent(id); }
     function evidenceUrl(key, name) { return '/risk?evidence=' + encodeURIComponent(key) + '&name=' + encodeURIComponent(name || key); }
     function findingsUrl(filters) { return '/explore/findings?' + $.param(filters); }
@@ -1403,7 +1917,7 @@
         if (key === 'hosts_with_critical') return findingsUrl({ severity: 4 });
         if (key === 'critical' || key === 'high' || key === 'medium' || key === 'low') return findingsUrl({ severity: { critical: 4, high: 3, medium: 2, low: 1 }[key] });
         if (key === 'exploitable') return findingsUrl({ exploitable: 1 });
-        if (key === 'credentialed_hosts' || key === 'uncredentialed_hosts' || key === 'hosts') return '/explore/assets';
+        if (key === 'credentialed_hosts' || key === 'uncredentialed_hosts' || key === 'hosts') return '/explore/hosts';
         if (key === 'identities_seen' || key === 'identities_matched_to_ad') return '/risk';
         if (key === 'tier0_hosts' || key === 'high_acr_hosts') return '/risk?view=tier0_hosts';
       }
@@ -1513,7 +2027,7 @@
         case 'identity_access': return r.identity_key ? { url: evidenceUrl(r.identity_key, r.account), label: 'Open the access evidence in Risk' } : null;
         case 'identity_vulnerabilities': return { url: findingsUrl($.extend(scopeFilters(ctx), { account: a.account })), label: 'Open these findings' };
         case 'host_vulnerabilities': return { url: findingsUrl($.extend(scopeFilters(ctx), { target: a.target })), label: 'Open these findings' };
-        case 'find_host': return { url: '/explore/assets?q=' + encodeURIComponent(a.query || ''), label: 'Open in Asset Inventory' };
+        case 'find_host': return { url: '/explore/hosts?q=' + encodeURIComponent(a.query || ''), label: 'Open in Hosts' };
         case 'host_identities': return r.host && r.host.host_asset_id ? { url: evidenceUrl(String(r.host.host_asset_id), r.host.host_name) + '&shape=host', label: 'Open the access evidence in Risk' } : null;
         case 'vulnerability_lookup': return { url: findingsUrl(/^\d+$/.test(a.query || '') ? { plugin: a.query } : /^cve-/i.test(a.query || '') ? { cve: a.query } : { q: a.query }), label: 'Open these findings' };
         case 'group_members': return r.group && r.group.ad_group_id ? { url: adUrl('groups', r.group.ad_group_id), label: 'Open the group' } : null;
@@ -1530,6 +2044,11 @@
       $c.find('.name').text(t.name); $c.find('.args').text(args).attr('title', args); $c.find('.ms').text(t.ms !== undefined ? t.ms + ' ms' : '');
       $c.find('.body').html(t.result ? resultHtml(t.result, { tool: t.name, args: t.arguments || {}, result: t.result }) : '<div class="note"><span class="thinking"><i></i><i></i><i></i></span> running</div>');
       return $c;
+    }
+    function assetCard(a) {
+      return $('<a class="asset-card" target="_blank" rel="noopener"></a>').attr('href', a.url).attr('title', 'Open the Asset Details page')
+        .html('<span class="icon icon-16 ' + (a.kind === 'host' ? 'b-pc' : 'b-person') + '"></span><span><b></b><span class="muted">Asset details synced · user info, connected systems, vulnerabilities, risk</span></span><span class="go">Open ↗</span>')
+        .find('b').text(a.name).end();
     }
     function rowCount(result) {
       if (!result || typeof result !== 'object') return 'done';
@@ -1573,7 +2092,7 @@
     function autosize() { $input.css('height', 'auto').css('height', Math.min(160, $input[0].scrollHeight) + 'px'); }
     $input.on('input', autosize).on('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
     $('#agentSend').on('click', send);
-    $('#agentNew').on('click', function () { if (busy) return; state.messages = []; clearContext(); persist(); renderLog(); $input.val('').trigger('focus'); });
+    $('#agentNew').on('click', function () { if (busy) return; state.messages = []; state.conversationId = null; state.conversationTitle = ''; clearContext(); persist(); renderLog(); showTab('chat'); $input.val('').trigger('focus'); });
     function setContext(label, text) {
       state.context = text; state.contextLabel = label; persist();
       $('#agentContextLabel').text(label); $('#agentContextText').val(text).prop('hidden', true); $('#agentContext').prop('hidden', false);
@@ -1617,6 +2136,7 @@
             var $n = toolCard(c.t); c.$c.replaceWith($n); c.$c = $n;
             if (data.result && data.result.chart) { reply.charts.push(data.result.chart); }
           }
+          else if (ev === 'asset') { reply.assets = reply.assets || []; reply.assets.push(data); $bubble.before(assetCard(data)); scrollLog(); }
           else if (ev === 'done') { reply.content = data.content || streamed; reply.stats = data.stats; }
           else if (ev === 'error') { throw new Error(data.message || 'The assistant failed.'); }
         }
@@ -1647,6 +2167,12 @@
         if (reply.content || reply.tools.length) {
           state.messages.push(reply); persist();
           $m.replaceWith(messageHtml(reply));
+          saveConversation();
+          // The investigation produced an Asset Details page: open it next to the chat.
+          if (reply.assets && reply.assets.length && !reply.error) {
+            var w = window.open(reply.assets[0].url, '_blank');
+            if (!w) $status.text('Your browser blocked the new tab; use the Asset details button above.');
+          }
           $log.find('.chart-card').each(function () { drawChart(this); });
         } else $m.remove();
         if (state.context) clearContext();
@@ -1665,6 +2191,10 @@
 
     applySize(); renderLog();
     if (state.messages.length) load();
+    if (state.conversationId) {
+      api('ai_conversation', { id: state.conversationId }).done(function (c) { state.messages = c.messages || state.messages; state.conversationTitle = c.title; renderLog(); })
+        .fail(function () { state.conversationId = null; persist(); });
+    }
     return { open: open, analyze: analyze };
   })();
 
@@ -1700,7 +2230,7 @@
     var $root = $('#findings');
     $('#findingSearch').val(state.q);
     var cols = [['', null, function (r) { return sevBadge(r.severity); }],
-      ['Host', 'host', function (r) { return '<a href="' + esc('/explore/assets?host=' + r.host_asset_id + '&plugin=' + r.plugin_id) + '"><b>' + esc(r.host_name) + '</b></a><div class="muted mono">' + esc(r.ip) + (r.host_tier !== null && r.host_tier !== undefined ? ' · ' + tierBadge(r.host_tier) : '') + '</div>'; }],
+      ['Host', 'host', function (r) { return '<a href="' + esc('/explore/hosts?host=' + r.host_asset_id + '&plugin=' + r.plugin_id) + '"><b>' + esc(r.host_name) + '</b></a><div class="muted mono">' + esc(r.ip) + (r.host_tier !== null && r.host_tier !== undefined ? ' · ' + tierBadge(r.host_tier) : '') + '</div>'; }],
       ['Plugin', 'plugin', function (r) { return esc(r.plugin_name) + '<div class="muted mono">' + esc(r.plugin_id) + (r.family_name ? ' · ' + esc(r.family_name) : '') + '</div>'; }],
       ['VPR', 'vpr', function (r) { return r.vpr_score === null ? '' : '<b>' + esc(Number(r.vpr_score).toFixed(1)) + '</b>'; }],
       ['CVSS', 'cvss', function (r) { return r.cvss_v3 === null ? '' : esc(Number(r.cvss_v3).toFixed(1)); }],
@@ -1817,6 +2347,7 @@
   // ---- start ----------------------------------------------------------------------------------------------
   var pages = { 'dashboard': initDashboard, 'explore-assets': initAssets, 'explore-ad': initAd, 'settings-sc': initSettingsSc,
     'settings-tie': initSettingsTie, 'logs': initLogs, 'risk': initRisk, 'explore-software': initSoftware, 'explore-local-users': initLocalUsers,
-    'explore-extensions': initExtensions, 'settings-ctem': initCtem, 'settings-catalog': initCatalog, 'settings-ai': initSettingsAi, 'explore-findings': initFindings };
+    'explore-extensions': initExtensions, 'settings-ctem': initCtem, 'settings-catalog': initCatalog, 'settings-ai': initSettingsAi, 'explore-findings': initFindings,
+    'asset-view': initAssetView, 'explore-hosts': initHosts };
   if (pages[PAGE]) pages[PAGE]();
 })(jQuery);

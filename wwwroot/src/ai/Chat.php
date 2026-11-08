@@ -51,6 +51,7 @@ final class Chat
         $messages = array_merge([['role' => 'system', 'content' => self::systemPrompt($skill, (string) ($in['context'] ?? ''))]], $history);
 
         $used = [];
+        $synced = [];
         $rounds = (int) $settings['max_tool_rounds'];
         $final = null;
         for ($round = 0; $round <= $rounds; $round++) {
@@ -99,6 +100,9 @@ final class Chat
                 $used[] = ['name' => $name, 'arguments' => $args, 'ok' => $ok, 'ms' => $ms];
                 self::send('tool_result', ['id' => $id, 'name' => $name, 'ok' => $ok, 'ms' => $ms, 'result' => $result]);
                 $messages[] = ['role' => 'tool', 'tool_name' => $name, 'content' => self::forModel($result)];
+                if ($ok) {
+                    self::syncAsset($name, $result, $synced);
+                }
             }
         }
         if ($final === null) {
@@ -113,6 +117,51 @@ final class Chat
         }
         self::send('done', ['content' => $final['content'], 'tools_used' => $used, 'stats' => $final['stats'],
                             'model' => $settings['model'], 'skill' => $skill['name'] ?? null]);
+    }
+
+    /**
+     * An investigation of one account or host fills its Asset Details snapshot, once per
+     * answer, and tells the panel where the page is. Sync failures never break the chat.
+     */
+    private static function syncAsset(string $tool, array $result, array &$synced): void
+    {
+        $ref = null;
+        if (in_array($tool, ['identity_profile', 'identity_access', 'identity_vulnerabilities'], true)) {
+            $adId = $result['account']['ad_user_id'] ?? $result['person']['ad_user_id'] ?? null;
+            if ($adId) {
+                $ref = ['identity', ['ad_user_id' => (int) $adId]];
+            } elseif (!empty($result['identity_key'])) {
+                $ref = ['identity', ['identity_key' => (string) $result['identity_key']]];
+            } elseif (!empty($result['person']['account'])) {
+                $ref = ['identity', ['account' => (string) $result['person']['account']]];
+            } elseif (is_string($result['account'] ?? null) && !empty($result['in_ad'] ?? $result['scope']['in_ad'] ?? false)) {
+                $ref = ['identity', ['account' => $result['account']]];
+            } elseif (is_string($result['scope']['account'] ?? null) && !empty($result['scope']['hosts'])) {
+                $ref = ['identity', ['account' => $result['scope']['account']]];
+            }
+        } elseif ($tool === 'host_identities' && !empty($result['host']['host_asset_id'])) {
+            $ref = ['host', ['host_asset_id' => (int) $result['host']['host_asset_id']]];
+        } elseif ($tool === 'host_vulnerabilities' && ($result['scope']['hosts'] ?? 0) === 1 && !empty($result['scope']['target'])) {
+            $ref = ['host', ['target' => (string) $result['scope']['target']]];
+        }
+        if (!$ref) {
+            return;
+        }
+        $sig = $ref[0] . ':' . json_encode($ref[1]);
+        if (isset($synced[$sig])) {
+            return;
+        }
+        $synced[$sig] = true;
+        try {
+            $asset = Assets::sync($ref[0], $ref[1], 'agent');
+            if (isset($synced['key:' . $asset['kind'] . $asset['key']])) {
+                return;
+            }
+            $synced['key:' . $asset['kind'] . $asset['key']] = true;
+            self::send('asset', $asset);
+        } catch (Throwable $e) {
+            error_log('ai asset sync: ' . get_class($e) . ': ' . $e->getMessage());
+        }
     }
 
     private static function systemPrompt(?array $skill, string $context): string

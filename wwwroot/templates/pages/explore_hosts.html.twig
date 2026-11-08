@@ -1,0 +1,27 @@
+{% import 'partials/icons.twig' as icons %}
+{# Security Center hosts as Security Center reports them. Assets (the analysed, correlated view)
+   is a separate page; AD Objects shows what Identity Exposure reports. #}
+<div class="explore" id="hosts">
+  <aside class="card">
+    <div class="filter-group">
+      <div class="filter-title">Type</div>
+      <button type="button" class="filter-option" data-type="devices">Devices<span class="count" data-count="devices"></span></button>
+      <button type="button" class="filter-option" data-type="iot">IOT Devices<span class="count" data-count="iot"></span></button>
+    </div>
+    <div class="filter-group" id="hostSourceGroup">
+      <div class="filter-title">Seen by</div>
+      <button type="button" class="filter-option active" data-source="">Any source</button>
+      <button type="button" class="filter-option" data-source="sc+ad">Security Center and AD</button>
+      <button type="button" class="filter-option" data-source="sc">Security Center only</button>
+      <button type="button" class="filter-option" data-source="ad">AD only</button>
+    </div>
+  </aside>
+  <section class="card">
+    <div class="toolbar">
+      <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="hostSearch" placeholder="Search hosts" aria-label="Search hosts"></div>
+      <span class="muted">Click a host for its details; <b>Sync asset details</b> in the panel adds it to Assets.</span>
+    </div>
+    <div class="table-wrap"><table class="table table-hover"><thead id="hostHead"></thead><tbody id="hostBody"></tbody></table></div>
+    <div class="pager" id="hostPager"></div>
+  </section>
+</div>

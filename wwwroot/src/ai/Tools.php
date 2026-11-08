@@ -114,16 +114,33 @@ final class Tools
         if (str_contains($short, '@')) {
             $short = strtolower(substr($short, 0, strpos($short, '@')));
         }
-        $ad = Db::one(
-            "SELECT u.id, u.object_key, u.sam_account_name, u.display_name, u.user_principal_name, u.enabled, u.admin_count, u.account_type,
+        $select = "SELECT u.id, u.object_key, u.sam_account_name, u.display_name, u.user_principal_name, u.enabled, u.admin_count, u.account_type,
                     u.last_logon, u.pwd_last_set, u.when_created, u.dn, u.sid, u.attributes, d.netbios_name AS domain, d.dns_name AS domain_dns,
                     t.tier, t.source AS tier_source, t.detail AS tier_detail
              FROM ad_users u LEFT JOIN ad_domains d ON d.directory_id = u.directory_id
-             LEFT JOIN v_ad_object_tier t ON t.object_key = u.object_key
-             WHERE lower(u.sam_account_name) = ? OR lower(u.user_principal_name) = ?
-             ORDER BY (lower(u.sam_account_name) = ?) DESC, u.id LIMIT 1",
-            [$short, $full, $short]
-        );
+             LEFT JOIN v_ad_object_tier t ON t.object_key = u.object_key";
+        if (preg_match('/^#ad:(\d{1,18})$/', $account, $m)) {
+            // Internal form used by the asset pages: one exact AD user, no name guessing.
+            $ad = Db::one("$select WHERE u.id = ?", [(int) $m[1]]);
+            if (!$ad) {
+                throw new ApiError('This AD account no longer exists.', 404);
+            }
+            return ['ad' => $ad, 'short' => strtolower((string) $ad['sam_account_name']),
+                    'where' => "(a.ad_object_key = ?) AND a.access_class <> 'scan'", 'params' => [$ad['object_key']]];
+        }
+        if (preg_match('/^#key:(.{1,600})$/s', $account, $m)) {
+            // A telemetry identity by its identity_host_access key (no AD match).
+            $ad = Db::one("$select WHERE u.object_key = ?", [$m[1]]);
+            if ($ad) {
+                return ['ad' => $ad, 'short' => strtolower((string) $ad['sam_account_name']),
+                        'where' => "(a.ad_object_key = ?) AND a.access_class <> 'scan'", 'params' => [$ad['object_key']]];
+            }
+            $name = (string) Db::value('SELECT identity_name FROM identity_host_access WHERE identity_key = ? LIMIT 1', [$m[1]]);
+            return ['ad' => null, 'short' => strtolower($name !== '' ? $name : $m[1]),
+                    'where' => "(a.identity_key = ?) AND a.access_class <> 'scan'", 'params' => [$m[1]]];
+        }
+        $ad = Db::one("$select WHERE lower(u.sam_account_name) = ? OR lower(u.user_principal_name) = ?
+             ORDER BY (lower(u.sam_account_name) = ?) DESC, u.id LIMIT 1", [$short, $full, $short]);
         $where = [];
         $params = [];
         if ($ad) {
@@ -139,6 +156,38 @@ final class Tools
             $params[] = $short;
         }
         return ['ad' => $ad, 'short' => $short, 'where' => '(' . implode(' OR ', $where) . ")  AND a.access_class <> 'scan'", 'params' => $params];
+    }
+
+    /** "OU=Employees,OU=Accounts,DC=tcorp,DC=local" -> "Accounts / Employees"; CN containers (Users) kept. */
+    public static function orgUnit(?string $dn): ?string
+    {
+        if (!$dn) {
+            return null;
+        }
+        // Split on commas that are not escaped (\,), drop the object's own RDN and the DC= parts.
+        $parts = preg_split('/(?<!\\\\),/', $dn);
+        array_shift($parts);
+        $path = [];
+        foreach ($parts as $p) {
+            if (preg_match('/^\s*(OU|CN)=(.*)$/i', $p, $m)) {
+                $path[] = str_replace('\\,', ',', trim($m[2]));
+            }
+        }
+        return $path ? implode(' / ', array_reverse($path)) : null;
+    }
+
+    /** The identity card every person investigation opens with. */
+    public static function person(array $ad): array
+    {
+        $attrs = json_decode((string) $ad['attributes'], true) ?: [];
+        return [
+            'ad_user_id' => (int) $ad['id'], 'display_name' => $ad['display_name'], 'account' => ($ad['domain'] ? $ad['domain'] . '\\' : '') . $ad['sam_account_name'],
+            'user_principal_name' => $ad['user_principal_name'], 'mail' => $attrs['mail'] ?? null, 'telephone' => $attrs['telephonenumber'] ?? null,
+            'description' => $attrs['description'] ?? null, 'org_unit' => self::orgUnit($ad['dn']),
+            'enabled' => $ad['enabled'], 'account_type' => $ad['account_type'], 'tier' => $ad['tier'],
+            'last_logon' => $ad['last_logon'], 'pwd_last_set' => $ad['pwd_last_set'],
+            'not_in_source' => 'department, title, manager, given name / surname are not collected by Identity Exposure; org_unit is the closest substitute',
+        ];
     }
 
     private static function identityLabel(array $r): string
@@ -205,7 +254,7 @@ final class Tools
             }
         }
         $spn = $attrs['serviceprincipalname'] ?? null;
-        $account = [
+        $account = self::person($ad) + [
             'ad_user_id' => (int) $ad['id'], 'sam_account_name' => $ad['sam_account_name'], 'display_name' => $ad['display_name'], 'user_principal_name' => $ad['user_principal_name'],
             'domain' => $ad['domain'], 'domain_dns' => $ad['domain_dns'], 'dn' => $ad['dn'], 'sid' => $ad['sid'], 'enabled' => $ad['enabled'],
             'account_type' => $ad['account_type'], 'tier' => $ad['tier'], 'tier_source' => $ad['tier_source'],
@@ -254,7 +303,8 @@ final class Tools
              ORDER BY a.critical DESC, a.acr_score DESC NULLS LAST, a.host_name, a.access_type LIMIT ?",
             array_merge($params, [$limit])
         );
-        return ['account' => self::identityLabel($r), 'in_ad' => (bool) $r['ad'], 'tier' => $r['ad']['tier'] ?? null, 'acr_threshold' => $acr,
+        return ['account' => self::identityLabel($r), 'person' => $r['ad'] ? self::person($r['ad']) : null,
+                'in_ad' => (bool) $r['ad'], 'tier' => $r['ad']['tier'] ?? null, 'acr_threshold' => $acr,
                 'identity_key' => $rows[0]['identity_key'] ?? null,
                 'summary' => $summary + ['by_access_type' => $byType], 'rows' => $rows,
                 'note' => $r['ad'] ? null : 'This identity is not in the synced AD; rows come from host telemetry that carries the name.'];
