@@ -198,9 +198,22 @@
     local_normal: 'Normal Local Users\n\nLocal user accounts found on scanned hosts that are not privileged by the rules of "Privileged Local Users". Each account is counted once per host.',
     did_you_know: 'Did You Know\n\nFacts computed from the same data as the dashboard: the share of AD objects in Tier 0, the share of findings with a known exploit, how many Security Center hosts match an AD computer by name, and how many user accounts are disabled. The dots switch between them.',
     connectors: 'Connectors\n\nThe status and finish time of the latest sync job of each connector (Security Center and Identity Exposure), with the totals they have stored. The Logs link opens the connector logs.',
-    pools: 'Pools\n\nThe Security Center pools and queries configured under Settings > Security Center, with the number of findings each returned on its last sync.'
+    pools: 'Pools\n\nThe Security Center pools and queries configured under Settings > Security Center, with the number of findings each returned on its last sync.',
+    recalculate: 'Recalculate (risk data)\n\nRuns the CTEM correlation: matches every account and group named in the Nessus plugin output to Active Directory (by SID, DOMAIN\\name, UPN or the host\'s domain, plus the identity mapping), rebuilds the access facts (local admin, Remote Desktop, sessions, logons, services), gives group rights to every nested member, and refreshes the Risk page and the dashboard.\n\nIt does not change any asset snapshot. It runs automatically after every Security Center or Identity Exposure sync and at least hourly; on demand it takes about a second once the CTEM worker picks it up (it checks every 30 seconds).',
+    filters: 'Choose users\n\nThe filters select AD users synced from Identity Exposure. The counts update as you type: how many match, how many reach at least one scanned host, and how many already have a snapshot. Only the users that match are synced.',
+    sync: 'Sync (asset snapshots)\n\nFor every selected user, reads the current risk data and stores one snapshot in the asset table: the identity card, the systems the user reaches and how each link was established, the vulnerabilities on them, the risk score with its factors and breakdowns, and the correlation evidence. A re-sync replaces the snapshot; the same data always gives the same result. Users are processed in batches of 50 and every run is kept in History.',
+    recalc_first: 'Recalculate the risk data first\n\nSnapshots are built from the risk data, not the other way round. Ticking this runs the correlation before the sync, so the snapshots use the latest scan and directory data. Leave it off to start the sync at once with the risk data as it is.',
+    estimate: 'Estimated time\n\nMeasured on this installation: about 7 ms for a user who reaches no host, about 40 ms for one who does (up to about 100 ms for users who reach dozens of hosts). Recalculating the risk data first can add up to 30 seconds while the CTEM worker picks up the job.'
   };
   function initInfoTips($root) {
+    // inline icons already in the markup: <span class="info-tip inline" data-info-tip="key">
+    $root.find('.info-tip[data-info-tip]').each(function () {
+      var text = INFO[this.dataset.infoTip];
+      if (!text || this.dataset.ready) return;
+      this.dataset.ready = '1';
+      $(this).attr({ tabindex: 0, role: 'button', 'aria-label': 'What does this do?' }).html('<span class="icon icon-16 i-info"></span>');
+      new bootstrap.Tooltip(this, { title: text, placement: 'auto', trigger: 'hover focus', customClass: 'info-tooltip', container: 'body' });
+    });
     $root.find('[data-info]').each(function () {
       var key = this.dataset.info, text = INFO[key];
       if (!text || $(this).children('.info-tip').length) return;
@@ -633,6 +646,22 @@
   function initAssetSync() {
     var state = { page: 1, size: 50 }, running = null, total = 0;
     var $form = $('#syncFilters');
+    initInfoTips($('#assetSync'));
+    function activeFilters() {
+      var n = Object.keys(filters()).length;
+      $('#sfActive').text(n + ' active').prop('hidden', !n);
+      $('#sfReset').prop('hidden', !n);
+    }
+    $('.as-presets').on('click', '[data-preset]', function () {
+      var p = JSON.parse(this.dataset.preset);
+      $form[0].reset();
+      Object.keys(p).forEach(function (k) { $form.find('[name="' + k + '"]').val(p[k]); });
+      $form.trigger('change');
+    });
+    function stage(name) {
+      var order = ['recalc', 'sync', 'done'], at = order.indexOf(name);
+      $('#scStages li').each(function () { var i = order.indexOf(this.dataset.stage); $(this).toggleClass('active', i === at).toggleClass('done', i < at); });
+    }
     function filters() { var f = {}; $form.serializeArray().forEach(function (x) { if (x.value !== '') f[x.name] = x.value; }); return f; }
     function secs(n) { n = Number(n) || 0; return n < 60 ? n + ' s' : Math.floor(n / 60) + ' min ' + (n % 60) + ' s'; }
     api('ad_directories').done(function (d) {
@@ -640,7 +669,11 @@
     });
     // -- the correlation behind every snapshot: show its age, run it now, or run it before a sync
     function showCorrelation(at) {
+      var age = at ? (Date.now() - parseDate(at).getTime()) / 60000 : Infinity;
       $('#scCorrAt').text(at ? fmtLong(parseDate(at)) + ' (' + ago(at) + ')' : 'never');
+      var cls = age <= 60 ? 'fresh' : age <= 24 * 60 ? 'aging' : 'old';
+      $('#scCorrDot').attr('class', 'dot ' + cls).attr('title', age <= 60 ? 'Up to date (less than an hour old)' : age <= 1440 ? 'More than an hour old' : 'More than a day old');
+      $('#asStep1').toggleClass('ok', age <= 60);
     }
     function recalc() {
       var d = $.Deferred();
@@ -669,6 +702,9 @@
         showCorrelation(d.correlated_at);
         $('#scTotal').text(num(c.total)); $('#scAccess').text(num(c.with_access)); $('#scSynced').text(num(c.synced)); $('#scTime').text('≈ ' + secs(c.estimate_seconds));
         $('#scRunLabel').text(c.total ? 'Sync ' + num(c.total) + ' user' + (c.total === 1 ? '' : 's') : 'No user matches');
+        $('#asStep2Sub').text(num(c.total) + ' user' + (c.total === 1 ? '' : 's') + ' selected');
+        $('#asStep2').toggleClass('ok', c.total > 0);
+        activeFilters();
         $('#scRun').prop('disabled', !c.total || !!running);
         $('#scHint').text(c.total > d.rows.length ? 'Showing ' + num(d.rows.length) + ' of ' + num(c.total) + ', most connected first' : '');
         $('#scBody').html(d.rows.length ? d.rows.map(function (r) {
@@ -697,13 +733,16 @@
         $('#scRun').prop('disabled', true); $('#scCancel').prop('hidden', false); $('#scProgress').prop('hidden', false);
         $form.find('input, select, button').prop('disabled', true); $('#scRecalc, #scRecalcFirst').prop('disabled', true);
         $('#scBar').css('width', '0%').text(''); $('#scStatus').text('Starting…');
+        var recalcFirst = $('#scRecalcFirst').is(':checked');
         function begin() {
+          stage('sync');
           post('asset_sync_run_start', $.extend({}, f, { label: filterLabel(f) + (recalcFirst ? ' · after recalculation' : ''), planned: planned })).done(function (r) { running.runId = r.id; step(); })
             .fail(function (xhr) { finish('Stopped: ' + errText(xhr)); });
         }
-        var recalcFirst = $('#scRecalcFirst').is(':checked');
+        $('#scStages li[data-stage="recalc"]').prop('hidden', !recalcFirst);
+        stage(recalcFirst ? 'recalc' : 'sync');
         if (recalcFirst) {
-          $('#scStatus').text('Recalculating the correlation first, so the snapshots use the latest access data…');
+          $('#scStatus').text('Recalculating the risk data first, so the snapshots use the latest scan and directory data…');
           recalc().done(begin).fail(function (e) { finish('Stopped: the correlation failed (' + e + ')'); });
         } else begin();
       }
@@ -724,7 +763,7 @@
         if (r.runId) post('asset_sync_run_finish', { run_id: r.runId, status: word === 'Done' ? 'done' : word === 'Cancelled' ? 'cancelled' : 'stopped' });
         $('#scCancel').prop('hidden', true); $form.find('input, select, button').prop('disabled', false); $('#scRecalc, #scRecalcFirst').prop('disabled', false);
         $('#scStatus').text(word + ' · ' + num(r.ok) + ' synced' + (r.failed ? ', ' + num(r.failed) + ' failed (see the browser console)' : '') + ' in ' + secs(Math.round((Date.now() - r.t0) / 1000)) + '.');
-        if (word === 'Done') $('#scBar').css('width', '100%').text('100%');
+        if (word === 'Done') { $('#scBar').css('width', '100%').text('100%'); stage('done'); $('#asStep3').addClass('ok'); }
         toast(word + ': ' + num(r.ok) + ' asset' + (r.ok === 1 ? '' : 's') + ' synced.');
         load();
       }
@@ -779,10 +818,10 @@
         var slow = items.filter(function (i) { return i.ok; }).sort(function (a, b) { return b.ms - a.ms; }).slice(0, 5);
         $('#shDetail').html(
           '<div class="sh-head"><div><h3 class="fs-5 mb-1">' + esc(r.label || 'Sync run') + '</h3><div class="muted">' + esc(TRIGGER_LABEL[r.trigger] || r.trigger) + ' · run #' + esc(r.id) + '</div></div>' + statusBadgeRun(r.status) + '</div>' +
-          '<div class="sync-counts mt-3">' +
-            '<div><span class="label">Planned</span><b>' + num(r.planned) + '</b></div><div><span class="label">Synced</span><b>' + num(r.synced) + '</b></div>' +
-            '<div><span class="label">Failed</span><b' + (Number(r.failed) ? ' class="text-danger"' : '') + '>' + num(r.failed) + '</b></div>' +
-            '<div><span class="label">Duration</span><b>' + esc(ms(r.elapsed_ms)) + '</b></div></div>' +
+          '<div class="as-kpis mt-3 mb-3">' +
+            '<div class="as-kpi"><span class="label">Planned</span><b>' + num(r.planned) + '</b></div><div class="as-kpi primary"><span class="label">Synced</span><b>' + num(r.synced) + '</b></div>' +
+            '<div class="as-kpi"><span class="label">Failed</span><b' + (Number(r.failed) ? ' class="text-danger"' : '') + '>' + num(r.failed) + '</b></div>' +
+            '<div class="as-kpi"><span class="label">Duration</span><b>' + esc(ms(r.elapsed_ms)) + '</b></div></div>' +
           kv([['Started', fmtDate(r.started_at)], ['Finished', r.finished_at ? fmtDate(r.finished_at) : (r.status === 'interrupted' ? 'never (the tab was closed); last progress ' + fmtDate(r.updated_at) : 'still running')],
             ['Server work time', ms(r.work_ms) + (n ? ' (' + ms(Math.round(r.work_ms / n)) + ' per asset)' : '')],
             ['Not processed', Math.max(0, Number(r.planned) - n) ? num(Math.max(0, Number(r.planned) - n)) : ''],

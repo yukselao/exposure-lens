@@ -1,70 +1,113 @@
 {% import 'partials/icons.twig' as icons %}
-{# Asset Sync: pick AD users with filters, see how many match, sync only those. #}
-<div class="explore" id="assetSync">
-  <aside class="card">
-    <form id="syncFilters" class="sync-filters" autocomplete="off">
-      <div class="filter-title">Filter AD users</div>
-      <label class="form-label" for="sfQ">Name, account, UPN or e-mail</label>
-      <input type="search" class="form-control form-control-sm" id="sfQ" name="q" placeholder="contains…">
-      <label class="form-label" for="sfDomain">Domain</label>
-      <select class="form-select form-select-sm" id="sfDomain" name="domain_id"><option value="">All domains</option></select>
-      <label class="form-label" for="sfType">Type</label>
-      <select class="form-select form-select-sm" id="sfType" name="type"><option value="">Users and service accounts</option><option value="user">Users</option><option value="service_account">Service accounts</option></select>
-      <label class="form-label" for="sfTier">Tier</label>
-      <select class="form-select form-select-sm" id="sfTier" name="tier"><option value="">Any tier</option><option value="0">Tier 0</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="none">No tier</option></select>
-      <label class="form-label" for="sfStatus">Status</label>
-      <select class="form-select form-select-sm" id="sfStatus" name="status"><option value="">Enabled and disabled</option><option value="enabled">Enabled</option><option value="disabled">Disabled</option></select>
-      <label class="form-label" for="sfReach">Host access</label>
-      <select class="form-select form-select-sm" id="sfReach" name="reach"><option value="">Any</option><option value="yes">Reaches at least one host</option><option value="no">Reaches no host</option></select>
-      <label class="form-label" for="sfSnap">Asset snapshot</label>
-      <select class="form-select form-select-sm" id="sfSnap" name="snapshot"><option value="">Any</option><option value="none">Never synced</option><option value="synced">Already synced</option><option value="stale">Synced more than a day ago</option></select>
-      <label class="form-label" for="sfOu">Distinguished name contains</label>
-      <input type="search" class="form-control form-control-sm" id="sfOu" name="ou" placeholder="e.g. OU=Tier-0">
-      <button type="reset" class="btn btn-sm btn-link px-0 mt-2" id="sfReset">Clear filters</button>
-    </form>
-  </aside>
+{# Asset Sync: refresh the risk data, pick AD users with filters, sync only those. #}
+<div class="as-page" id="assetSync">
+  <p class="as-lead">Build or refresh asset snapshots for the AD users you choose. Each snapshot is what the Asset Details page shows: the identity, the systems it reaches and how, their vulnerabilities and the risk.</p>
 
-  <div class="sync-main">
-    <section class="card sync-summary">
-      <div class="card-body">
-        <div class="sync-counts">
-          <div><span class="label">Users matching</span><b id="scTotal">–</b></div>
-          <div><span class="label">Reach at least one host</span><b id="scAccess">–</b></div>
-          <div><span class="label">Already synced</span><b id="scSynced">–</b></div>
-          <div><span class="label">Estimated time</span><b id="scTime">–</b></div>
+  <ol class="as-steps" aria-label="How Asset Sync works">
+    <li class="as-step" id="asStep1"><span class="num">1</span><div><b>Risk data</b><span>Correlation of scans and AD</span></div><span class="info-tip inline" data-info-tip="recalculate"></span></li>
+    <li class="as-step" id="asStep2"><span class="num">2</span><div><b>Choose users</b><span id="asStep2Sub">Filter the AD users</span></div><span class="info-tip inline" data-info-tip="filters"></span></li>
+    <li class="as-step" id="asStep3"><span class="num">3</span><div><b>Sync</b><span>Store their snapshots</span></div><span class="info-tip inline" data-info-tip="sync"></span></li>
+  </ol>
+
+  <div class="as-grid">
+    <aside class="card as-filters">
+      <form id="syncFilters" autocomplete="off">
+        <div class="as-filters-head"><h2>Filters <span class="as-active" id="sfActive" hidden></span></h2><button type="reset" class="btn btn-sm btn-link px-0" id="sfReset">Clear all</button></div>
+
+        <fieldset>
+          <legend>Find</legend>
+          <div class="search">{{ icons.ic('search', 14) }}<input type="search" class="form-control form-control-sm" id="sfQ" name="q" placeholder="Name, account, UPN or e-mail" aria-label="Name, account, UPN or e-mail"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Directory</legend>
+          <label class="form-label" for="sfDomain">Domain</label>
+          <select class="form-select form-select-sm" id="sfDomain" name="domain_id"><option value="">All domains</option></select>
+          <label class="form-label" for="sfOu">Distinguished name contains</label>
+          <input type="search" class="form-control form-control-sm" id="sfOu" name="ou" placeholder="e.g. OU=Tier-0">
+        </fieldset>
+
+        <fieldset>
+          <legend>Account</legend>
+          <label class="form-label" for="sfType">Type</label>
+          <select class="form-select form-select-sm" id="sfType" name="type"><option value="">Users and service accounts</option><option value="user">Users</option><option value="service_account">Service accounts</option></select>
+          <label class="form-label" for="sfTier">Tier</label>
+          <select class="form-select form-select-sm" id="sfTier" name="tier"><option value="">Any tier</option><option value="0">Tier 0</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="none">No tier</option></select>
+          <label class="form-label" for="sfStatus">Status</label>
+          <select class="form-select form-select-sm" id="sfStatus" name="status"><option value="">Enabled and disabled</option><option value="enabled">Enabled</option><option value="disabled">Disabled</option></select>
+        </fieldset>
+
+        <fieldset>
+          <legend>Exposure</legend>
+          <label class="form-label" for="sfReach">Host access</label>
+          <select class="form-select form-select-sm" id="sfReach" name="reach"><option value="">Any</option><option value="yes">Reaches at least one host</option><option value="no">Reaches no host</option></select>
+          <label class="form-label" for="sfSnap">Asset snapshot</label>
+          <select class="form-select form-select-sm" id="sfSnap" name="snapshot"><option value="">Any</option><option value="none">Never synced</option><option value="synced">Already synced</option><option value="stale">Synced more than a day ago</option></select>
+        </fieldset>
+
+        <div class="as-presets">
+          <span class="muted small-text">Quick picks</span>
+          <button type="button" class="chip-btn" data-preset='{"reach":"yes"}'>Reach a host</button>
+          <button type="button" class="chip-btn" data-preset='{"tier":"0"}'>Tier 0</button>
+          <button type="button" class="chip-btn" data-preset='{"snapshot":"none","reach":"yes"}'>Reach a host, never synced</button>
+          <button type="button" class="chip-btn" data-preset='{"snapshot":"stale"}'>Older than a day</button>
         </div>
-        <div class="sync-corr">
-          <div><span class="muted">Risk data (CTEM correlation) last calculated:</span> <b id="scCorrAt">–</b>
-            <span class="muted small-text">· automatic after every Security Center or Identity Exposure sync and at least hourly</span></div>
-          <button type="button" class="btn btn-sm btn-outline-primary" id="scRecalc" title="Match identities to AD again and rebuild the access facts and risk read models (about a second)"><span class="icon icon-16 i-scan"></span> Recalculate now</button>
-          <span class="small-text" id="scCorrStatus"></span>
+      </form>
+    </aside>
+
+    <div class="as-main">
+      <section class="card as-corr" aria-labelledby="asCorrTitle">
+        <div class="as-corr-state"><span class="dot" id="scCorrDot"></span></div>
+        <div class="as-corr-body">
+          <h2 id="asCorrTitle">Risk data <span class="info-tip inline" data-info-tip="recalculate"></span></h2>
+          <div>Last calculated <b id="scCorrAt">–</b></div>
+          <div class="muted small-text">Recalculated automatically after every Security Center or Identity Exposure sync and at least hourly.</div>
+          <div class="small-text mt-1" id="scCorrStatus" aria-live="polite"></div>
         </div>
-        <div class="sync-actions">
-          <button type="button" class="btn btn-primary" id="scRun" disabled><span class="icon icon-16 i-scan"></span> <span id="scRunLabel">Sync users</span></button>
+        <button type="button" class="btn btn-outline-primary" id="scRecalc"><span class="icon icon-16 i-scan"></span> Recalculate now</button>
+      </section>
+
+      <section class="card as-run" aria-labelledby="asRunTitle">
+        <div class="as-run-head">
+          <h2 id="asRunTitle">Selection</h2>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="scHistory" title="Every past sync: counts, failures and duration">{{ icons.ic('logs', 14) }} History</button>
+        </div>
+        <div class="as-kpis">
+          <div class="as-kpi primary"><span class="label">Users matching</span><b id="scTotal">–</b></div>
+          <div class="as-kpi"><span class="label">Reach at least one host</span><b id="scAccess">–</b></div>
+          <div class="as-kpi"><span class="label">Already have a snapshot</span><b id="scSynced">–</b></div>
+          <div class="as-kpi"><span class="label">Estimated time <span class="info-tip inline" data-info-tip="estimate"></span></span><b id="scTime">–</b></div>
+        </div>
+        <div class="as-actions">
+          <button type="button" class="btn btn-primary btn-lg" id="scRun" disabled><span class="icon icon-16 i-scan"></span> <span id="scRunLabel">Sync users</span></button>
           <button type="button" class="btn btn-outline-secondary" id="scCancel" hidden>Cancel</button>
-          <div class="form-check mb-0" title="Snapshots are built from the correlation; recalculating first makes them use the latest scan and directory data">
+          <div class="form-check mb-0">
             <input class="form-check-input" type="checkbox" id="scRecalcFirst" checked>
-            <label class="form-check-label" for="scRecalcFirst">Recalculate the correlation first</label>
+            <label class="form-check-label" for="scRecalcFirst">Recalculate the risk data first</label>
+            <span class="info-tip inline" data-info-tip="recalc_first"></span>
           </div>
-          <button type="button" class="btn btn-outline-primary" id="scHistory" title="Past syncs: how many succeeded or failed and how long they took"><span class="icon icon-16 i-scan"></span> History</button>
-          <a class="btn btn-link" href="/explore/assets">Open Assets</a>
-          <span class="muted small-text">Users are synced in batches of 50; you can leave the filters as they are while it runs. A sync replaces the user's existing snapshot.</span>
+          <a class="btn btn-link ms-auto" href="/explore/assets">Open Assets →</a>
         </div>
-        <div class="sync-progress" id="scProgress" hidden>
+        <div class="as-progress" id="scProgress" hidden>
+          <ol class="as-stages" id="scStages">
+            <li data-stage="recalc">Recalculating risk data</li>
+            <li data-stage="sync">Syncing users</li>
+            <li data-stage="done">Finished</li>
+          </ol>
           <div class="progress" role="progressbar" aria-label="Sync progress" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" id="scBar" style="width:0%"></div></div>
-          <div class="small-text mt-1" id="scStatus"></div>
+          <div class="small-text mt-1" id="scStatus" aria-live="polite"></div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="card">
-      <div class="toolbar"><h3 class="me-2 mb-0">Matching users</h3><span class="muted" id="scHint"></span></div>
-      <div class="table-wrap"><table class="table table-hover">
-        <thead><tr><th>User</th><th>Domain</th><th>Type</th><th>Tier</th><th>Status</th><th class="text-end">Hosts reached</th><th>Snapshot</th><th></th></tr></thead>
-        <tbody id="scBody"></tbody>
-      </table></div>
-      <div class="pager" id="scPager"></div>
-    </section>
+      <section class="card as-preview">
+        <div class="toolbar"><h2 class="me-2 mb-0">Preview</h2><span class="muted" id="scHint"></span></div>
+        <div class="table-wrap"><table class="table table-hover as-table">
+          <thead><tr><th>User</th><th>Domain</th><th>Type</th><th>Tier</th><th>Status</th><th class="text-end">Hosts reached</th><th>Snapshot</th><th></th></tr></thead>
+          <tbody id="scBody"></tbody>
+        </table></div>
+        <div class="pager" id="scPager"></div>
+      </section>
+    </div>
   </div>
 </div>
 

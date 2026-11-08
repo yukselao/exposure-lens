@@ -5,6 +5,8 @@
     <a href="#help-overview">Overview</a>
     <a href="#help-explore">Explore: Assets, Hosts, AD Objects</a>
     <a href="#help-asset-sync">Asset sync</a>
+    <a href="#help-recalculate">Recalculate risk data</a>
+    <a href="#help-sync-internals">Asset Sync: behind the scenes</a>
     <a href="#help-asset-details">Asset Details</a>
     <a href="#help-correlation">How correlation works</a>
     <a href="#help-risk">Risk score and factors</a>
@@ -52,6 +54,76 @@
         <li><b><a href="/explore/assets/sync">Asset Sync</a></b> (top right): filter AD users by name, domain, type, tier, status, host access, snapshot age or distinguished name, see how many match, how many reach a host, how many are already synced and the estimated time, then sync only those. It runs in batches of 50 with a progress bar and can be cancelled; each row also has its own <b>Sync</b> button. <b>History</b> lists every past sync (Asset Sync runs, single syncs from a panel or row, re-syncs and Agent Tenable): when it ran, the filters, planned, synced and failed counts, duration and time per asset, the errors and every asset it touched.</li>
       </ul>
       <p>A sync is plain SQL over the current tables, not a model output. <b>The same data always gives the same snapshot, whoever triggers it</b>, and there is one snapshot per asset, shared by all viewers. It changes only when the data under it changes: a new Security Center or Identity Exposure sync, or a new correlation run. A snapshot shows the state at its sync time; re-sync after the pipeline has run to refresh it.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-recalculate"><div class="card-body">
+      <h2>Recalculate risk data</h2>
+      <p><b>Recalculate now</b> (on the Asset Sync page) runs the <b>CTEM correlation</b>, the job behind the Risk page. It turns what the scans saw on hosts into access facts tied to Active Directory. It runs as one database transaction in the <code>ctem</code> worker, so no screen ever shows a half-built state, and it takes about a second.</p>
+      <h3 class="help-h3">When it runs</h3>
+      <ul>
+        <li>After every Security Center sync and every Identity Exposure sync, and after new plugin output has been parsed (<code>extract</code>).</li>
+        <li>At least every 60 minutes on its own.</li>
+        <li>On demand with <b>Recalculate now</b>, or before a bulk sync when <i>Recalculate the risk data first</i> is ticked. The job is queued in <code>sync_jobs</code> (connector <code>ctem</code>, kind <code>correlate</code>) and the worker picks it up within 30 seconds.</li>
+      </ul>
+      <h3 class="help-h3">What it reads</h3>
+      <table class="table help-table">
+        <thead><tr><th>Table</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><code>principals</code></td><td>Every account or group name found in plugin output (domain, name, SID, kind, the host it was seen on).</td></tr>
+          <tr><td><code>host_group_members</code></td><td>Members of the local Administrators (S-1-5-32-544), Remote Desktop Users (-555) and Remote Management Users (-580) groups.</td></tr>
+          <tr><td><code>host_sessions</code>, <code>host_services</code>, <code>host_scan_coverage</code></td><td>Interactive and SMB sessions, last logons, services and the account they run as, the scanner's own login.</td></tr>
+          <tr><td><code>plugin_outputs</code></td><td>The plugin and the last time each fact was seen.</td></tr>
+          <tr><td><code>ad_users</code>, <code>ad_groups</code>, <code>ad_computers</code> (<code>v_ad_objects</code>), <code>ad_domains</code></td><td>The Active Directory objects names are matched to.</td></tr>
+          <tr><td><code>ad_group_members</code></td><td>Group membership, followed up to ten levels deep.</td></tr>
+          <tr><td><code>host_identities</code>, <code>v_asset_correlation</code></td><td>The domain each host belongs to, for bare account names.</td></tr>
+          <tr><td><code>settings</code> (<code>identity_mapping</code>)</td><td>Optional domain and identity aliases.</td></tr>
+        </tbody>
+      </table>
+      <h3 class="help-h3">What it does, in order</h3>
+      <ol class="help-steps">
+        <li>Refreshes the host-to-AD-computer match and removes identities no table refers to any more.</li>
+        <li>Clears every previous match, then matches each identity to AD: identity alias, SID (exact), domain and account name (through a domain alias when one is set), user principal name, and finally a bare name in the host's own domain (only when exactly one account fits).</li>
+        <li>Builds the direct access facts: one row per identity, host and access type, with the evidence plugin and confidence.</li>
+        <li>Gives every right held by an AD group to each member of that group, nested groups included.</li>
+        <li>Rebuilds the attack-path edges (AdminTo, CanRDP, CanPSRemote, HasSession, RunsServiceAs).</li>
+        <li>Refreshes the read models behind the screens: <code>host_risk</code>, <code>local_accounts</code>, <code>software_summary</code>, <code>dashboard_summary</code>.</li>
+      </ol>
+      <h3 class="help-h3">What it writes</h3>
+      <p><code>principals</code> (the AD match and how it was made), <code>identity_host_access</code> (the access facts), <code>attack_edges</code> and the read models above. It does <b>not</b> touch the asset snapshots; sync them again to see the new data there.</p>
+    </div></section>
+
+    <section class="card help-sec" id="help-sync-internals"><div class="card-body">
+      <h2>Asset Sync: behind the scenes</h2>
+      <p>An asset sync reads the current data and stores one snapshot per asset in <code>asset_profiles</code>. Every source table is only read; the snapshot is the only thing written, plus a line in the sync history.</p>
+      <h3 class="help-h3">Choosing the users (bulk)</h3>
+      <p>The filters run against <code>ad_users</code>, joined to its domain (chosen from the distinguished name), its tier (<code>v_ad_object_tier</code>), its host access (<code>identity_host_access</code>) and its existing snapshot (<code>asset_profiles</code>). The counts and the preview come from the same query. A run opens a record in <code>asset_sync_runs</code>, then the page asks for batches of 50 users in id order; each batch is one short request, so a run shows its progress and can be cancelled between batches. A run whose tab was closed stops and is marked <i>Interrupted</i>; start it again with the same filters (choose <i>Never synced</i> to skip the users it already did).</p>
+      <h3 class="help-h3">What one identity sync reads</h3>
+      <table class="table help-table">
+        <thead><tr><th>Table</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><code>ad_users</code>, <code>ad_domains</code>, <code>v_ad_object_tier</code></td><td>The identity card: name, account, UPN, e-mail, phone, organizational unit (from the DN), status, tier and the path to Tier 0, password age and Identity Exposure's password findings, userAccountControl flags, SPNs, delegation, SID history.</td></tr>
+          <tr><td><code>ad_group_members</code>, <code>ad_groups</code></td><td>Direct groups, and the membership path from the user to the group a right comes through.</td></tr>
+          <tr><td><code>v_risk_access</code> (<code>identity_host_access</code> + <code>host_risk</code>)</td><td>Every access fact of the identity (up to 500) with the host's Critical and High counts, VPR, ACR, tier and credentialed state.</td></tr>
+          <tr><td><code>identity_host_access</code>, <code>principals</code></td><td>For each fact: the raw name the scan saw and how it was matched to AD; for a group right, the group's own fact on that host.</td></tr>
+          <tr><td><code>plugin_catalog</code>, <code>plugin_outputs</code></td><td>The evidence plugin's name and the lines of its output that name the account or the group.</td></tr>
+          <tr><td><code>vulnerabilities</code> + <code>host_risk</code></td><td>The findings on every connected host, worst first (up to 3,000).</td></tr>
+          <tr><td><code>settings</code></td><td>The ACR threshold (<code>ctem</code>) and the identity mapping, to flag demo aliases.</td></tr>
+        </tbody>
+      </table>
+      <p>A host sync reads <code>v_host_assets</code>, <code>host_risk</code>, <code>v_asset_correlation</code>, <code>ad_computers</code>, <code>local_accounts</code> and <code>host_services</code> for the host itself, and the same access, evidence and findings tables for the identities that reach it.</p>
+      <h3 class="help-h3">What it computes</h3>
+      <ol class="help-steps">
+        <li><b>Correlation chain</b> for every access fact: seen on the host, matched to AD, group membership, result; a one-sentence explanation and a match quality.</li>
+        <li><b>Connections</b>: one summary per connected system (or per identity, for a host) of every way the link exists.</li>
+        <li><b>Risk factors</b>, the <b>score</b> (Critical 25, High 12, Medium 5 each, capped at 100), the four <b>risk questions</b>, and the <b>breakdowns</b>: by severity, tier, access type, plugin family, /24 network, most exposed hosts, top plugins and CVEs.</li>
+        <li><b>Summary</b> counts: hosts reached, hosts with Critical findings, high-ACR and Tier 0 hosts, findings by severity, exploitable findings, highest VPR.</li>
+      </ol>
+      <h3 class="help-h3">What it writes</h3>
+      <ul>
+        <li><code>asset_profiles</code>: one row per asset (kind and key: the AD object key, the telemetry identity key, or the host id). A re-sync replaces the row; the same data always gives the same row.</li>
+        <li><code>asset_sync_runs</code>: the run with its counts, times, errors and every asset it touched (the History button).</li>
+      </ul>
+      <p>The Asset Details page then reads only the stored snapshot, which is why it opens instantly and shows the state at sync time.</p>
     </div></section>
 
     <section class="card help-sec" id="help-asset-details"><div class="card-body">
