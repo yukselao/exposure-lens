@@ -33,9 +33,19 @@
           <div><span class="label">Already synced</span><b id="scSynced">–</b></div>
           <div><span class="label">Estimated time</span><b id="scTime">–</b></div>
         </div>
+        <div class="sync-corr">
+          <div><span class="muted">Risk data (CTEM correlation) last calculated:</span> <b id="scCorrAt">–</b>
+            <span class="muted small-text">· automatic after every Security Center or Identity Exposure sync and at least hourly</span></div>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="scRecalc" title="Match identities to AD again and rebuild the access facts and risk read models (about a second)"><span class="icon icon-16 i-scan"></span> Recalculate now</button>
+          <span class="small-text" id="scCorrStatus"></span>
+        </div>
         <div class="sync-actions">
           <button type="button" class="btn btn-primary" id="scRun" disabled><span class="icon icon-16 i-scan"></span> <span id="scRunLabel">Sync users</span></button>
           <button type="button" class="btn btn-outline-secondary" id="scCancel" hidden>Cancel</button>
+          <div class="form-check mb-0" title="Snapshots are built from the correlation; recalculating first makes them use the latest scan and directory data">
+            <input class="form-check-input" type="checkbox" id="scRecalcFirst" checked>
+            <label class="form-check-label" for="scRecalcFirst">Recalculate the correlation first</label>
+          </div>
           <button type="button" class="btn btn-outline-primary" id="scHistory" title="Past syncs: how many succeeded or failed and how long they took"><span class="icon icon-16 i-scan"></span> History</button>
           <a class="btn btn-link" href="/explore/assets">Open Assets</a>
           <span class="muted small-text">Users are synced in batches of 50; you can leave the filters as they are while it runs. A sync replaces the user's existing snapshot.</span>

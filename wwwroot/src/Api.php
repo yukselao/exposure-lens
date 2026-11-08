@@ -1483,7 +1483,8 @@ final class Api
     {
         $size = self::int($in, 'size', 50, 1, 200);
         $page = self::int($in, 'page', 1, 1);
-        return Assets::candidates(self::syncFilters($in), $size, ($page - 1) * $size);
+        return Assets::candidates(self::syncFilters($in), $size, ($page - 1) * $size)
+            + ['correlated_at' => Db::value("SELECT finished_at FROM sync_jobs WHERE connector = 'ctem' AND kind = 'correlate' AND status = 'succeeded' ORDER BY id DESC LIMIT 1") ?: null];
     }
 
     public static function assetSyncBatch(array $in): array

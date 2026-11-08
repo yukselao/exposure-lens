@@ -685,4 +685,4 @@ tr.conn-detail > td { background: var(--bg-page-alt); padding: 0; }
 .sh-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .sh-items { max-height: 380px; overflow: auto; }
 #syncHistory .modal-header .btn-close { margin-left: auto; }
-.risk-updated { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: -12px 0 14px; }
+.sync-corr { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 14px; border-radius: 8px; border: 1px dashed var(--border-base); }
