@@ -5,6 +5,7 @@
     <a href="#help-overview">Overview</a>
     <a href="#help-explore">Explore: Assets, Hosts, AD Objects</a>
     <a href="#help-asset-sync">Asset sync</a>
+    <a href="#help-workers">Services and background workers</a>
     <a href="#help-recalculate">Recalculate risk data</a>
     <a href="#help-sync-internals">Asset Sync: behind the scenes</a>
     <a href="#help-asset-details">Asset Details</a>
@@ -56,9 +57,55 @@
       <p>A sync is plain SQL over the current tables, not a model output. <b>The same data always gives the same snapshot, whoever triggers it</b>, and there is one snapshot per asset, shared by all viewers. It changes only when the data under it changes: a new Security Center or Identity Exposure sync, or a new correlation run. A snapshot shows the state at its sync time; re-sync after the pipeline has run to refresh it.</p>
     </div></section>
 
+    <section class="card help-sec" id="help-workers"><div class="card-body">
+      <h2>Services and background workers</h2>
+      <p>Exposure Lens runs as a set of Docker containers (<code>docker compose ps</code>). The web UI never calls a connector directly: it writes a <b>job</b> into the <code>sync_jobs</code> table, and the worker that owns it picks it up, runs it and records progress, statistics and errors on the same row. The connector logs are under <a href="/logs">Logs</a>.</p>
+      <table class="table help-table">
+        <thead><tr><th>Service (container)</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>web</code></td><td>nginx: serves the pages and assets on <code>127.0.0.1:8085</code> and passes requests to <code>php</code>.</td></tr>
+          <tr><td><code>php</code></td><td>The application: pages, the API, Agent Tenable's chat and tools, and the asset sync itself (it runs inside the request, which is why it needs no worker).</td></tr>
+          <tr><td><code>postgres</code></td><td>The database (PostgreSQL 17). Everything else reads and writes here.</td></tr>
+          <tr><td><code>migrate</code></td><td>Applies the schema migrations at start and exits.</td></tr>
+          <tr><td><code>sc</code></td><td>Security Center worker. Jobs: <b>sync</b> (one pool: hosts and vulnerabilities) and <b>plugin_collect</b> (the raw output of the catalog's plugins).</td></tr>
+          <tr><td><code>tie</code></td><td>Identity Exposure gateway: a JSON API in front of the Tenable Identity Exposure tenant, with an in-memory AD object cache.</td></tr>
+          <tr><td><code>tie_postgres</code></td><td>Identity Exposure worker. Job: <b>sync</b> (mirrors users, groups, computers, GPOs, memberships and tiers from <code>tie</code> into the database).</td></tr>
+          <tr><td><code>ctem</code></td><td><b>CTEM worker</b>, see below.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="help-h3">The CTEM worker</h3>
+      <p>The <code>ctem</code> service (container <code>exposure-lens-ctem-1</code>, code in <code>connectors/ctem</code>) turns scan output into identity-to-host facts. It runs three kinds of job:</p>
+      <ul>
+        <li><b>extract</b>: parses new or changed plugin output into facts per host: local groups and their members, sessions, last logons, services and their accounts, local accounts, software, browser extensions, indicators of compromise.</li>
+        <li><b>correlate</b>: matches those facts to Active Directory and builds the access facts and the risk read models (see <a href="#help-recalculate">Recalculate risk data</a>).</li>
+        <li><b>rebuild</b>: re-parses all plugin output after the parsers changed, then correlates.</li>
+      </ul>
+
+      <h3 class="help-h3">How jobs are picked up</h3>
+      <p>Each worker checks <code>sync_jobs</code> for its own queued jobs every <b>30 seconds</b> (<code>POLL_INTERVAL_SECONDS</code>). A job you start from the UI therefore waits up to 30 seconds before it begins; the work itself is often much shorter (a correlation takes about a second). The interval is set per worker in <code>.env</code>:</p>
+      <pre class="help-pre">sc_poll_interval_seconds=30
+tie_postgres_poll_interval_seconds=30
+ctem_poll_interval_seconds=30</pre>
+      <p>After changing it, restart that worker, e.g. <code>docker compose up -d ctem</code>. A shorter interval costs one small indexed query per check.</p>
+
+      <h3 class="help-h3">What runs on its own</h3>
+      <table class="table help-table">
+        <thead><tr><th>Job</th><th>Scheduled</th><th>Also started by</th></tr></thead>
+        <tbody>
+          <tr><td>sc · sync (per pool)</td><td>The pool's sync interval (Settings &gt; Security Center); 0 means manual only</td><td>Sync now</td></tr>
+          <tr><td>sc · plugin_collect</td><td>Every 360 minutes by default (Settings &gt; CTEM)</td><td>Settings &gt; CTEM Pipeline</td></tr>
+          <tr><td>tie_postgres · sync</td><td>The interval in Settings &gt; Identity Exposure; 0 means manual only</td><td>Sync now</td></tr>
+          <tr><td>ctem · extract</td><td>Every 15 minutes</td><td>A finished plugin_collect</td></tr>
+          <tr><td>ctem · correlate</td><td>Every 60 minutes</td><td>A finished SC sync, TIE sync or extract; Recalculate now; a bulk asset sync with <i>Recalculate the risk data first</i></td></tr>
+        </tbody>
+      </table>
+      <p>A job is only queued when the same job is not already queued or running, so the chain never piles up. The resulting order after new data is: <b>SC or TIE sync → correlate</b>, and <b>plugin_collect → extract → correlate</b>. Asset snapshots are never refreshed by these jobs; sync them from Asset Sync.</p>
+    </div></section>
+
     <section class="card help-sec" id="help-recalculate"><div class="card-body">
       <h2>Recalculate risk data</h2>
-      <p><b>Recalculate now</b> (on the Asset Sync page) runs the <b>CTEM correlation</b>, the job behind the Risk page. It turns what the scans saw on hosts into access facts tied to Active Directory. It runs as one database transaction in the <code>ctem</code> worker, so no screen ever shows a half-built state, and it takes about a second.</p>
+      <p><b>Recalculate now</b> (on the Asset Sync page) runs the <b>CTEM correlation</b>, the job behind the Risk page. It turns what the scans saw on hosts into access facts tied to Active Directory. It runs as one database transaction in the <a href="#help-workers">CTEM worker</a> (<code>ctem</code> container), so no screen ever shows a half-built state, and it takes about a second.</p>
       <h3 class="help-h3">When it runs</h3>
       <ul>
         <li>After every Security Center sync and every Identity Exposure sync, and after new plugin output has been parsed (<code>extract</code>).</li>
