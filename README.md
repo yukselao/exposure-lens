@@ -12,7 +12,7 @@ Exposure Lens pulls data from Tenable Security Center and Tenable Identity Expos
 | `tie_postgres` | [TIE to PostgreSQL connector](connectors/tie_postgres/README.md): mirrors AD objects from `tie` into PostgreSQL. |
 | `sc` | [Security Center connector](connectors/sc/README.md): pulls cumulative vulnerabilities and plugin output into PostgreSQL. |
 | `ctem` | [CTEM worker](connectors/ctem/README.md): parses plugin output, matches identities to AD and builds the Risk data. |
-| `php`, `web` | The web UI in `wwwroot/` (php-fpm behind nginx), on `http://127.0.0.1:8085`. Includes **Agent Tenable**, the chat assistant (see below). |
+| `php`, `web` | The web UI in `wwwroot/` (php-fpm behind nginx), on port 8085 of every interface (`http://<host>:8085`). Includes **Agent Tenable**, the chat assistant (see below). |
 
 Application code is bind-mounted into the containers. The images hold only runtimes and libraries, so a code change needs no rebuild. A Python connector reads its code at start; restart it after a change (`docker compose restart sc`).
 
@@ -36,7 +36,7 @@ docker compose up -d --build              # builds the images, runs the Alembic 
 docker compose ps                         # all services "Up", migrate "Exited (0)"
 ```
 
-Open `http://127.0.0.1:8085` (change `web_port` in `.env` to use another port), then:
+Open `http://<host>:8085` (change `web_port` in `.env` to use another port), then:
 
 1. **Settings > Security Center:** enter the URL and API keys, run **Test connection**, add a pool, add a query to it, and press **Sync now**. The `sc` connector picks the job up within 30 seconds.
 2. **Settings > Identity Exposure:** run **Test connection**, then **Sync now**.
@@ -45,7 +45,7 @@ Open `http://127.0.0.1:8085` (change `web_port` in `.env` to use another port), 
 
 `secrets/app_secret_key` encrypts the Security Center keys and the TIE token stored in PostgreSQL. If you replace it, enter those values again in Settings.
 
-The UI has no login yet. It is published on `127.0.0.1` only; do not expose the port.
+The UI has no login yet and is published on all interfaces (`0.0.0.0`), so anyone who can reach the host on the network can use it. Restrict the port with a firewall, or change the binding in `docker-compose.yml` back to `127.0.0.1`. PostgreSQL (5432) and the TIE gateway (8080) stay on `127.0.0.1`.
 
 ### Day-to-day
 

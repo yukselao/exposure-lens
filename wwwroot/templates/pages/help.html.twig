@@ -63,7 +63,7 @@
       <table class="table help-table">
         <thead><tr><th>Service (container)</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td><code>web</code></td><td>nginx: serves the pages and assets on <code>127.0.0.1:8085</code> and passes requests to <code>php</code>.</td></tr>
+          <tr><td><code>web</code></td><td>nginx: serves the pages and assets on port <code>8085</code> of every network interface (no login yet, so restrict it with a firewall) and passes requests to <code>php</code>.</td></tr>
           <tr><td><code>php</code></td><td>The application: pages, the API, Agent Tenable's chat and tools, and the asset sync itself (it runs inside the request, which is why it needs no worker).</td></tr>
           <tr><td><code>postgres</code></td><td>The database (PostgreSQL 17). Everything else reads and writes here.</td></tr>
           <tr><td><code>migrate</code></td><td>Applies the schema migrations at start and exits.</td></tr>

@@ -179,7 +179,7 @@ services:
   web:
     image: nginx:1.27-alpine
     ports:
-      - "127.0.0.1:${web_port:-8085}:80"
+      - "0.0.0.0:${web_port:-8085}:80"
     volumes:
       - ./wwwroot:/var/www/html:ro
       - ./web/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
