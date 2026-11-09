@@ -111,8 +111,19 @@ final class Assets
         $p = [];
         $q = trim((string) ($f['q'] ?? ''));
         if ($q !== '') {
-            $w[] = "lower(coalesce(u.sam_account_name, '') || ' ' || coalesce(u.display_name, '') || ' ' || coalesce(u.user_principal_name, '') || ' ' || coalesce(u.attributes->>'mail', '')) LIKE ?";
-            $p[] = '%' . addcslashes(strtolower($q), '%_\\') . '%';
+            // same matching as Agent Tenable's find_identity: Turkish letters folded, and the term
+            // without spaces or punctuation also matches ("aliokan" finds "Ali Okan Yuksel")
+            $esc = fn ($v) => '%' . addcslashes($v, '%_\\') . '%';
+            $words = array_values(array_filter(preg_split('/[\s,;]+/', Tools::fold($q))));
+            $c = array_map(fn () => Tools::USER_SEARCH_FOLDED . ' LIKE ?', $words);
+            $cond = '(' . implode(' AND ', $c) . ')';
+            foreach ($words as $word) $p[] = $esc($word);
+            $compact = Tools::compact($q);
+            if (strlen($compact) >= 3) {
+                $cond = "($cond OR " . Tools::USER_SEARCH_COMPACT . ' LIKE ?)';
+                $p[] = $esc($compact);
+            }
+            $w[] = $cond;
         }
         if (!empty($f['domain_id'])) {
             $w[] = 'd.id = ?';

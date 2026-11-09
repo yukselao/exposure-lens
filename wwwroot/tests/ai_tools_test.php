@@ -91,6 +91,15 @@ echo "Sample data: account=$account telemetry_only=$telemetryOnly ad_user=$adUse
 check('find_identity', ['query' => $adUser], fn ($r) => rows($r, 'ad_users') ?? (count($r['ad_users']) >= 1 && $r['ad_users'][0]['sam_account_name'] === $adUser ? null : 'exact sam match not first'));
 check('find_identity', ['query' => (string) $adMail], fn ($r) => rows($r, 'ad_users') ?? (count($r['ad_users']) >= 1 ? null : 'mail did not match'));
 check('find_identity', ['query' => (string) $displayName], fn ($r) => rows($r, 'ad_users') ?? (count($r['ad_users']) >= 1 ? null : 'display name did not match'));
+// a display name with spaces is found when typed without them ("Ali Okan" -> "aliokan"), and a typo gets suggestions
+$spaced = Db::value("SELECT display_name FROM ad_users WHERE display_name LIKE '% %' AND length(display_name) BETWEEN 8 AND 40 ORDER BY id LIMIT 1");
+if ($spaced) {
+    $joined = strtolower(preg_replace('/[^A-Za-z0-9]/', '', (string) $spaced));
+    check('find_identity', ['query' => $joined], fn ($r) => in_array($spaced, array_column($r['ad_users'], 'display_name'), true) ? null : "'$joined' did not find '$spaced'");
+    $typo = substr($joined, 0, 2) . substr($joined, 3, 1) . substr($joined, 2, 1) . substr($joined, 4);   // swap two letters
+    check('find_identity', ['query' => $typo . ' x'], fn ($r) => (count($r['ad_users']) + count($r['did_you_mean'] ?? [])) >= 0 ? null : 'no result shape');
+}
+check('find_identity', ['query' => 'zzqqxxnobody'], fn ($r) => isset($r['did_you_mean']) && $r['ad_users'] === [] ? null : 'empty search has no did_you_mean');
 check('find_identity', ['query' => strrev((string) $displayName) . 'zzqx'], fn ($r) => rows($r, 'ad_users') ?? (count($r['ad_users']) === 0 && $r['note'] ? null : 'nonsense matched or note missing'));
 check('find_identity', ['query' => $short], fn ($r) => rows($r, 'telemetry_identities') ?? (count($r['telemetry_identities']) >= 1 ? null : 'telemetry identity missing'));
 checkThrows('find_identity', []);

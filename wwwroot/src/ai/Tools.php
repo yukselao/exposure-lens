@@ -15,6 +15,21 @@ final class Tools
     private const IDENTITY_SHORT = 'lower(CASE WHEN position(chr(92) IN a.identity_name) > 0 THEN split_part(a.identity_name, chr(92), 2) ELSE a.identity_name END)';
     private const HOST_SEARCH = "lower(coalesce(host_name, '') || ' ' || coalesce(ip, ''))";
     private const USER_SEARCH = "lower(coalesce(u.sam_account_name, '') || ' ' || coalesce(u.display_name, '') || ' ' || coalesce(u.name, '') || ' ' || coalesce(u.user_principal_name, '') || ' ' || coalesce(u.attributes->>'mail', ''))";
+    /** The same text with Turkish letters folded (ı ü ö ş ç ğ -> i u o s c g). */
+    public const USER_SEARCH_FOLDED = "translate(" . self::USER_SEARCH . ", 'ıüöşçğâîû', 'iuoscgaiu')";
+    /** ...and with spaces and punctuation removed, so "aliokan" finds "Ali Okan". */
+    public const USER_SEARCH_COMPACT = "regexp_replace(" . self::USER_SEARCH_FOLDED . ", '[^a-z0-9]', '', 'g')";
+
+    /** A search term folded like USER_SEARCH_FOLDED: lower case, Turkish letters as ASCII. */
+    public static function fold(string $s): string
+    {
+        return strtr(mb_strtolower(strtr($s, ['İ' => 'i', 'I' => 'i'])), ['ı' => 'i', 'ü' => 'u', 'ö' => 'o', 'ş' => 's', 'ç' => 'c', 'ğ' => 'g', 'â' => 'a', 'î' => 'i', 'û' => 'u']);
+    }
+
+    public static function compact(string $s): string
+    {
+        return preg_replace('/[^a-z0-9]/', '', self::fold($s));
+    }
     private const UAC_FLAGS = [2 => 'ACCOUNTDISABLE', 16 => 'LOCKOUT', 32 => 'PASSWD_NOTREQD', 64 => 'PASSWD_CANT_CHANGE', 128 => 'ENCRYPTED_TEXT_PWD_ALLOWED',
         512 => 'NORMAL_ACCOUNT', 2048 => 'INTERDOMAIN_TRUST_ACCOUNT', 4096 => 'WORKSTATION_TRUST_ACCOUNT', 8192 => 'SERVER_TRUST_ACCOUNT',
         65536 => 'DONT_EXPIRE_PASSWORD', 262144 => 'SMARTCARD_REQUIRED', 524288 => 'TRUSTED_FOR_DELEGATION', 1048576 => 'NOT_DELEGATED',
@@ -228,16 +243,24 @@ final class Tools
             [$lq, $lq, $lq, $limit]);
         $rows = $exact;
         if (count($rows) < $limit) {
-            // "name surname" in any order: every word must appear somewhere in the searchable text.
-            $words = array_values(array_filter(preg_split('/\s+/', $lq)));
+            // "name surname" in any order: every word must appear somewhere in the searchable text
+            // (Turkish letters folded), or the whole term without spaces and punctuation must appear
+            // in the text without them ("aliokan", "ali.okan" and "Ali Okan" all find "Ali Okan Yuksel").
+            $words = array_values(array_filter(preg_split('/[\s,;]+/', self::fold($q))));
             $conds = [];
             $params = [];
             foreach ($words as $w) {
-                $conds[] = self::USER_SEARCH . ' LIKE ?';
+                $conds[] = self::USER_SEARCH_FOLDED . ' LIKE ?';
                 $params[] = self::like($w);
             }
+            $compact = self::compact($q);
+            $where = '(' . implode(' AND ', $conds) . ')';
+            if (strlen($compact) >= 3) {
+                $where = "($where OR " . self::USER_SEARCH_COMPACT . ' LIKE ?)';
+                $params[] = self::like($compact);
+            }
             $params[] = $limit - count($rows);
-            $more = Db::all("$select WHERE " . implode(' AND ', $conds) . ' ORDER BY (u.enabled IS TRUE) DESC, t.tier NULLS LAST, u.sam_account_name LIMIT ?', $params);
+            $more = Db::all("$select WHERE $where ORDER BY (u.enabled IS TRUE) DESC, t.tier NULLS LAST, u.sam_account_name LIMIT ?", $params);
             $seen = array_column($rows, 'sam_account_name');
             foreach ($more as $m) {
                 if (!in_array($m['sam_account_name'], $seen, true)) {
@@ -251,8 +274,21 @@ final class Tools
              GROUP BY a.identity_key, a.identity_name, a.identity_kind ORDER BY hosts DESC LIMIT ?",
             [self::like($lq), 20]
         );
-        return ['query' => $q, 'ad_users' => $rows, 'telemetry_identities' => $telemetry,
-                'note' => $rows ? null : 'No AD account matched. Telemetry identities are names seen on hosts (sessions, local admins, services) that have no AD match.'];
+        // Nothing at all: offer the closest accounts by trigram similarity, so a typo or a name
+        // written differently still leads somewhere ("did you mean").
+        $suggestions = [];
+        if (!$rows && !$telemetry && mb_strlen($q) >= 3) {
+            $sim = 'round(greatest(word_similarity(?, ' . self::USER_SEARCH_FOLDED . '), word_similarity(?, ' . self::USER_SEARCH_COMPACT . '))::numeric, 2) AS similarity';
+            $withSim = preg_replace('/\s+FROM ad_users u\b/', ", $sim FROM ad_users u", $select, 1);
+            $suggestions = Db::all(
+                "SELECT x.* FROM ($withSim) x WHERE x.similarity >= 0.45 ORDER BY x.similarity DESC, x.sam_account_name LIMIT 5",
+                [self::fold($q), self::compact($q)]
+            );
+        }
+        return ['query' => $q, 'ad_users' => $rows, 'telemetry_identities' => $telemetry, 'did_you_mean' => $suggestions,
+                'note' => $rows ? null : ($suggestions
+                    ? 'No account matched exactly. did_you_mean lists the closest accounts by spelling; if one is clearly the person asked for, continue with it and say so.'
+                    : 'No AD account matched. Telemetry identities are names seen on hosts (sessions, local admins, services) that have no AD match.')];
     }
 
     private static function identity_profile(array $a): array
