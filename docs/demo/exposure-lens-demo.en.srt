@@ -1,0 +1,271 @@
+1
+00:00:03,300 --> 00:00:04,590
+Hi everyone.
+
+2
+00:00:04,900 --> 00:00:10,040
+Today I will walk you through our Exposure Lens project and give you a live demo.
+
+3
+00:00:10,580 --> 00:00:15,317
+But before doing that, I would like to start with a short overview of Tenable One
+
+4
+00:00:15,317 --> 00:00:18,140
+and why identity security has become a must.
+
+5
+00:00:20,800 --> 00:00:25,469
+Tenable One is our exposure management platform, and it runs in the cloud,
+
+6
+00:00:25,469 --> 00:00:32,280
+so its newest capabilities, like AI and cross-domain exposure analysis, are delivered as cloud services.
+
+7
+00:00:32,230 --> 00:00:37,410
+But many customers cannot move to the cloud because of regulation or data residency.
+
+8
+00:00:37,700 --> 00:00:43,900
+So they run Security Center and Identity Exposure on-premises and miss those capabilities.
+
+9
+00:00:44,380 --> 00:00:48,380
+And they matter: a vulnerability tells only half the story.
+
+10
+00:00:48,660 --> 00:00:53,301
+The real question is who can reach that system and what they can do with it,
+
+11
+00:00:53,301 --> 00:00:58,620
+because attackers move through identities and privileges, not just vulnerabilities.
+
+12
+00:00:58,620 --> 00:01:01,817
+Under the Tenable Cyber Exchange project, which offers
+
+13
+00:01:01,817 --> 00:01:04,008
+free assets you can download and use,
+
+14
+00:01:04,008 --> 00:01:08,449
+we built Exposure Lens to close this gap. We developed it together with our
+
+15
+00:01:08,449 --> 00:01:14,620
+Professional Services and product teams. It's not an official Tenable product, it's our own project.
+
+16
+00:01:22,340 --> 00:01:24,580
+Let me show you the user interface.
+
+17
+00:01:30,980 --> 00:01:35,704
+When we log in, a dashboard greets us. It summarises vulnerabilities,
+
+18
+00:01:35,704 --> 00:01:40,130
+risky identities and the hosts they reach, all in one screen.
+
+19
+00:01:42,540 --> 00:01:46,652
+Every widget has a small icon in its top-right corner that explains
+
+20
+00:01:46,652 --> 00:01:48,620
+how the value is calculated.
+
+21
+00:01:56,020 --> 00:01:59,981
+Users reaching critical hosts, hosts under Tier 0 accounts,
+
+22
+00:01:59,981 --> 00:02:02,580
+service accounts on critical hosts.
+
+23
+00:02:11,380 --> 00:02:13,580
+I want to talk about integrations.
+
+24
+00:02:15,420 --> 00:02:18,180
+The platform works with several integrations.
+
+25
+00:02:18,130 --> 00:02:20,950
+Let's start with Tenable Security Center.
+
+26
+00:02:20,900 --> 00:02:26,683
+Tenable Security Center: I click the integration, enter the API URL and the API keys,
+
+27
+00:02:26,683 --> 00:02:33,600
+and set the vulnerability filters, for example which severities and which repositories to collect.
+
+28
+00:02:35,780 --> 00:02:39,820
+Every finding that matches these filters is brought into the platform.
+
+29
+00:02:43,500 --> 00:02:47,270
+Let's continue with the Identity Exposure integration details.
+
+30
+00:02:50,180 --> 00:02:54,503
+Same approach: I click the integration, enter the API URL and other details,
+
+31
+00:02:54,503 --> 00:02:57,370
+and define how often the data is synchronised.
+
+32
+00:02:58,590 --> 00:03:04,290
+Users, groups, computers, group policies and identity findings are all brought in.
+
+33
+00:03:07,740 --> 00:03:10,980
+The last part of the integration is the local LLM.
+
+34
+00:03:13,030 --> 00:03:16,790
+Finally, I configure a local large language model.
+
+35
+00:03:16,740 --> 00:03:19,810
+In this demo, I use the Gemma 4 model.
+
+36
+00:03:19,770 --> 00:03:22,081
+The model runs locally, so no data leaves
+
+37
+00:03:22,081 --> 00:03:27,010
+the environment. That matters a lot for exactly the customers we are talking about.
+
+38
+00:03:27,100 --> 00:03:31,310
+Once these settings are in place, the data pools take shape on the platform.
+
+39
+00:03:36,640 --> 00:03:40,240
+I want to show you the AI assistant, Agent Tenable.
+
+40
+00:03:49,180 --> 00:03:53,686
+I can type here in Turkish or English. For example, let me ask:
+
+41
+00:03:53,686 --> 00:03:55,510
+investigate this user.
+
+42
+00:04:04,900 --> 00:04:08,666
+It's using our agentic harness: tools, skills and sub-agent
+
+43
+00:04:08,666 --> 00:04:11,660
+definitions for collecting these data sets.
+
+44
+00:04:19,940 --> 00:04:24,500
+It shows me Ali Okan, the e-mail address, the organisational unit.
+
+45
+00:04:27,260 --> 00:04:32,915
+If we have findings about password security, for example if this user is using a weak password,
+
+46
+00:04:32,915 --> 00:04:36,260
+I can see all of these details here, as you can see.
+
+47
+00:04:41,300 --> 00:04:46,600
+Each investigation also creates an asset card. If I want, I can just click to open it
+
+48
+00:04:46,600 --> 00:04:49,780
+and see all the details of the user asset here.
+
+49
+00:04:55,540 --> 00:04:57,780
+It could be a computer asset as well.
+
+50
+00:04:58,580 --> 00:05:01,900
+I can see connected assets and vulnerabilities.
+
+51
+00:05:04,180 --> 00:05:07,950
+By the way, I can group them by host or by CVE.
+
+52
+00:05:11,540 --> 00:05:16,734
+I can see the risk details, why this user is risky. All the details are
+
+53
+00:05:16,734 --> 00:05:18,740
+shown in one asset card.
+
+54
+00:05:25,780 --> 00:05:29,505
+Correlation evidence gives me all the insights about the correlation:
+
+55
+00:05:29,505 --> 00:05:34,310
+why this user is related to these specific findings, and I can also see the groups of the
+
+56
+00:05:34,310 --> 00:05:35,100
+user here.
+
+57
+00:05:43,300 --> 00:05:46,300
+I can perform this analysis for several assets.
+
+58
+00:05:46,250 --> 00:05:47,610
+I can filter.
+
+59
+00:05:47,980 --> 00:05:51,860
+We also added some additional capabilities, like local users.
+
+60
+00:05:53,620 --> 00:05:58,650
+You can just click the Local Users link and see all local accounts in your environment.
+
+61
+00:06:02,340 --> 00:06:05,960
+We also built a software inventory and a browser extensions data set.
+
+62
+00:06:12,500 --> 00:06:15,200
+You can list and filter those findings.
+
+63
+00:06:19,220 --> 00:06:21,560
+These are findings coming from SC.
+
+64
+00:06:28,660 --> 00:06:34,438
+To summarise, Exposure Lens brings identity-aware, AI-assisted vulnerability management
+
+65
+00:06:34,438 --> 00:06:40,016
+to on-premises environments. It combines Security Center and Identity Exposure data,
+
+66
+00:06:40,016 --> 00:06:44,450
+and it uses a local LLM, so the data stays in your environment.
+
+67
+00:06:44,450 --> 00:06:45,650
+Thank you for listening.
+
+68
+00:06:45,600 --> 00:06:47,160
+I'm happy to take your questions.
