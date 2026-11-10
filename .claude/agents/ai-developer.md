@@ -14,7 +14,7 @@ half-wired features behind.
   large), tabs for **Chat**, **Prompts** (ready-made questions as buttons), **Skills** and
   **Tools**. Answers render Markdown, HTML tables and Chart.js charts.
 - Backed by the local Ollama server configured in Settings > Agent Tenable (default
-  `http://192.168.1.105:11434`, model `gemma4:31b`). The address, model, context size,
+  `http://host.docker.internal:11434`, model `gemma4:31b`). The address, model, context size,
   temperature, output cap, thinking switch and timeout are settings, never constants.
 - Tool-using: the model calls read-only database tools; the server runs them against indexed
   tables and read models and feeds the result back. The UI shows every tool result as data

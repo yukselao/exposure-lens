@@ -9,7 +9,7 @@ declare(strict_types=1);
 final class Llm
 {
     public const DEFAULTS = [
-        'url' => 'http://192.168.1.105:11434',
+        'url' => 'http://host.docker.internal:11434',
         'model' => 'gemma4:31b',
         'num_ctx' => 32768,
         'temperature' => 0.4,
