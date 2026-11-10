@@ -1,6 +1,40 @@
-# exposure-lens
+# Exposure Lens
 
-Exposure Lens pulls data from Tenable Security Center and Tenable Identity Exposure into PostgreSQL and shows the two side by side in a web UI.
+Identity-aware, AI-assisted vulnerability management for on-premises environments.
+
+Exposure Lens pulls data from Tenable Security Center and Tenable Identity Exposure into PostgreSQL and shows the two side by side in a web UI. It links vulnerabilities to the identities that can reach the affected hosts: who logs on where, who is a local administrator, which service accounts run on critical systems. **Agent Tenable**, a chat assistant backed by a local LLM (Ollama), answers questions about that data, so nothing leaves your environment.
+
+It is built for teams that run Security Center and Identity Exposure on-premises, for example because of regulation or data residency, and cannot use the cloud features of Tenable One.
+
+> Exposure Lens is a Tenable Cyber Exchange community project. It is **not an official Tenable product** and is not supported by Tenable.
+
+## Demo
+
+[![Exposure Lens demo video (6:53)](docs/demo/poster.png)](docs/demo/exposure-lens-demo.mp4)
+
+A 7-minute walkthrough of the UI ([video](docs/demo/exposure-lens-demo.mp4), [English subtitles](docs/demo/exposure-lens-demo.en.srt)):
+
+| Time | Section |
+| --- | --- |
+| 0:00 | Why Exposure Lens: Tenable One runs in the cloud; on-premises customers need identity context too |
+| 1:22 | The dashboard: vulnerabilities, risky identities and the hosts they reach; the "i" tips on each widget |
+| 2:11 | Integrations: Security Center (API URL, keys, vulnerability filters) |
+| 2:43 | Integrations: Identity Exposure (API URL, sync interval) |
+| 3:07 | The local LLM (Ollama, `gemma4:31b`); no data leaves the environment |
+| 3:36 | Agent Tenable: "investigate this user" with tools, skills and sub-agents |
+| 4:41 | Asset card: connected systems, vulnerabilities grouped by host or CVE, risk details |
+| 5:25 | Correlation evidence: why a user is related to a finding; the user's groups |
+| 5:47 | Explore: Local Users, Software Inventory, Browser Extensions |
+| 6:28 | Summary |
+
+## What you get
+
+- **Dashboard:** findings by severity, risky identities, users reaching critical hosts, hosts under Tier 0 accounts and service accounts on critical hosts. Every widget explains how it is calculated.
+- **Risk:** for each host, its findings, Asset Criticality Rating and AD tier, joined to every identity that can reach it and the evidence for that access.
+- **Explore:** Assets, Hosts, AD Objects, Findings, Software Inventory, Local Users and Browser Extensions, with filters and detail panels.
+- **Asset Details:** one page per identity or host with connected systems, vulnerabilities, a risk score with its factors, and the correlation evidence (the plugin output line, how the name was matched to AD, and the group path).
+- **Agent Tenable:** answers in Turkish or English, shows the data it used as tables and links every value to the screen that shows it.
+- **Data:** everything is in PostgreSQL (see [Database](#database)), so you can also query it directly.
 
 ## Services
 
@@ -41,7 +75,7 @@ Open `http://<host>:8085` (change `web_port` in `.env` to use another port), the
 1. **Settings > Security Center:** enter the URL and API keys, run **Test connection**, add a pool, add a query to it, and press **Sync now**. The `sc` connector picks the job up within 30 seconds.
 2. **Settings > Identity Exposure:** run **Test connection**, then **Sync now**.
 3. **Settings > CTEM Pipeline:** run **plugin_collect** once (it needs SC credentials from step 1); `extract` and `correlate` follow by themselves. Risk, Local Users, Software and the dashboard read models fill after `correlate` finishes.
-4. **Settings > Agent Tenable:** enter the Ollama URL (`http://host:11434`), press **Test and list models**, pick a model that lists `tools` among its capabilities, save. The robot icon at the top right opens the chat.
+4. **Settings > Agent Tenable:** enter the Ollama URL (`http://host.docker.internal:11434` for Ollama on the Docker host, which is the default, or `http://<ollama-host>:11434`), press **Test and list models**, pick a model that lists `tools` among its capabilities, save. The robot icon at the top right opens the chat.
 
 `secrets/app_secret_key` encrypts the Security Center keys and the TIE token stored in PostgreSQL. If you replace it, enter those values again in Settings.
 
@@ -138,8 +172,32 @@ docker compose exec php php /var/www/html/tests/ai_tools_test.php
 docker compose exec php php /var/www/html/tests/assets_test.php
 ```
 
-## Not built yet
+## Outbound connections
 
-- CTEM scenarios S6–S10, S13, S14 and S16. Their plugins are in the catalog as candidates.
-- The Reports section (the menu entry exists).
-- Login for the web UI.
+Exposure Lens makes only these network connections, all to addresses you configure:
+
+| From | To | Why |
+| --- | --- | --- |
+| `sc` | Tenable Security Center (HTTPS, the URL in Settings) | Read vulnerabilities and plugin output with your API keys. Read-only. |
+| `tie` | Tenable Identity Exposure (HTTPS, `tie_host` in `.env`) | Read AD objects and identity findings with your API key. Read-only. |
+| `php` | Ollama (the URL in Settings > Agent Tenable) | Send the chat, including the records the assistant looked up, to your own LLM server. |
+
+There is no telemetry and no call to any other service. The browser loads every script and stylesheet from the app itself.
+
+## Credentials
+
+No password, key or token is stored in the repository. You provide them at install time:
+
+- `.env` (git-ignored, created from `.env.example`): PostgreSQL password and the Identity Exposure API key.
+- `secrets/` (git-ignored): the connector token and the key that encrypts the Security Center keys and the TIE token stored in PostgreSQL.
+- Settings in the UI: Security Center API keys, stored encrypted.
+
+## Known limitations
+
+- **No login.** The web UI has no authentication yet. Anyone who can reach port 8085 can use it; restrict it with a firewall or bind it to `127.0.0.1` (see [First run](#first-run)).
+- **Read-only.** Exposure Lens never writes to Security Center or Identity Exposure. Agent Tenable's tools are read-only database queries; the *Offensive Security* skill is a point of view for analysis, not an attack tool.
+- **Answer quality depends on the model.** Tested with `gemma4:31b`. Smaller models call tools less reliably, and `gemma4:31b` is a 19 GB download and needs a machine with about that much free GPU or unified memory.
+- **Identity matching is heuristic.** Names in plugin output are matched to AD by SID, name, UPN and host domain; the match quality is shown with every result.
+- **Organisation data:** Identity Exposure does not return department, title or manager, so the organisational unit is shown instead.
+- **Not built yet:** CTEM scenarios S6–S10, S13, S14 and S16 (their plugins are in the catalog as candidates), and the Reports section (the menu entry exists).
+- **Not an official Tenable product,** and not supported by Tenable.
