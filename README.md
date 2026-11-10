@@ -209,7 +209,7 @@ No password, key or token is stored in the repository. You provide them at insta
 Exposure Lens was developed together by:
 
 - **Ali Okan Yüksel**, Enterprise Security Engineer, Tenable
-- **Taher Karaki**
+- **Taher Karaki**, Enterprise Security Engineer, Tenable
 
 This project is the result of true teamwork. Taher's ideas, expertise and dedication helped shape Exposure Lens, and it would not be what it is today without that contribution. Thank you, Taher.
 
