@@ -201,3 +201,7 @@ No password, key or token is stored in the repository. You provide them at insta
 - **Organisation data:** Identity Exposure does not return department, title or manager, so the organisational unit is shown instead.
 - **Not built yet:** CTEM scenarios S6–S10, S13, S14 and S16 (their plugins are in the catalog as candidates), and the Reports section (the menu entry exists).
 - **Not an official Tenable product,** and not supported by Tenable.
+
+## License
+
+[MIT](LICENSE). Copyright (c) 2026 Tenable, Inc.
