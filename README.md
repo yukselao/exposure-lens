@@ -8,6 +8,8 @@ It is built for teams that run Security Center and Identity Exposure on-premises
 
 > Exposure Lens is a Tenable Cyber Exchange community project. It is **not an official Tenable product** and is not supported by Tenable.
 
+Built together by **Ali Okan Yüksel** and **Taher Karaki**. See [Authors](#authors).
+
 ## Demo
 
 [![Exposure Lens demo video (6:53)](docs/demo/poster.png)](docs/demo/exposure-lens-demo.mp4)
@@ -201,6 +203,15 @@ No password, key or token is stored in the repository. You provide them at insta
 - **Organisation data:** Identity Exposure does not return department, title or manager, so the organisational unit is shown instead.
 - **Not built yet:** CTEM scenarios S6–S10, S13, S14 and S16 (their plugins are in the catalog as candidates), and the Reports section (the menu entry exists).
 - **Not an official Tenable product,** and not supported by Tenable.
+
+## Authors
+
+Exposure Lens was developed together by:
+
+- **Ali Okan Yüksel**, Enterprise Security Engineer, Tenable
+- **Taher Karaki**
+
+This project is the result of true teamwork. Taher's ideas, expertise and dedication helped shape Exposure Lens, and it would not be what it is today without that contribution. Thank you, Taher.
 
 ## License
 
